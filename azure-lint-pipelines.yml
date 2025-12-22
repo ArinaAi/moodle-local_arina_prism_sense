@@ -1,0 +1,41 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pr:
+  branches:
+    include:
+      - '*'
+
+name: $(Rev:r)
+
+variables:
+  - group: arina-moodle-plugin-variables
+  - name: system.debug
+    value: false
+
+pool:
+  name: Default
+  
+stages:
+- stage: SonarQube
+  displayName: "Code Analysis with SonarQube"
+  jobs:
+    - job: SonarQubeJob
+      steps:
+        - checkout: self
+          fetchDepth: 0
+        - task: SonarQubePrepare@7
+          inputs:
+            SonarQube: 'arina-sonarqube-service'
+            scannerMode: 'CLI'
+            configMode: 'manual'
+            cliProjectKey: $(SONAR_PROJECT_KEY)
+            cliSources: '.'
+            extraProperties: |
+              sonar.qualitygate.wait=true
+        - task: SonarQubeAnalyze@7
+        - task: SonarQubePublish@7
+          inputs:
+            pollingTimeoutSec: '300'

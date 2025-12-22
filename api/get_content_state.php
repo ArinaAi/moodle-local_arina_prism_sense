@@ -1,0 +1,143 @@
+<?php
+/**
+ * Get all content state from database for a course
+ * Returns generating, ready, and published content
+ *
+ * @package    local_lecturebot
+ * @copyright  2025
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+define('AJAX_SCRIPT', true);
+require_once(__DIR__ . '/../../../config.php');
+
+header('Content-Type: application/json');
+
+try {
+    // Get parameters
+    $courseid = required_param('courseid', PARAM_INT);
+    
+    // Require login and capability
+    require_login($courseid);
+    $context = context_course::instance($courseid);
+    require_capability('moodle/course:update', $context);
+    
+    // Release session lock to improve concurrency
+    \core\session\manager::write_close();
+    
+    // Get all content for this course
+    $contents = $DB->get_records('local_lecturebot_content', ['courseid' => $courseid], 'timecreated DESC');
+    
+    // Get section names
+    $modinfo = get_fast_modinfo($courseid);
+    $sections = $modinfo->get_section_info_all();
+    $section_names = [];
+    foreach ($sections as $section) {
+        $section_names[$section->id] = $section->name ?: "Section " . $section->section;
+    }
+    
+    $result = [];
+    foreach ($contents as $content) {
+        // Self-healing: Check if published content was deleted from course manually
+        if ($content->status === 'published' && !empty($content->cmid)) {
+            // Check if the course module still exists in the database (bypass cache)
+            // Also check deletioninprogress flag (Recycle Bin)
+            $cm_record = $DB->get_record('course_modules', ['id' => $content->cmid], 'id, deletioninprogress');
+            
+            if (!$cm_record || (!empty($cm_record->deletioninprogress) && $cm_record->deletioninprogress)) {
+                // Content was deleted from course page
+                // sync status: delete from our database permanently
+                
+                $DB->delete_records('local_lecturebot_content', ['id' => $content->id]);
+                
+                // Skip processing this item as it's now deleted
+                continue;
+            }
+        }
+
+        $generationData = json_decode($content->generationdata, true);
+        
+        // Get approver information if content is approved
+        $approver = null;
+        if ($content->approved && $content->approvedby) {
+            $approverUser = $DB->get_record('user', ['id' => $content->approvedby], 'id, firstname, lastname, email');
+            if ($approverUser) {
+                $approver = [
+                    'id' => $approverUser->id,
+                    'firstname' => $approverUser->firstname,
+                    'lastname' => $approverUser->lastname,
+                    'fullname' => fullname($approverUser),
+                    'email' => $approverUser->email
+                ];
+            }
+        }
+        
+        // If PPTX file exists but no result data, count slides
+        if (isset($generationData['pptx_path']) &&
+            file_exists($generationData['pptx_path']) &&
+            empty($generationData['result'])) {
+            
+            require_once(__DIR__ . '/generate_content.php');
+            $slideCount = countSlidesInPptx($generationData['pptx_path']);
+            
+            if ($slideCount > 0) {
+                // Create minimal result structure
+                $resultsData = [
+                    [
+                        'topic' => $content->title,
+                        'slideCount' => $slideCount
+                    ]
+                ];
+                
+                // Update the generation data
+                $generationData['result'] = [
+                    'status' => 'success',
+                    'results' => $resultsData
+                ];
+                $generationData['slide_count'] = $slideCount;
+                
+                // Update database
+                $DB->update_record(
+                    'local_lecturebot_content',
+                    (object)[
+                        'id' => $content->id,
+                        'generationdata' => json_encode($generationData),
+                        'timemodified' => time()
+                    ]
+                );
+            }
+        }
+        
+        $result[] = [
+            'id' => $content->id,
+            'sectionid' => $content->sectionid,
+            'sectionname' => $section_names[$content->sectionid] ?? "Unknown Section",
+            'contenttype' => $content->contenttype,
+            'status' => $content->status,
+            'title' => $content->title,
+            'errormessage' => $content->errormessage,
+            'timecreated' => $content->timecreated,
+            'timemodified' => $content->timemodified,
+            'timepublished' => $content->timepublished,
+            'cmid' => $content->cmid,
+            'result' => $generationData['result'] ?? null,
+            'content_strategy' => $generationData['content_strategy'] ?? 'standard',
+            'approved' => (bool)$content->approved,
+            'approvedby' => $content->approvedby,
+            'timeapproved' => $content->timeapproved,
+            'approver' => $approver
+        ];
+    }
+    
+    echo json_encode([
+        'success' => true,
+        'contents' => $result
+    ]);
+    
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => $e->getMessage()
+    ]);
+}

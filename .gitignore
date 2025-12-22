@@ -1,0 +1,37 @@
+# Node modules and package manager files
+amd/node_modules/
+amd/package-lock.json
+amd/yarn.lock
+amd/pnpm-lock.yaml
+
+# Build artifacts
+amd/build/
+
+# TypeScript compilation cache
+amd/.tsbuildinfo
+amd/src/**/*.js
+amd/src/**/*.js.map
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+*.tmp
+*.temp
+*.cache
+
+# Backup files
+*.bak
+*.backup
+*~
+.DS_Store
+
+# Secrets and Local Config
+config_azure.php
+
+# Internal Documentation
+CLEANUP_PLAN.md
+UX_IMPROVEMENT_PLAN.md

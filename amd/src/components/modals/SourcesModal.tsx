@@ -1,0 +1,1019 @@
+// components/modals/SourcesModal.tsx - Section-Based Upload with 3-Box Grid
+import React, { useState, useEffect } from 'react';
+import {
+  Modal,
+  Box,
+  Typography,
+  Button,
+  IconButton,
+  Alert,
+  CircularProgress,
+  Paper,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  TextField,
+} from '@mui/material';
+import { Close, Error as ErrorIcon, Add, Check, Delete } from '@mui/icons-material';
+import { FileText } from 'lucide-react';
+import type { MoodleContext } from '../../types/moodle';
+
+interface SourcesModalProps {
+  open: boolean;
+  onClose: () => void;
+  moodleContext: MoodleContext;
+}
+
+interface SectionOption {
+  sectionId: number;
+  sectionName: string;
+}
+
+interface ExistingSource {
+  id: number;
+  filename: string;
+  filesize: number;
+  fileitemid: number;
+  timecreated: number;
+  title?: string;
+  author?: string;
+}
+
+interface BoxState {
+  type: 'empty' | 'existing' | 'uploading' | 'success' | 'error' | 'pending_details';
+  existingSource?: ExistingSource;
+  file?: File;
+  error?: string;
+  title: string;
+  author: string;
+}
+
+// Helper function to get border color based on box type
+const getBorderColor = (boxType: BoxState['type']): string => {
+  if (boxType === 'error') return '#dc3545';
+  if (boxType === 'existing') return '#28a745';
+  if (boxType === 'uploading' || boxType === 'pending_details') return '#0D5CA2';
+  return '#cbd5e0';
+};
+
+// Helper function to get background color based on box type
+const getBackgroundColor = (boxType: BoxState['type']): string => {
+  if (boxType === 'existing') return '#f0fff4';
+  if (boxType === 'error') return '#fff5f5';
+  if (boxType === 'uploading' || boxType === 'pending_details') return '#f0f7ff';
+  return '#fafbfc';
+};
+
+// Helper function to get box state flags
+const getBoxTypeFlags = (boxType: BoxState['type']) => ({
+  isUploading: boxType === 'uploading',
+  isExisting: boxType === 'existing',
+  isError: boxType === 'error',
+  isEmpty: boxType === 'empty',
+  isPending: boxType === 'pending_details',
+});
+
+const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContext }) => {
+  const [sections, setSections] = useState<SectionOption[]>([]);
+  const [selectedSection, setSelectedSection] = useState<number | null>(null);
+  const [boxes, setBoxes] = useState<[BoxState, BoxState, BoxState]>([
+    { type: 'empty', title: '', author: '' },
+    { type: 'empty', title: '', author: '' },
+    { type: 'empty', title: '', author: '' },
+  ]);
+  const [_isDragging, setIsDragging] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [validationErrors, setValidationErrors] = useState<boolean[]>([false, false, false]);
+  const [loading, setLoading] = useState(true);
+  const [sectionSources, setSectionSources] = useState<Record<number, ExistingSource[]>>({});
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ open: boolean; boxIndex: number | null; sourceId: number | null }>({ open: false, boxIndex: null, sourceId: null });
+
+  // Load sections when modal opens
+  useEffect(() => {
+    if (open && moodleContext) {
+      loadSections();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, moodleContext]);
+
+  // Load sources for selected section
+  useEffect(() => {
+    if (selectedSection !== null && sectionSources[selectedSection] !== undefined) {
+      loadSectionSources(selectedSection);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSection, sectionSources]);
+
+  const loadSections = async () => {
+    setLoading(true);
+    try {
+      // Get sections from moodleContext directly
+      if (!moodleContext.sections || moodleContext.sections.length === 0) {
+        throw new Error('No sections available in this course');
+      }
+
+      // Initialize section map and sources map
+      const sectionMap = new Map<number, string>();
+      const sourcesMap: Record<number, ExistingSource[]> = {};
+
+      // Add all sections from moodleContext
+      moodleContext.sections.forEach((section: { id: number; name: string }) => {
+        sectionMap.set(section.id, section.name);
+        sourcesMap[section.id] = [];
+      });
+
+      // Try to fetch existing sources from API
+      try {
+        const response = await fetch(
+          `${moodleContext.wwwroot}/local/lecturebot/api/get_sources.php?courseid=${moodleContext.courseid}`,
+          {
+            method: 'GET',
+            credentials: 'include',
+          }
+        );
+
+        const data = await response.json();
+
+        // Add sources if available
+        if (data.sources && Array.isArray(data.sources)) {
+          data.sources.forEach((source: ExistingSource & { sectionid: number }) => {
+            if (!sourcesMap[source.sectionid]) {
+              sourcesMap[source.sectionid] = [];
+            }
+            sourcesMap[source.sectionid].push(source);
+          });
+        }
+      } catch (apiError) {
+        // If API fails, just use sections without sources
+        console.warn('Could not fetch existing sources:', apiError);
+      }
+
+      const sectionList = Array.from(sectionMap.entries()).map(([id, name]) => ({
+        sectionId: id,
+        sectionName: name,
+      }));
+
+      setSections(sectionList);
+      setSectionSources(sourcesMap);
+
+      // Select first section by default
+      if (sectionList.length > 0) {
+        setSelectedSection(sectionList[0].sectionId);
+      }
+    } catch (err) {
+      setErrors({ general: (err as Error).message });
+      console.error('Error loading sections:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadSectionSources = (sectionId: number) => {
+    const sources = sectionSources[sectionId] || [];
+    const newBoxes: [BoxState, BoxState, BoxState] = [
+      { type: 'empty', title: '', author: '' },
+      { type: 'empty', title: '', author: '' },
+      { type: 'empty', title: '', author: '' },
+    ];
+
+    sources.forEach((source, index) => {
+      if (index < 3) {
+        // Use filename (without extension) as fallback title if title is missing
+        const fallbackTitle = source.title || source.filename.replace(/\.[^/.]+$/, '');
+
+        newBoxes[index] = {
+          type: 'existing',
+          existingSource: source,
+          title: fallbackTitle,
+          author: source.author || '',
+        };
+      }
+    });
+
+    setBoxes(newBoxes);
+  };
+
+  const handleTitleChange = (boxIndex: number, value: string) => {
+    const newBoxes = [...boxes] as [BoxState, BoxState, BoxState];
+    newBoxes[boxIndex] = { ...boxes[boxIndex], title: value };
+    setBoxes(newBoxes);
+
+    // Clear validation error when user types
+    if (validationErrors[boxIndex]) {
+      const newErrors = [...validationErrors];
+      newErrors[boxIndex] = false;
+      setValidationErrors(newErrors);
+    }
+  };
+
+  const handleAuthorChange = (boxIndex: number, value: string) => {
+    const newBoxes = [...boxes] as [BoxState, BoxState, BoxState];
+    newBoxes[boxIndex] = { ...boxes[boxIndex], author: value };
+    setBoxes(newBoxes);
+
+    // Clear validation error when user types
+    if (validationErrors[boxIndex]) {
+      const newErrors = [...validationErrors];
+      newErrors[boxIndex] = false;
+      setValidationErrors(newErrors);
+    }
+  };
+
+
+  const getTextFieldError = (boxIndex: number, isPending: boolean, value: string): boolean => {
+    return validationErrors[boxIndex] && isPending && !value.trim();
+  };
+
+  const getTextFieldHelperText = (boxIndex: number, isPending: boolean, value: string, fieldName: string): string => {
+    return validationErrors[boxIndex] && isPending && !value.trim() ? `${fieldName} is required` : '';
+  };
+
+  const getTextFieldInputProps = (isExisting: boolean) => ({
+    sx: {
+      fontSize: '0.9rem',
+      bgcolor: isExisting ? '#f8f9fa' : '#fff',
+      '& input': {
+        color: isExisting ? '#2c3e50' : 'inherit',
+        WebkitTextFillColor: isExisting ? '#2c3e50' : 'inherit'
+      }
+    }
+  });
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>, boxIndex: number) => {
+    if (!selectedSection) {
+      return;
+    }
+
+    const files = Array.from(event.target.files || []);
+    const pdfFiles = files.filter((file) => file.type === 'application/pdf');
+
+    if (pdfFiles.length === 0) {
+      setErrors((prev) => ({ ...prev, file: 'Please select PDF files only.' }));
+      return;
+    }
+
+    if (pdfFiles.length > 1) {
+      setErrors((prev) => ({ ...prev, file: 'Please select only 1 PDF per box.' }));
+      return;
+    }
+
+    setErrors((prev) => ({ ...prev, file: '' }));
+
+    // Add file to specific box
+    const newBoxes = [...boxes] as [BoxState, BoxState, BoxState];
+    newBoxes[boxIndex] = {
+      type: 'pending_details',
+      file: pdfFiles[0],
+      title: '',
+      author: '',
+    };
+    setBoxes(newBoxes);
+
+    event.target.value = '';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent, boxIndex: number) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    if (!selectedSection) {
+      return;
+    }
+
+    const files = Array.from(e.dataTransfer.files);
+    const pdfFiles = files.filter((file) => file.type === 'application/pdf');
+
+    if (pdfFiles.length === 0) {
+      setErrors((prev) => ({ ...prev, file: 'Please drop PDF files only.' }));
+      return;
+    }
+
+    setErrors((prev) => ({ ...prev, file: '' }));
+
+    // Add file to specific box
+    const newBoxes = [...boxes] as [BoxState, BoxState, BoxState];
+    newBoxes[boxIndex] = {
+      type: 'pending_details',
+      file: pdfFiles[0],
+      title: '',
+      author: '',
+    };
+    setBoxes(newBoxes);
+  };
+
+  const uploadFile = async (file: File, boxIndex: number, title: string, author: string) => {
+    if (!selectedSection) {
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('pdf', file);
+      formData.append('title', title);
+      formData.append('author', author);
+
+      const response = await fetch(
+        `${moodleContext.wwwroot}/local/lecturebot/api/upload_source.php?courseid=${moodleContext.courseid}&sectionid=${selectedSection}&sesskey=${moodleContext.sesskey}`,
+        {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.status !== 'success') {
+        throw new Error(data.error || 'Upload failed');
+      }
+
+      // Reload all sources from server to ensure fresh data
+      await loadSections();
+
+      // Reload the current section's sources
+      if (selectedSection !== null) {
+        const sourcesResponse = await fetch(
+          `${moodleContext.wwwroot}/local/lecturebot/api/get_sources.php?courseid=${moodleContext.courseid}&sectionid=${selectedSection}`,
+          {
+            method: 'GET',
+            credentials: 'include',
+          }
+        );
+        const sourcesData = await sourcesResponse.json();
+
+        if (sourcesData.success && sourcesData.sources) {
+          setSectionSources((prev) => ({
+            ...prev,
+            [selectedSection]: sourcesData.sources,
+          }));
+
+          // Reload boxes with fresh data
+          loadSectionSources(selectedSection);
+        }
+      }
+    } catch (error) {
+      // Update box to error state
+      const newBoxes = [...boxes] as [BoxState, BoxState, BoxState];
+      newBoxes[boxIndex] = {
+        type: 'error',
+        file,
+        error: (error as Error).message,
+        title: '',
+        author: '',
+      };
+      setBoxes(newBoxes);
+    }
+  };
+
+  const openDeleteConfirmation = (boxIndex: number, sourceId: number) => {
+    setDeleteConfirmation({ open: true, boxIndex, sourceId });
+  };
+
+  const closeDeleteConfirmation = () => {
+    setDeleteConfirmation({ open: false, boxIndex: null, sourceId: null });
+  };
+
+  const handleDeleteSource = async () => {
+    const { boxIndex, sourceId } = deleteConfirmation;
+    if (!selectedSection || boxIndex === null || sourceId === null) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${moodleContext.wwwroot}/local/lecturebot/api/delete_source.php?courseid=${moodleContext.courseid}&sesskey=${moodleContext.sesskey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sourceid: sourceId }),
+          credentials: 'include',
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.status !== 'success') {
+        throw new Error(data.error || 'Delete failed');
+      }
+
+      // Clear the box
+      const newBoxes = [...boxes] as [BoxState, BoxState, BoxState];
+      newBoxes[boxIndex] = { type: 'empty', title: '', author: '' };
+      setBoxes(newBoxes);
+
+      // Update section sources
+      setSectionSources((prev) => ({
+        ...prev,
+        [selectedSection]: (prev[selectedSection] || []).filter((s) => s.id !== sourceId),
+      }));
+
+      // Close confirmation dialog
+      closeDeleteConfirmation();
+    } catch (error) {
+      setErrors({ general: (error as Error).message });
+      closeDeleteConfirmation();
+    }
+  };
+
+  const removeErrorBox = (boxIndex: number) => {
+    const newBoxes = [...boxes] as [BoxState, BoxState, BoxState];
+    newBoxes[boxIndex] = { type: 'empty', title: '', author: '' };
+    setBoxes(newBoxes);
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) {
+      return bytes + ' B';
+    }
+    if (bytes < 1024 * 1024) {
+      return (bytes / 1024).toFixed(1) + ' KB';
+    }
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  const truncateFilename = (filename: string, maxLength: number = 25): string => {
+    if (filename.length <= maxLength) {
+      return filename;
+    }
+    const ext = filename.slice(filename.lastIndexOf('.'));
+    const name = filename.slice(0, filename.lastIndexOf('.'));
+    return name.slice(0, maxLength - ext.length - 3) + '...' + ext;
+  };
+
+  const handleSectionChange = (sectionId: number) => {
+    setSelectedSection(sectionId);
+  };
+
+  const getFilledBoxCount = () => {
+    return boxes.filter(box => box.type === 'existing' || box.type === 'uploading').length;
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} sx={{ zIndex: 10015 }}>
+      <Box
+        sx={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: { xs: '90%', sm: '85%', md: '850px' },
+          maxHeight: '85vh',
+          height: 'auto',
+          bgcolor: 'background.paper',
+          borderRadius: '16px',
+          boxShadow: 24,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {/* Header */}
+        <Box
+          sx={{
+            p: 3,
+            borderBottom: '2px solid #ffffff',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <Typography variant="h6" component="h2">
+            Manage Sources
+          </Typography>
+          <IconButton onClick={onClose}>
+            <Close />
+          </IconButton>
+        </Box>
+
+        {/* Content */}
+        <Box sx={{ p: 3, overflow: 'auto', flex: 1 }}>
+          {loading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          )}
+
+          {!loading && errors.file && (
+            <Alert severity="error" sx={{ mb: 3 }} onClose={() => setErrors((prev) => ({ ...prev, file: '' }))}>
+              {errors.file}
+            </Alert>
+          )}
+
+
+
+          {!loading && sections.length === 0 && (
+            <Alert severity="warning">
+              No sections found in this course. Please create a section first.
+            </Alert>
+          )}
+
+          {!loading && sections.length > 0 && (
+            <>
+              {/* 3 Upload Boxes Grid */}
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: 3,
+                  mb: 3,
+                }}
+              >
+                {boxes.map((box, boxIndex) => {
+                  const { isUploading, isExisting, isError, isEmpty, isPending } = getBoxTypeFlags(box.type);
+                  const borderColor = getBorderColor(box.type);
+                  const backgroundColor = getBackgroundColor(box.type);
+                  const boxId = `source-upload-slot-${boxIndex + 1}`;
+
+                  return (
+                    <Box key={boxId} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      {/* DropZone Area */}
+                      <Paper
+                        variant="outlined"
+                        sx={{
+                          border: `2px dashed ${borderColor}`,
+                          borderRadius: 2,
+                          p: 3,
+                          textAlign: 'center',
+                          backgroundColor: backgroundColor,
+                          cursor: isEmpty ? 'pointer' : 'default',
+                          minHeight: '320px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          position: 'relative',
+                          transition: 'all 0.3s ease',
+                          '&:hover': isEmpty ? {
+                            borderColor: '#0D5CA2',
+                            backgroundColor: '#f0f7ff',
+                            transform: 'translateY(-2px)',
+                            boxShadow: '0 4px 12px rgba(13, 92, 162, 0.15)',
+                          } : {},
+                        }}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e: React.DragEvent) => isEmpty && handleDrop(e, boxIndex)}
+                        onClick={() =>
+                          isEmpty && document.getElementById(`pdf-upload-input-${boxIndex}`)?.click()
+                        }
+                      >
+                        <input
+                          id={`pdf-upload-input-${boxIndex}`}
+                          type="file"
+                          accept=".pdf"
+                          onChange={(e) => handleFileSelect(e, boxIndex)}
+                          disabled={!isEmpty}
+                          style={{ display: 'none' }}
+                        />
+
+                        {isEmpty && (
+                          <>
+                            <Box
+                              sx={{
+                                width: 48,
+                                height: 48,
+                                borderRadius: '50%',
+                                backgroundColor: 'rgba(13, 92, 162, 0.1)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                mb: 1.5,
+                              }}
+                            >
+                              <Add sx={{ fontSize: 24, color: '#0D5CA2' }} />
+                            </Box>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                color: '#0D5CA2',
+                                fontWeight: 700,
+                                mb: 0.5,
+                                fontSize: '0.85rem',
+                              }}
+                            >
+                              Click to upload
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: '#6c757d',
+                                fontSize: '0.75rem',
+                              }}
+                            >
+                              or drag and drop
+                            </Typography>
+                          </>
+                        )}
+
+                        {(isPending || isUploading) && box.file && (
+                          <>
+                            <FileText
+                              size={40}
+                              color="#0D5CA2"
+                              style={{ marginBottom: 12, opacity: 0.8 }}
+                            />
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: 600,
+                                mb: 0.5,
+                                color: '#1a1a1a',
+                                textAlign: 'center',
+                                px: 1,
+                                fontSize: '0.85rem',
+                                wordBreak: 'break-word',
+                              }}
+                            >
+                              {truncateFilename(box.file.name)}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: '#6c757d',
+                                mb: 1,
+                                display: 'block',
+                              }}
+                            >
+                              {formatFileSize(box.file.size)}
+                            </Typography>
+
+                            {isUploading && (
+                              <Box
+                                sx={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 0.5,
+                                  px: 1.5,
+                                  py: 0.5,
+                                  marginTop: 1,
+                                  borderRadius: '12px',
+                                  backgroundColor: 'rgba(13, 92, 162, 0.1)',
+                                }}
+                              >
+                                <CircularProgress
+                                  size={10}
+                                  thickness={4}
+                                  sx={{ color: '#0D5CA2' }}
+                                />
+                                <Typography
+                                  variant="caption"
+                                  sx={{ fontWeight: 600, color: '#0D5CA2', fontSize: '0.7rem' }}
+                                >
+                                  Uploading...
+                                </Typography>
+                              </Box>
+                            )}
+
+                            {isPending && (
+                              <Button
+                                size="small"
+                                color="error"
+                                sx={{ mt: 1, minWidth: 'auto' }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const newBoxes = [...boxes] as [BoxState, BoxState, BoxState];
+                                  newBoxes[boxIndex] = { type: 'empty', title: '', author: '' };
+                                  setBoxes(newBoxes);
+                                }}
+                              >
+                                Remove
+                              </Button>
+                            )}
+                          </>
+                        )}
+
+                        {isExisting && box.existingSource && (
+                          <>
+                            <Box sx={{ position: 'relative', mb: 1.5 }}>
+                              <FileText size={40} color="#28a745" style={{ opacity: 0.9 }} />
+                              <Box
+                                sx={{
+                                  position: 'absolute',
+                                  bottom: -4,
+                                  right: -4,
+                                  width: 18,
+                                  height: 18,
+                                  borderRadius: '50%',
+                                  backgroundColor: '#28a745',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  border: '2px solid #ffffff',
+                                }}
+                              >
+                                <Check sx={{ fontSize: 10, color: '#ffffff' }} />
+                              </Box>
+                            </Box>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: 700,
+                                mb: 0.5,
+                                color: '#1a1a1a',
+                                textAlign: 'center',
+                                px: 1,
+                                fontSize: '0.85rem',
+                                wordBreak: 'break-word',
+                              }}
+                            >
+                              {truncateFilename(box.existingSource.filename)}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: '#6c757d' }}>
+                              {formatFileSize(box.existingSource.filesize)}
+                            </Typography>
+                            <IconButton
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openDeleteConfirmation(boxIndex, box.existingSource!.id);
+                              }}
+                              size="small"
+                              sx={{
+                                position: 'absolute',
+                                top: 8,
+                                right: 8,
+                                color: '#dc3545',
+                                backgroundColor: 'rgba(255,255,255,0.8)',
+                                '&:hover': { backgroundColor: '#fff', color: '#bd2130' }
+                              }}
+                            >
+                              <Delete fontSize="small" />
+                            </IconButton>
+                          </>
+                        )}
+
+                        {isError && box.file && (
+                          <>
+                            <Box sx={{ position: 'relative', mb: 1.5 }}>
+                              <FileText size={40} color="#dc3545" style={{ opacity: 0.9 }} />
+                              <Box
+                                sx={{
+                                  position: 'absolute',
+                                  bottom: -4,
+                                  right: -4,
+                                  width: 18,
+                                  height: 18,
+                                  borderRadius: '50%',
+                                  backgroundColor: '#dc3545',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  border: '2px solid #ffffff',
+                                }}
+                              >
+                                <ErrorIcon sx={{ fontSize: 10, color: '#ffffff' }} />
+                              </Box>
+                            </Box>
+                            <Typography variant="caption" sx={{ color: '#dc3545', mb: 1, textAlign: 'center', lineHeight: 1.2 }}>
+                              {box.error || 'Upload failed'}
+                            </Typography>
+                            <IconButton
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeErrorBox(boxIndex);
+                              }}
+                              size="small"
+                              sx={{
+                                position: 'absolute',
+                                top: 8,
+                                right: 8,
+                                color: '#dc3545',
+                                backgroundColor: 'rgba(255,255,255,0.8)',
+                                '&:hover': { backgroundColor: '#fff' }
+                              }}
+                            >
+                              <Close fontSize="small" />
+                            </IconButton>
+                          </>
+                        )}
+                      </Paper>
+
+                      {/* Inputs Area - Always Visible */}
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                        <TextField
+                          size="small"
+                          label="Title"
+                          placeholder="Title"
+                          fullWidth
+                          value={box.title}
+                          onChange={(e) => handleTitleChange(boxIndex, e.target.value)}
+                          disabled={isUploading || isExisting}
+                          error={getTextFieldError(boxIndex, isPending, box.title)}
+                          helperText={getTextFieldHelperText(boxIndex, isPending, box.title, 'Title')}
+                          InputProps={getTextFieldInputProps(isExisting)}
+                        />
+                        <TextField
+                          size="small"
+                          label="Author"
+                          placeholder="Author"
+                          fullWidth
+                          value={box.author}
+                          onChange={(e) => handleAuthorChange(boxIndex, e.target.value)}
+                          disabled={isUploading || isExisting}
+                          error={getTextFieldError(boxIndex, isPending, box.author)}
+                          helperText={getTextFieldHelperText(boxIndex, isPending, box.author, 'Author')}
+                          InputProps={getTextFieldInputProps(isExisting)}
+                        />
+
+
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Box>
+
+              {/* Progress Bar and Source Limit */}
+              <Box sx={{ mb: 2 }}>
+                <Box
+                  sx={{
+                    height: '8px',
+                    backgroundColor: '#e9ecef',
+                    borderRadius: '4px',
+                    overflow: 'hidden',
+                    mb: 1.5,
+                    boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      height: '100%',
+                      width: `${(getFilledBoxCount() / 3) * 100}%`,
+                      background: 'linear-gradient(90deg, #0f6cbf 0%, #0a5a9d 100%)',
+                      transition: 'width 0.4s ease',
+                      borderRadius: '4px',
+                      boxShadow: '0 2px 4px rgba(15, 108, 191, 0.3)',
+                    }}
+                  />
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ color: '#1a1a1a', fontWeight: 600, fontSize: '13px' }}>
+                    Source Limit
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#0D5CA2', fontWeight: 700, fontSize: '14px' }}>
+                    {getFilledBoxCount()}/3
+                  </Typography>
+                </Box>
+              </Box>
+            </>
+          )}
+        </Box>
+
+        {/* Footer with Section Dropdown */}
+        <Box
+          sx={{
+            p: 3,
+            borderTop: '1px solid #e9ecef',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 2,
+          }}
+        >
+          {/* Section Selector - Bottom Left */}
+          <FormControl sx={{ minWidth: 300 }} size="medium">
+            <InputLabel id="section-selector-label">Select Section</InputLabel>
+            <Select
+              labelId="section-selector-label"
+              value={selectedSection?.toString() || ''}
+              label="Select Section"
+              onChange={(e) => handleSectionChange(Number(e.target.value))}
+              disabled={loading}
+              MenuProps={{
+                sx: {
+                  zIndex: 10018,
+                },
+              }}
+            >
+              {sections.map((section) => (
+                <MenuItem key={section.sectionId} value={section.sectionId.toString()}>
+                  {section.sectionName}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* Done Button - Bottom Right */}
+          <Button
+            onClick={() => {
+              // Check if any pending box is missing title or author
+              const newValidationErrors = boxes.map(
+                box => box.type === 'pending_details' && (!box.title.trim() || !box.author.trim())
+              );
+
+              const hasInvalidPending = newValidationErrors.some(error => error);
+
+              if (hasInvalidPending) {
+                setValidationErrors(newValidationErrors);
+                setErrors({ general: 'Please provide Title and Author for all selected files.' });
+                return;
+              }
+
+              // Clear validation errors
+              setValidationErrors([false, false, false]);
+
+              // Prepare uploads
+              const uploads = boxes.map((box, index) => {
+                if (box.type === 'pending_details' && box.file && box.title.trim() && box.author.trim()) {
+                  // Optimistically set to uploading
+                  const newBoxes = [...boxes] as [BoxState, BoxState, BoxState];
+                  newBoxes[index] = { ...box, type: 'uploading' };
+                  setBoxes(newBoxes);
+
+                  return uploadFile(box.file, index, box.title, box.author);
+                }
+                return Promise.resolve();
+              });
+
+              Promise.all(uploads).then(() => {
+                onClose();
+              });
+            }}
+            variant="contained"
+            sx={{
+              fontWeight: 600,
+              py: 1.5,
+              px: 4,
+              background: 'linear-gradient(135deg, #0f6cbf 0%, #0a5a9d 100%)',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #0a5a9d 0%, #084a82 100%)',
+                boxShadow: '0 6px 20px rgba(15, 108, 191, 0.4)',
+                transform: 'translateY(-2px)',
+              },
+            }}
+          >
+            Done
+          </Button>
+        </Box>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog
+          open={deleteConfirmation.open}
+          onClose={closeDeleteConfirmation}
+          sx={{ zIndex: 10020 }}
+          PaperProps={{
+            sx: {
+              borderRadius: '12px',
+              minWidth: '400px',
+            },
+          }}
+        >
+          <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
+            Delete PDF Source?
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText sx={{ color: 'text.secondary' }}>
+              Are you sure you want to delete this PDF source? This action cannot be undone.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
+            <Button
+              onClick={closeDeleteConfirmation}
+              variant="outlined"
+              sx={{
+                fontWeight: 600,
+                borderWidth: 2,
+                '&:hover': {
+                  borderWidth: 2,
+                },
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDeleteSource}
+              variant="contained"
+              color="error"
+              sx={{
+                fontWeight: 600,
+                background: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #c82333 0%, #bd2130 100%)',
+                  boxShadow: '0 6px 20px rgba(220, 53, 69, 0.4)',
+                },
+              }}
+            >
+              Delete
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
+    </Modal>
+  );
+};
+
+export default SourcesModal;
