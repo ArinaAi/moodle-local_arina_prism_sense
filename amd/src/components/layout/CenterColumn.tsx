@@ -9,7 +9,7 @@ import PptxViewer from '../slides/PptxViewer';
 
 import ThoughtStream from '../shared/ThoughtStream';
 
-import type { Slide, GenerateLectureResponse, ContentItem } from '../../types/app';
+import type { Slide, GenerateLectureResponse, ContentItem, SubtopicResult } from '../../types/app';
 import type { MoodleContext } from '../../types/moodle';
 
 interface CenterColumnProps {
@@ -276,7 +276,7 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
   );
 
   /* New Helper Functions for renderSlidesPreview */
-  const renderSlideInfo = (currentTopic: any, totalSlides: number) => (
+  const renderSlideInfo = (currentTopic: SubtopicResult, totalSlides: number) => (
     <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
       <Typography variant="body2" color="text.secondary">
         {totalSlides} slide{totalSlides !== 1 ? 's' : ''} generated for {currentTopic?.topic || 'this section'}
@@ -299,7 +299,10 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
   const renderPptxDisplay = () => (
     <Box
       sx={{
-        height: isMobile ? '400px' : '650px',
+        width: '100%',
+        aspectRatio: '16/9',
+        minHeight: isMobile ? '250px' : '600px',
+        maxHeight: isMobile ? '50vh' : '850px',
         border: '2px solid #e0e0e0',
         borderRadius: 1,
         overflow: 'hidden',
@@ -372,6 +375,43 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
         }}
       >
         {isApproved ? 'Approved' : 'Approve Slides'}
+        {/* Sparkle effects on click */}
+        <Box
+          className={isApproved ? "animate-pop" : ""}
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none',
+            transform: 'translate(-50%, -50%)',
+            overflow: 'hidden',
+            display: isApproved ? 'block' : 'none',
+          }}
+        >
+          {['sparkle-0', 'sparkle-1', 'sparkle-2', 'sparkle-3', 'sparkle-4', 'sparkle-5'].map((id, i) => (
+            <Box
+              key={id}
+              sx={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                width: 4,
+                height: 4,
+                background: '#FFD700',
+                borderRadius: '50%',
+                animation: `sparkle-${i} 0.6s ease-out forwards`,
+                '@keyframes sparkle-0': { '0%': { transform: 'translate(0,0) scale(1)' }, '100%': { transform: 'translate(-20px, -20px) scale(0)' } },
+                '@keyframes sparkle-1': { '0%': { transform: 'translate(0,0) scale(1)' }, '100%': { transform: 'translate(20px, -20px) scale(0)' } },
+                '@keyframes sparkle-2': { '0%': { transform: 'translate(0,0) scale(1)' }, '100%': { transform: 'translate(-20px, 20px) scale(0)' } },
+                '@keyframes sparkle-3': { '0%': { transform: 'translate(0,0) scale(1)' }, '100%': { transform: 'translate(20px, 20px) scale(0)' } },
+                '@keyframes sparkle-4': { '0%': { transform: 'translate(0,0) scale(1)' }, '100%': { transform: 'translate(0, -30px) scale(0)' } },
+                '@keyframes sparkle-5': { '0%': { transform: 'translate(0,0) scale(1)' }, '100%': { transform: 'translate(0, 30px) scale(0)' } },
+              }}
+            />
+          ))}
+        </Box>
       </Button>
       {!currentContentItem || currentContentItem.status !== 'published' ? (
         <Button
@@ -424,10 +464,12 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
 
     return (
       <>
-        {renderSlideInfo(currentTopic, totalSlides)}
-        {renderPptxDisplay()}
-        {renderTopicNavigation()}
-        {renderActionButtons()}
+        <Box className="animate-scale-up" sx={{ width: '100%' }}>
+          {currentTopic && renderSlideInfo(currentTopic, totalSlides)}
+          {renderPptxDisplay()}
+          {renderTopicNavigation()}
+          {renderActionButtons()}
+        </Box>
       </>
     );
   };
@@ -464,6 +506,10 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
         display: 'flex',
         flexDirection: 'column',
         minHeight: isMobile ? 'auto' : '700px',
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(12px)',
+        boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
+        border: '1px solid rgba(255, 255, 255, 0.18)',
       }}
     >
       <CardContent sx={{

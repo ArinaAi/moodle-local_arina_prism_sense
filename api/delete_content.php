@@ -1,7 +1,7 @@
 <?php
 /**
  * Delete generated content from database (preserves Azure files for restore)
- *
+ * 
  * @package    local_lecturebot
  * @copyright  2025
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -49,7 +49,7 @@ try {
         
         echo json_encode([
             'status' => 'success',
-            'message' => 'Content deleted from database. Azure files preserved for restoration.',
+            'message' => 'Content deleted successfully',
             'contentid' => $contentid,
             'azure_preserved' => true,
         ]);

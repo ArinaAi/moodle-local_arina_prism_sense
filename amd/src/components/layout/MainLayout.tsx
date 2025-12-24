@@ -56,13 +56,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         sx={{
           display: 'flex',
           flexDirection: 'column',
-          height: 'calc(100vh - 120px)',
-          minHeight: '500px',
+          height: 'calc(100dvh - 60px)', // Use dvh for mobile, adjust offset for smaller header
+          minHeight: '400px',
           overflow: 'hidden',
+          backgroundColor: 'background.default',
         }}
       >
         {/* Mobile Tabs Header */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', flexShrink: 0, bgcolor: 'background.paper', zIndex: 10 }}>
           <Tabs
             value={mobileActiveTab}
             onChange={handleMobileTabChange}
@@ -74,6 +75,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                 fontSize: '0.875rem',
                 minHeight: '48px',
               },
+              '& .Mui-selected': {
+                color: 'primary.main',
+              }
             }}
           >
             <Tab label="Sources" value="sources" />
@@ -84,11 +88,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({
 
         {/* Tab Content - Scrollable area */}
         <Box
+          key={mobileActiveTab} // Key forces re-render for animation
+          className="animate-fade-in" // Add simple fade animation
           sx={{
             flex: 1,
             overflow: 'auto',
             p: 2,
             minHeight: 0,
+            WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
           }}
         >
           {mobileActiveTab === 'sources' && (

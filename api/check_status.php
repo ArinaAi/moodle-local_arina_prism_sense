@@ -1,7 +1,7 @@
 <?php
 /**
  * Check generation status for content items
- *
+ * 
  * @package    local_lecturebot
  * @copyright  2025
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -92,6 +92,21 @@ try {
         // Parse generation data
         $generationData = json_decode($content->generationdata, true);
         
+        // Get approver information if content is approved
+        $approver = null;
+        if ($content->approved && $content->approvedby) {
+            $approverUser = $DB->get_record('user', ['id' => $content->approvedby], 'id, firstname, lastname, email');
+            if ($approverUser) {
+                $approver = [
+                    'id' => $approverUser->id,
+                    'firstname' => $approverUser->firstname,
+                    'lastname' => $approverUser->lastname,
+                    'fullname' => fullname($approverUser),
+                    'email' => $approverUser->email
+                ];
+            }
+        }
+        
         echo json_encode([
             'status' => 'success',
             'content' => [
@@ -103,7 +118,11 @@ try {
                 'errormessage' => $content->errormessage,
                 'timecreated' => $content->timecreated,
                 'timemodified' => $content->timemodified,
-                'result' => $generationData['result'] ?? null
+                'result' => $generationData['result'] ?? null,
+                'approved' => (bool)$content->approved,
+                'approvedby' => $content->approvedby,
+                'timeapproved' => $content->timeapproved,
+                'approver' => $approver
             ]
         ]);
     } else {
@@ -127,6 +146,25 @@ try {
         foreach ($contents as $content) {
             $generationData = json_decode($content->generationdata, true);
             
+            // Get approver information if content is approved
+            $approver = null;
+            if ($content->approved && $content->approvedby) {
+                $approverUser = $DB->get_record(
+                    'user',
+                    ['id' => $content->approvedby],
+                    'id, firstname, lastname, email'
+                );
+                if ($approverUser) {
+                    $approver = [
+                        'id' => $approverUser->id,
+                        'firstname' => $approverUser->firstname,
+                        'lastname' => $approverUser->lastname,
+                        'fullname' => fullname($approverUser),
+                        'email' => $approverUser->email
+                    ];
+                }
+            }
+            
             error_log('CHECK_STATUS: Content ' . $content->id . ' - status: ' . $content->status);
             
             $contentList[] = [
@@ -141,7 +179,11 @@ try {
                 'timemodified' => $content->timemodified,
                 'timepublished' => $content->timepublished,
                 'cmid' => $content->cmid,
-                'result' => $generationData['result'] ?? null
+                'result' => $generationData['result'] ?? null,
+                'approved' => (bool)$content->approved,
+                'approvedby' => $content->approvedby,
+                'timeapproved' => $content->timeapproved,
+                'approver' => $approver
             ];
         }
         

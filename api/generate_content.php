@@ -7,12 +7,14 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+// Disable HTML error output to prevent breaking JSON response
+define('NO_DEBUG_DISPLAY', true);
+define('AJAX_SCRIPT', true);
+
 require_once(__DIR__ . '/../../../config.php');
 require_once(__DIR__ . '/../config_api.php');
 require_once(__DIR__ . '/../config_azure.php');
-
 define('CURL_ERROR_PREFIX', 'cURL error: ');
-
 $courseid = required_param('courseid', PARAM_INT);
 require_login($courseid, false);
 require_sesskey();
@@ -30,11 +32,9 @@ session_write_close();
 header('Content-Type: application/json');
 
 // Increase PHP execution time
-set_time_limit(600);
-ini_set('max_execution_time', '600');
+set_time_limit(900);
+ini_set('max_execution_time', '900');
 ini_set('memory_limit', '512M');
-
-// Disable error display handled by NO_DEBUG_DISPLAY in moodle setup
 
 try {
     // Get POST data
@@ -138,12 +138,36 @@ try {
     ]);
 
     if (empty($sources)) {
-        throw new moodle_exception('error', 'moodle', '', 'No source PDFs found for this section');
+        throw new moodle_exception(
+            'error',
+            'moodle',
+            '',
+            'No source PDFs found for this section. ' .
+            'Please add a PDF file to the sources for this section.'
+        );
     }
 
     // Note: The new API (http://0.0.0.0:8034/generate_pptx) doesn't require PDF upload
     // It generates slides based on curriculum text directly
     
+    // Get tenant ID from config or fallback to 1
+    // The API requires an integer for organization_id
+    $tenantConfig = defined('LECTUREBOT_TENANT_ID') ? LECTUREBOT_TENANT_ID : 1;
+    $tenantId = is_numeric($tenantConfig) ? (int)$tenantConfig : 1;
+    
+    // Log warning if tenant ID was a string so admin knows to fix it
+    if (!is_numeric($tenantConfig)) {
+        error_log("LectureBot: LECTUREBOT_TENANT_ID ('$tenantConfig') is not numeric. " .
+            "falling back to 1 for organization_id.");
+    }
+
+    // Calculate regen_count by counting existing records for this section
+    $regenCount = $DB->count_records('local_lecturebot_content', [
+        'courseid' => $courseid,
+        'sectionid' => $sectionid,
+        'contenttype' => 'slide-deck'
+    ]);
+
     // Create database entry with status='generating'
     $content = new stdClass();
     $content->courseid = $courseid;
@@ -154,7 +178,8 @@ try {
     $content->generationdata = json_encode([
         'curriculum_text' => $curriculumText,
         'content_strategy' => $contentStrategy,
-        'requested_at' => time()
+        'requested_at' => time(),
+        'regen_count' => $regenCount
     ]);
     $content->timecreated = time();
     $content->timemodified = time();
@@ -162,13 +187,20 @@ try {
     $contentId = $DB->insert_record('local_lecturebot_content', $content);
     
     // Call the external lecture content generation API
-    // Using the new endpoint: http://0.0.0.0:8034/generate_pptx
+    // Using the new endpoint: http://bots.arina.ai/tutorial_generation/generate_pptx
     $apiUrl = LECTUREBOT_API_GENERATE_PPTX .
               '?curriculum_text=' . urlencode(trim($curriculumText)) .
+              '&organization_id=' . urlencode($tenantId) .
               '&course_id=' . $courseid .
-              '&video_length=' . $videoLength;
+              '&chapter_id=' . $sectionid .
+              '&regen_count=' . $regenCount .
+              '&video_length=' . $videoLength .
+              '&content_strategy=' . urlencode($contentStrategy);
 
     error_log('LectureBot: Calling API URL: ' . $apiUrl);
+    error_log('LectureBot: Organization ID: ' . $tenantId);
+    error_log('LectureBot: Chapter ID: ' . $sectionid);
+    error_log('LectureBot: Regen Count: ' . $regenCount);
     error_log('LectureBot: Video Length: ' . $videoLength);
     error_log('LectureBot: Curriculum length: ' . strlen($curriculumText) . ' characters');
 
@@ -247,15 +279,26 @@ try {
             (isset($apiResponse['Success']) && $apiResponse['Success'] === true))) {
             error_log('LectureBot: Backend API returned success, fetching PPTX from Azure Blob Storage');
             
-            // Construct blob name based on course ID
-            // Pattern: tutorial_{courseid}.pptx
-            $blobName = 'tutorial_' . $courseid . '.pptx';
+            // Construct new Azure paths
+            // Container: blob-tutorial-gen-<TenantId> (Must be lowercase for Azure)
+            $containerName = strtolower('Blob-Tutorial-Gen-' . $tenantId);
             
-            error_log('LectureBot: Attempting to download blob: ' . $blobName);
+            // Folder: Tutorial_<course_id>_<chapter_id>_<regen_count>
+            $folderName = "Tutorial_{$courseid}_{$sectionid}_{$regenCount}";
+            
+            // PPTX File: slide_tutorial_<course_id>_<chapter_id>.pptx
+            // Full Blob Path: <Folder>/<Filename>
+            $pptxFileName = "slide_tutorial_{$courseid}_{$sectionid}.pptx";
+            $blobName = $folderName . '/' . $pptxFileName;
+            
+            error_log("LectureBot: Container: $containerName");
+            error_log("LectureBot: Blob Path: $blobName");
+            error_log('LectureBot: Attempting to download blob...');
             
             try {
                 // Download PPTX from Azure Blob Storage
-                $pptxContent = downloadPptxFromAzure($blobName);
+                // Note: We need to update downloadPptxFromAzure to accept container name
+                $pptxContent = downloadPptxFromAzure($blobName, $containerName);
                 
                 if ($pptxContent === false || empty($pptxContent)) {
                     throw new moodle_exception('error', 'moodle', '', 'Failed to download PPTX from Azure Blob Storage'
@@ -295,25 +338,28 @@ try {
                 $DB->update_record(
                     'local_lecturebot_content',
                     (object)[
-                        'id' => $contentId,
-                        'status' => 'ready',
-                        'generationdata' => json_encode(array_merge(
-                            json_decode($content->generationdata, true),
-                            [
-                                'pptx_file' => $filename,
-                                'pptx_path' => $filepath,
-                                'slide_count' => $slideCount,
-                                'completed_at' => time(),
-                                'azure_blob_name' => $blobName,
-                                'result' => [
-                                    'status' => 'success',
-                                    'results' => $resultsData
-                                ]
+                    'id' => $contentId,
+                    'status' => 'ready',
+                    'generationdata' => json_encode(array_merge(
+                        json_decode($content->generationdata, true),
+                        [
+                            'pptx_file' => $filename,
+                            'pptx_path' => $filepath,
+                            'slide_count' => $slideCount,
+                            'slide_count' => $slideCount,
+                            'completed_at' => time(),
+                            'azure_blob_name' => $blobName,
+                            'azure_container' => $containerName,
+                            'azure_folder' => $folderName,
+                            'result' => [
+                                'status' => 'success',
+                                'results' => $resultsData
                             ]
-                        )),
-                        'timemodified' => time()
-                    ]
-                );
+                        ]
+                    )),
+                    'timemodified' => time()
+                ]
+            );
                 
                 // Return success with content_id
                 echo json_encode([
@@ -387,21 +433,12 @@ try {
         $DB->update_record(
             'local_lecturebot_content',
             (object)[
-                'id' => $contentId,
-                'status' => 'error',
-                'errormessage' => $errorDetails,
-                'timemodified' => time()
-            ]
-        );
-        $DB->update_record(
-            'local_lecturebot_content',
-            (object)[
-                'id' => $contentId,
-                'status' => 'error',
-                'errormessage' => $errorDetails,
-                'timemodified' => time()
-            ]
-        );
+            'id' => $contentId,
+            'status' => 'error',
+            'errormessage' => $errorDetails,
+            'timemodified' => time()
+        ]
+    );
         
         http_response_code($http_code);
         echo json_encode([
@@ -422,16 +459,17 @@ try {
 
 /**
  * Download PPTX file from Azure Blob Storage
- * @param string $blobName Name of the blob to download (e.g., tutorial_123.pptx)
+ * @param string $blobName Name of the blob to download (e.g., folder/tutorial_123.pptx)
+ * @param string|null $containerName Optional container name. If null, uses default constant.
  * @return string|false Binary content of the PPTX file, or false on failure
  */
-function downloadPptxFromAzure($blobName)
+function downloadPptxFromAzure($blobName, $containerName = null)
 {
     try {
         // Construct the blob URL
         $accountName = AZURE_STORAGE_ACCOUNT_NAME;
-        $containerName = AZURE_BLOB_CONTAINER_NAME;
-        $blobUrl = "https://{$accountName}.blob.core.windows.net/{$containerName}/{$blobName}";
+        $targetContainer = $containerName ? $containerName : AZURE_BLOB_CONTAINER_NAME;
+        $blobUrl = "https://{$accountName}.blob.core.windows.net/{$targetContainer}/{$blobName}";
         
         error_log('LectureBot: Azure blob URL: ' . $blobUrl);
         
@@ -454,12 +492,12 @@ function downloadPptxFromAzure($blobName)
                        "\n" .      // Range
                        "x-ms-date:{$date}\n" .
                        "x-ms-version:{$version}\n" .
-                       "/{$accountName}/{$containerName}/{$blobName}";
+                       "/{$accountName}/{$targetContainer}/{$blobName}";
         
         // Sign the string
         $signature = base64_encode(hash_hmac(
             'sha256',
-            utf8_encode($stringToSign),
+            mb_convert_encoding($stringToSign, "UTF-8"),
             base64_decode(AZURE_STORAGE_ACCOUNT_KEY),
             true
         ));
@@ -512,7 +550,7 @@ function downloadPptxFromAzure($blobName)
  * @param string $pptxPath Path to the PPTX file
  * @return int Number of slides
  */
-function countSlidesInPptx($pptxPath)
+function countSlidesInPptx($pptxPath) 
 {
     $slideCount = 0;
     

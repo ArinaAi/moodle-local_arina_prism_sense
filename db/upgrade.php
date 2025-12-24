@@ -28,109 +28,151 @@ function xmldb_local_lecturebot_upgrade($oldversion)
     $dbman = $DB->get_manager();
 
     if ($oldversion < 2025121300) {
-        // Define table local_lecturebot_sources to be created.
-        $table = new xmldb_table('local_lecturebot_sources');
-
-        // Adding fields to table local_lecturebot_sources.
-        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
-        $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
-        $table->add_field('sectionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
-        $table->add_field('filename', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null);
-        $table->add_field('fileitemid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
-        $table->add_field('filesize', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
-        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
-        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
-
-        // Adding keys to table local_lecturebot_sources.
-        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
-        $table->add_key('courseid', XMLDB_KEY_FOREIGN, ['courseid'], 'course', ['id']);
-
-        // Adding indexes to table local_lecturebot_sources.
-        $table->add_index('courseid_sectionid', XMLDB_INDEX_NOTUNIQUE, ['courseid', 'sectionid']);
-
-        // Conditionally launch create table for local_lecturebot_sources.
-        if (!$dbman->table_exists($table)) {
-            $dbman->create_table($table);
-        }
-
-        // Define table local_lecturebot_content to be created.
-        $table = new xmldb_table('local_lecturebot_content');
-
-        // Adding fields to table local_lecturebot_content.
-        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
-        $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
-        $table->add_field('sectionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
-        $table->add_field('contenttype', XMLDB_TYPE_CHAR, '50', null, XMLDB_NOTNULL, null, null);
-        $table->add_field('status', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, 'queued');
-        $table->add_field('title', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null);
-
-        $table->add_field('generationdata', XMLDB_TYPE_TEXT, null, null, null, null, null);
-        $table->add_field('errormessage', XMLDB_TYPE_TEXT, null, null, null, null, null);
-        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
-        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
-        $table->add_field('timepublished', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
-        $table->add_field('cmid', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
-
-        // Adding keys to table local_lecturebot_content.
-        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
-        $table->add_key('courseid', XMLDB_KEY_FOREIGN, ['courseid'], 'course', ['id']);
-
-        // Adding indexes to table local_lecturebot_content.
-        $table->add_index('courseid_status', XMLDB_INDEX_NOTUNIQUE, ['courseid', 'status']);
-        $table->add_index('courseid_sectionid', XMLDB_INDEX_NOTUNIQUE, ['courseid', 'sectionid']);
-
-        // Conditionally launch create table for local_lecturebot_content.
-        if (!$dbman->table_exists($table)) {
-            $dbman->create_table($table);
-        }
-
-        // Lecturebot savepoint reached.
-        upgrade_plugin_savepoint(true, 2025121300, 'local', 'lecturebot');
+        local_lecturebot_upgrade_2025121300($dbman);
     }
 
     if ($oldversion < 2025121601) {
-        // Define fields to be added to local_lecturebot_content for approval tracking.
-        $table = new xmldb_table('local_lecturebot_content');
-
-        // Add approved field (0 = not approved, 1 = approved).
-        $field = new xmldb_field('approved', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'cmid');
-        if (!$dbman->field_exists($table, $field)) {
-            $dbman->add_field($table, $field);
-        }
-
-        // Add approvedby field (user ID who approved).
-        $field = new xmldb_field('approvedby', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'approved');
-        if (!$dbman->field_exists($table, $field)) {
-            $dbman->add_field($table, $field);
-        }
-
-        // Add timeapproved field (timestamp when approved).
-        $field = new xmldb_field('timeapproved', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'approvedby');
-        if (!$dbman->field_exists($table, $field)) {
-            $dbman->add_field($table, $field);
-        }
-
-        // Add foreign key for approvedby.
-        $key = new xmldb_key('approvedby', XMLDB_KEY_FOREIGN, ['approvedby'], 'user', ['id']);
-        $dbman->add_key($table, $key);
-
-        // Lecturebot savepoint reached.
-        upgrade_plugin_savepoint(true, 2025121601, 'local', 'lecturebot');
+        local_lecturebot_upgrade_2025121601($dbman);
     }
 
     if ($oldversion < 2025121900) {
-        // Define field fileitemid to be dropped from local_lecturebot_content.
-        $table = new xmldb_table('local_lecturebot_content');
-        $field = new xmldb_field('fileitemid');
+        local_lecturebot_upgrade_2025121900($dbman);
+    }
 
-        // Conditionally launch drop field fileitemid.
-        if ($dbman->field_exists($table, $field)) {
-            $dbman->drop_field($table, $field);
-        }
-
-        // Lecturebot savepoint reached.
-        upgrade_plugin_savepoint(true, 2025121900, 'local', 'lecturebot');
+    if ($oldversion < 2025122201) {
+        local_lecturebot_upgrade_2025122201($dbman);
     }
 
     return true;
+}
+
+function local_lecturebot_upgrade_2025121300($dbman)
+{
+    // Define table local_lecturebot_sources to be created.
+    $table = new xmldb_table('local_lecturebot_sources');
+
+    // Adding fields to table local_lecturebot_sources.
+    $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+    $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+    $table->add_field('sectionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+    $table->add_field('filename', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null);
+    $table->add_field('fileitemid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+    $table->add_field('filesize', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+    $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+    $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+
+    // Adding keys to table local_lecturebot_sources.
+    $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+    $table->add_key('courseid', XMLDB_KEY_FOREIGN, ['courseid'], 'course', ['id']);
+
+    // Adding indexes to table local_lecturebot_sources.
+    $table->add_index('courseid_sectionid', XMLDB_INDEX_NOTUNIQUE, ['courseid', 'sectionid']);
+
+    // Conditionally launch create table for local_lecturebot_sources.
+    if (!$dbman->table_exists($table)) {
+        $dbman->create_table($table);
+    }
+
+    // Define table local_lecturebot_content to be created.
+    $table = new xmldb_table('local_lecturebot_content');
+
+    // Adding fields to table local_lecturebot_content.
+    $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+    $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+    $table->add_field('sectionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+    $table->add_field('contenttype', XMLDB_TYPE_CHAR, '50', null, XMLDB_NOTNULL, null, null);
+    $table->add_field('status', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, 'queued');
+    $table->add_field('title', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null);
+
+    $table->add_field('generationdata', XMLDB_TYPE_TEXT, null, null, null, null, null);
+    $table->add_field('errormessage', XMLDB_TYPE_TEXT, null, null, null, null, null);
+    $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+    $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+    $table->add_field('timepublished', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+    $table->add_field('cmid', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+
+    // Adding keys to table local_lecturebot_content.
+    $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+    $table->add_key('courseid', XMLDB_KEY_FOREIGN, ['courseid'], 'course', ['id']);
+
+    // Adding indexes to table local_lecturebot_content.
+    $table->add_index('courseid_status', XMLDB_INDEX_NOTUNIQUE, ['courseid', 'status']);
+    $table->add_index('courseid_sectionid', XMLDB_INDEX_NOTUNIQUE, ['courseid', 'sectionid']);
+
+    // Conditionally launch create table for local_lecturebot_content.
+    if (!$dbman->table_exists($table)) {
+        $dbman->create_table($table);
+    }
+
+    // Lecturebot savepoint reached.
+    upgrade_plugin_savepoint(true, 2025121300, 'local', 'lecturebot');
+}
+
+function local_lecturebot_upgrade_2025121601($dbman)
+{
+    // Define fields to be added to local_lecturebot_content for approval tracking.
+    $table = new xmldb_table('local_lecturebot_content');
+
+    // Add approved field (0 = not approved, 1 = approved).
+    $field = new xmldb_field('approved', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'cmid');
+    if (!$dbman->field_exists($table, $field)) {
+        $dbman->add_field($table, $field);
+    }
+
+    // Add approvedby field (user ID who approved).
+    $field = new xmldb_field('approvedby', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'approved');
+    if (!$dbman->field_exists($table, $field)) {
+        $dbman->add_field($table, $field);
+    }
+
+    // Add timeapproved field (timestamp when approved).
+    $field = new xmldb_field('timeapproved', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'approvedby');
+    if (!$dbman->field_exists($table, $field)) {
+        $dbman->add_field($table, $field);
+    }
+
+    // Add foreign key for approvedby.
+    $key = new xmldb_key('approvedby', XMLDB_KEY_FOREIGN, ['approvedby'], 'user', ['id']);
+    $dbman->add_key($table, $key);
+
+    // Lecturebot savepoint reached.
+    upgrade_plugin_savepoint(true, 2025121601, 'local', 'lecturebot');
+}
+
+function local_lecturebot_upgrade_2025121900($dbman)
+{
+    // Define field fileitemid to be dropped from local_lecturebot_content.
+    $table = new xmldb_table('local_lecturebot_content');
+    $field = new xmldb_field('fileitemid');
+
+    // Conditionally launch drop field fileitemid.
+    if ($dbman->field_exists($table, $field)) {
+        $dbman->drop_field($table, $field);
+    }
+
+    // Lecturebot savepoint reached.
+    upgrade_plugin_savepoint(true, 2025121900, 'local', 'lecturebot');
+}
+
+function local_lecturebot_upgrade_2025122201($dbman)
+{
+    // Define field title to be added to local_lecturebot_sources.
+    $table = new xmldb_table('local_lecturebot_sources');
+    $field = new xmldb_field('title', XMLDB_TYPE_CHAR, '255', null, null, null, null, 'filesize');
+
+    // Conditionally launch add field title.
+    if (!$dbman->field_exists($table, $field)) {
+        $dbman->add_field($table, $field);
+    }
+
+    // Define field author to be added to local_lecturebot_sources.
+    $fieldAuthor = new xmldb_field('author', XMLDB_TYPE_CHAR, '255', null, null, null, null, 'title');
+
+    // Conditionally launch add field author.
+    if (!$dbman->field_exists($table, $fieldAuthor)) {
+        $dbman->add_field($table, $fieldAuthor);
+    }
+
+    // Lecturebot savepoint reached.
+    upgrade_plugin_savepoint(true, 2025122201, 'local', 'lecturebot');
 }

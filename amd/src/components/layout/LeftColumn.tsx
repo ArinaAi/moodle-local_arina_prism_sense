@@ -307,6 +307,10 @@ const LeftColumn: React.FC<LeftColumnProps> = ({
         display: 'flex',
         flexDirection: 'column',
         minHeight: isMobile ? 'auto' : 0,
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(12px)',
+        boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
+        border: '1px solid rgba(255, 255, 255, 0.18)',
       }}
     >
       <CardContent sx={{
@@ -314,9 +318,9 @@ const LeftColumn: React.FC<LeftColumnProps> = ({
         flexDirection: 'column',
         gap: 2,
         height: '100%',
-        p: 2,
+        p: isMobile ? 1.5 : 2,
         '&:last-child': {
-          pb: 2,
+          pb: isMobile ? 1.5 : 2,
         }
       }}>
         {/* Header */}

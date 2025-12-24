@@ -397,12 +397,12 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
             onChange={(e) => setVideoLength(e.target.value)}
           >
             <FormControlLabel
-              value="short"
+              value="5"
               control={<Radio />}
               label={
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Short (5-15 mins)
+                    Short (~5 mins)
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     Slide: 10 credits • Video: 200 credits
@@ -412,12 +412,12 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
               sx={{ mb: 1.5, ml: 0, alignItems: 'flex-start' }}
             />
             <FormControlLabel
-              value="medium"
+              value="15"
               control={<Radio />}
               label={
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Medium (15-30 mins)
+                    Medium (~15 mins)
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     Slide: 10 credits • Video: 200 credits
@@ -427,12 +427,12 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
               sx={{ mb: 1.5, ml: 0, alignItems: 'flex-start' }}
             />
             <FormControlLabel
-              value="long"
+              value="30"
               control={<Radio />}
               label={
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Long (30-45 mins)
+                    Long (~30 mins)
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     Slide: 10 credits • Video: 200 credits
@@ -442,12 +442,12 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
               sx={{ mb: 1.5, ml: 0, alignItems: 'flex-start' }}
             />
             <FormControlLabel
-              value="extended"
+              value="45"
               control={<Radio />}
               label={
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Extended (45-60 mins)
+                    Extended (~45 mins)
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     Slide: 10 credits • Video: 200 credits

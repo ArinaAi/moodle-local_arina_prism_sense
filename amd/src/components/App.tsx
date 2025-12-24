@@ -55,6 +55,98 @@ import type { CurriculumStructure, ContentItem } from '../types/app';
 
 type NotificationSeverity = 'success' | 'error' | 'info' | 'warning';
 
+/**
+ * Merges server content with local generating items to handle DB lag
+ */
+const mergeContentItems = (serverContents: ContentItem[], localItems: ContentItem[]): ContentItem[] => {
+  // SMART MERGE: Preserve local "generating" items if they are missing from server (DB lag)
+  // This prevents the UI from potentially flickering or reverting to empty/ready state
+  // if the poll executes before the synchronous generation script commits the new record.
+  const mergedContents = [...serverContents];
+
+  // Check if we have any local items that are 'generating' but missing from server response
+  localItems.forEach(localItem => {
+    // Only care about our temporary local items
+    if (localItem.status === 'generating') {
+      // Check if this EXACT item ID exists in server (unlikely for temp items)
+      const exactMatch = serverContents.some(serverItem => serverItem.id === localItem.id);
+
+      // CRITICAL: Check if the server already has a NEWER item for this section.
+      // If the server knows about this section being generated (or ready), we should ONLY
+      // drop the temp duplicate if the server item is RECENT (created after our request).
+      // This prevents old 'ready' items from overwriting our new 'generating' state.
+      const serverHasSectionUpdate = serverContents.some(serverItem =>
+        String(serverItem.sectionid) === String(localItem.sectionid) &&
+        (
+          // It's the new generating item (status matches)
+          serverItem.status === 'generating' ||
+          // OR it's a new ready item (created on/after we clicked)
+          // We give a 5-second buffer for clock skew
+          (serverItem.status === 'ready' && serverItem.timecreated >= localItem.timecreated - 5)
+        )
+      );
+
+      if (!exactMatch && !serverHasSectionUpdate) {
+        // It's truly missing! (DB lag or just created). Preserve it.
+        // eslint-disable-next-line no-console
+        console.log('🛡️ Preserving local generating item missing from server:', localItem.sectionname);
+        mergedContents.push(localItem);
+      } else {
+        // Server has caught up (has a NEW item for this section), so we can safely drop the local temp item
+        // and let the server item take over.
+        // eslint-disable-next-line no-console
+        console.log('🔄 Server caught up for section:', localItem.sectionname, '- dropping temp item');
+      }
+    }
+  });
+
+  return mergedContents;
+};
+
+/**
+ * Process notifications for newly ready items
+ */
+const processNotifications = (
+  mergedContents: ContentItem[],
+  previousContentIds: Set<string>,
+  hasLoadedInitialContent: boolean,
+  localItems: ContentItem[],
+  dispatch: React.Dispatch<any>,
+  showNotification: (msg: string, severity: NotificationSeverity) => void
+): Set<string> => {
+  const currentReadyIds = new Set<string>();
+
+  mergedContents.forEach((content: ContentItem) => {
+    if (content.status === 'ready') {
+      const contentKey = `${content.id}-${content.status}`;
+      currentReadyIds.add(contentKey);
+
+      // Only notify if this is newly ready (not in previous state)
+      // AND if we have finished initial load (so we don't notify on page reload)
+      if (hasLoadedInitialContent && !previousContentIds.has(contentKey)) {
+        // eslint-disable-next-line no-console
+        console.log('🎉 Newly ready content detected:', content.sectionname);
+        showNotification(`Slides for "${content.sectionname}" are ready!`, 'success');
+
+        // Instant auto-preview ONLY if it matches a section we were waiting for (generating)
+        // This prevents auto-previewing old/ghost content that might reappear
+        const wasGeneratingLocal = localItems.some(localItem =>
+          String(localItem.sectionid) === String(content.sectionid) &&
+          localItem.status === 'generating'
+        );
+
+        if (content.result && wasGeneratingLocal) {
+          dispatch({ type: 'SET_GENERATED_CONTENT', payload: content.result });
+          dispatch({ type: 'SET_CURRENT_CONTENT_ID', payload: content.id });
+          dispatch({ type: 'SET_SLIDES_APPROVED', payload: content.approved || false });
+        }
+      }
+    }
+  });
+
+  return currentReadyIds;
+};
+
 export const App: React.FC = () => {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const [notification, setNotification] = useState<{
@@ -69,6 +161,8 @@ export const App: React.FC = () => {
   const [isLoadingContent, setIsLoadingContent] = useState(false);
   const [previousContentIds, setPreviousContentIds] = useState<Set<string>>(new Set());
 
+
+  const [hasLoadedInitialContent, setHasLoadedInitialContent] = useState(false);
 
   // Show notification
   const showNotification = useCallback((message: string, severity: NotificationSeverity) => {
@@ -146,6 +240,19 @@ export const App: React.FC = () => {
 
       if (data.success && data.contents) {
         dispatch({ type: 'SET_CONTENT_ITEMS', payload: data.contents });
+
+        // populate previousContentIds with currently ready items to prevent "newly ready" notifications
+        // for items that were already ready on load
+        if (showSpinner) {
+          const readyIds = new Set<string>();
+          data.contents.forEach((content: ContentItem) => {
+            if (content.status === 'ready') {
+              readyIds.add(`${content.id} -${content.status} `);
+            }
+          });
+          setPreviousContentIds(readyIds);
+          setHasLoadedInitialContent(true);
+        }
       }
     } catch (error) {
       console.error('Failed to load content state:', error);
@@ -164,49 +271,31 @@ export const App: React.FC = () => {
   }, [state.moodleContext, loadContentState]);
 
   // Poll for generating content status - ONLY when there's generating content
-  const processPollData = useCallback((contents: ContentItem[]) => {
+  const processPollData = useCallback((serverContents: ContentItem[]) => {
     // Log detailed info about each item's status
-    if (contents.length > 0) {
-      contents.forEach((item: ContentItem) => {
-        // eslint-disable-next-line no-console
-        console.log(`📊 Content ID ${item.id}: status = "${item.status}", has_result = ${!!item.result}, sectionname = "${item.sectionname}"`);
-      });
-    }
-
     // eslint-disable-next-line no-console
-    console.log('Poll received data:', contents.length, 'items');
+    console.log('Poll received data:', serverContents.length, 'items');
 
-    // Check for newly ready items
-    const currentReadyIds = new Set<string>();
-    contents.forEach((content: ContentItem) => {
-      if (content.status === 'ready') {
-        const contentKey = `${content.id} -${content.status} `;
-        currentReadyIds.add(contentKey);
+    const mergedContents = mergeContentItems(serverContents, state.contentItems);
 
-        // Only notify if this is newly ready (not in previous state)
-        if (!previousContentIds.has(contentKey)) {
-          // eslint-disable-next-line no-console
-          console.log('🎉 Newly ready content detected:', content.sectionname);
-          showNotification(`Slides for "${content.sectionname}" are ready!`, 'success');
-          // Instant auto-preview
-          if (content.result) {
-            dispatch({ type: 'SET_GENERATED_CONTENT', payload: content.result });
-            dispatch({ type: 'SET_CURRENT_CONTENT_ID', payload: content.id });
-            dispatch({ type: 'SET_SLIDES_APPROVED', payload: content.approved || false });
-          }
-        }
-      }
-    });
+    // Check for newly ready items and notify
+    const currentReadyIds = processNotifications(
+      mergedContents,
+      previousContentIds,
+      hasLoadedInitialContent,
+      state.contentItems,
+      dispatch,
+      showNotification
+    );
 
     // Update previous state
     setPreviousContentIds(currentReadyIds);
-    // Always update the content items state
+
+    // Always update the content items state with the MERGED list
     // eslint-disable-next-line no-console
-    console.log('✅ Dispatching SET_CONTENT_ITEMS with', contents.length, 'items');
-    // eslint-disable-next-line no-console
-    console.log('✅ Dispatch payload:', JSON.stringify(contents.map((c: ContentItem) => ({ id: c.id, status: c.status }))));
-    dispatch({ type: 'SET_CONTENT_ITEMS', payload: contents });
-  }, [previousContentIds, showNotification]);
+    console.log('✅ Dispatching SET_CONTENT_ITEMS with', mergedContents.length, 'items');
+    dispatch({ type: 'SET_CONTENT_ITEMS', payload: mergedContents });
+  }, [state.contentItems, previousContentIds, showNotification, hasLoadedInitialContent]);
 
   // Poll for generating content status - ONLY when there's generating content
   useEffect(() => {
@@ -320,6 +409,9 @@ export const App: React.FC = () => {
     const section = state.moodleContext.sections.find(s => s.id === sectionId);
     const sectionName = section?.name || `Section ${section?.section || ''} `;
 
+    // Show started notification immediately for UX
+    showNotification(`Generation started for "${sectionName}"...`, 'info');
+
     // Create a temporary content item immediately for instant UI feedback
     const tempContentItem: ContentItem = {
       id: Date.now(), // Temporary ID
@@ -351,8 +443,14 @@ export const App: React.FC = () => {
     dispatch({ type: 'SET_CONTENT_STRATEGY', payload: contentStrategy });
     dispatch({ type: 'SET_GENERATING_SLIDES', payload: true });
 
+    // Clear previous generated content to show loading state
+    dispatch({ type: 'SET_GENERATED_SLIDES', payload: null });
+    dispatch({ type: 'SET_GENERATED_CONTENT', payload: null });
+    dispatch({ type: 'SET_CURRENT_CONTENT_ID', payload: null });
+    dispatch({ type: 'SET_SLIDES_APPROVED', payload: false });
+
     const abortController = new AbortController();
-    const timeoutId = setTimeout(() => abortController.abort(), 300000); // 5 minute timeout
+    const timeoutId = setTimeout(() => abortController.abort(), 900000);
 
     try {
       // Use generate_content.php for real backend integration
@@ -400,7 +498,7 @@ export const App: React.FC = () => {
 
       if (result.status === 'success' && result.content_id) {
         console.log('✅ Generation successful, content_id:', result.content_id);
-        showNotification('Content generation queued! You will be notified when ready.', 'info');
+        showNotification(`Generation Successful! for "${sectionName}"`, 'info');
         dispatch({ type: 'SET_GENERATING_SLIDES', payload: false });
 
         // Reload content state silently to replace temp item with real data
@@ -658,14 +756,15 @@ export const App: React.FC = () => {
             width: '100%',
             maxWidth: '100vw',
             overflow: 'hidden',
-            backgroundColor: 'background.default',
+            background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)', // Subtle gradient for glassmorphism
           }}
         >
           {/* Header */}
           <Box
             component="header"
             sx={{
-              backgroundColor: 'white',
+              backgroundColor: 'rgba(255, 255, 255, 0.9)', // Slight transparency
+              backdropFilter: 'blur(8px)',
               borderBottom: '1px solid',
               borderColor: 'divider',
               p: 2,

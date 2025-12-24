@@ -16,7 +16,7 @@ export const theme = createTheme({
             contrastText: '#ffffff',
         },
         success: {
-            main: '#28a745', 
+            main: '#28a745',
             light: '#48c774',
             dark: '#208537',
         },
@@ -86,30 +86,30 @@ export const theme = createTheme({
     },
     shadows: [
         'none',
-        '0 1px 2px rgba(0,0,0,0.04)',
-        '0 2px 4px rgba(0,0,0,0.06)',
-        '0 3px 6px rgba(0,0,0,0.08)',
-        '0 4px 8px rgba(0,0,0,0.1)',
-        '0 5px 10px rgba(0,0,0,0.12)',
-        '0 6px 12px rgba(0,0,0,0.14)',
-        '0 7px 14px rgba(0,0,0,0.16)',
-        '0 8px 16px rgba(0,0,0,0.18)',
-        '0 9px 18px rgba(0,0,0,0.2)',
-        '0 10px 20px rgba(0,0,0,0.22)',
-        '0 12px 24px rgba(0,0,0,0.24)',
-        '0 14px 28px rgba(0,0,0,0.26)',
-        '0 16px 32px rgba(0,0,0,0.28)',
-        '0 18px 36px rgba(0,0,0,0.3)',
-        '0 20px 40px rgba(0,0,0,0.32)',
-        '0 24px 48px rgba(0,0,0,0.34)',
-        '0 28px 56px rgba(0,0,0,0.36)',
-        '0 32px 64px rgba(0,0,0,0.38)',
-        '0 36px 72px rgba(0,0,0,0.4)',
-        '0 40px 80px rgba(0,0,0,0.42)',
-        '0 44px 88px rgba(0,0,0,0.44)',
-        '0 48px 96px rgba(0,0,0,0.46)',
-        '0 52px 104px rgba(0,0,0,0.48)',
-        '0 56px 112px rgba(0,0,0,0.5)',
+        '0 2px 4px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.03)', // 1
+        '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02)', // 2
+        '0 10px 15px -3px rgba(0,0,0,0.03), 0 4px 6px -2px rgba(0,0,0,0.01)', // 3
+        '0 20px 25px -5px rgba(0,0,0,0.03), 0 10px 10px -5px rgba(0,0,0,0.01)', // 4
+        '0 25px 50px -12px rgba(0,0,0,0.08)', // 5
+        '0 25px 50px -12px rgba(0,0,0,0.08)', // 6 (Repeat for now or customize)
+        '0 25px 50px -12px rgba(0,0,0,0.08)', // 7
+        '0 25px 50px -12px rgba(0,0,0,0.08)', // 8
+        '0 25px 50px -12px rgba(0,0,0,0.08)', // 9
+        '0 25px 50px -12px rgba(0,0,0,0.08)', // 10
+        '0 25px 50px -12px rgba(0,0,0,0.08)', // 11
+        '0 25px 50px -12px rgba(0,0,0,0.08)', // 12
+        '0 25px 50px -12px rgba(0,0,0,0.08)', // 13
+        '0 25px 50px -12px rgba(0,0,0,0.08)', // 14
+        '0 25px 50px -12px rgba(0,0,0,0.08)', // 15
+        '0 25px 50px -12px rgba(0,0,0,0.08)', // 16
+        '0 25px 50px -12px rgba(0,0,0,0.08)', // 17
+        '0 25px 50px -12px rgba(0,0,0,0.08)', // 18
+        '0 25px 50px -12px rgba(0,0,0,0.08)', // 19
+        '0 25px 50px -12px rgba(0,0,0,0.08)', // 20
+        '0 25px 50px -12px rgba(0,0,0,0.08)', // 21
+        '0 25px 50px -12px rgba(0,0,0,0.08)', // 22
+        '0 25px 50px -12px rgba(0,0,0,0.08)', // 23
+        '0 25px 50px -12px rgba(0,0,0,0.08)', // 24
     ],
     components: {
         MuiCard: {

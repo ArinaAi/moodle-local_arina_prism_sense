@@ -19,6 +19,7 @@ const SlideCarousel: React.FC<SlideCarouselProps> = ({ contentId, courseId: _cou
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const containerRef = React.useRef<HTMLDivElement>(null);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const wwwroot = (window as any).M?.cfg?.wwwroot || '';
@@ -60,6 +61,25 @@ const SlideCarousel: React.FC<SlideCarouselProps> = ({ contentId, courseId: _cou
         loadSlides();
     }, [contentId, wwwroot]);
 
+    // Handle fullscreen changes
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+        document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+        };
+    }, []);
+
     // Navigation functions
     const nextSlide = useCallback(() => {
         setCurrentSlide((prev) => Math.min(prev + 1, slides.length - 1));
@@ -80,21 +100,45 @@ const SlideCarousel: React.FC<SlideCarouselProps> = ({ contentId, courseId: _cou
                 prevSlide();
             } else if (e.key === 'ArrowRight') {
                 nextSlide();
-            } else if (e.key === 'Escape' && isFullscreen) {
-                setIsFullscreen(false);
             }
+            // Escape is handled naturally by browser in fullscreen mode, 
+            // but we keep listener for non-native or rapid exit
         };
 
         window.addEventListener('keydown', handleKeyPress);
         return () => window.removeEventListener('keydown', handleKeyPress);
-    }, [prevSlide, nextSlide, isFullscreen]);
+    }, [prevSlide, nextSlide]);
 
     const handleDownload = () => {
         window.location.href = pptxUrl;
     };
 
-    const toggleFullscreen = () => {
-        setIsFullscreen((prev) => !prev);
+    const toggleFullscreen = async () => {
+        try {
+            if (!document.fullscreenElement) {
+                if (containerRef.current) {
+                    // Start fullscreen
+                    if (containerRef.current.requestFullscreen) {
+                        await containerRef.current.requestFullscreen();
+                    } else if ((containerRef.current as any).webkitRequestFullscreen) {
+                        await (containerRef.current as any).webkitRequestFullscreen();
+                    } else if ((containerRef.current as any).msRequestFullscreen) {
+                        await (containerRef.current as any).msRequestFullscreen();
+                    }
+                }
+            } else {
+                // Exit fullscreen
+                if (document.exitFullscreen) {
+                    await document.exitFullscreen();
+                } else if ((document as any).webkitExitFullscreen) {
+                    await (document as any).webkitExitFullscreen();
+                } else if ((document as any).msExitFullscreen) {
+                    await (document as any).msExitFullscreen();
+                }
+            }
+        } catch (err) {
+            console.error('Error toggling fullscreen:', err);
+        }
     };
 
     // Loading state
@@ -177,17 +221,15 @@ const SlideCarousel: React.FC<SlideCarouselProps> = ({ contentId, courseId: _cou
     // Main carousel
     return (
         <Box
+            ref={containerRef}
             sx={{
                 width: '100%',
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
                 bgcolor: '#1a1a1a',
-                position: isFullscreen ? 'fixed' : 'relative',
-                top: isFullscreen ? 0 : 'auto',
-                left: isFullscreen ? 0 : 'auto',
-                right: isFullscreen ? 0 : 'auto',
-                bottom: isFullscreen ? 0 : 'auto',
+                // Remove fixed positioning as we use native fullscreen API
+                position: 'relative',
                 zIndex: isFullscreen ? 2000 : 'auto',
             }}
         >

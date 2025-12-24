@@ -483,15 +483,24 @@ const RightColumn: React.FC<RightColumnProps> = ({
         }}
       >
         {/* Generated Content Card */}
-        <Card sx={{ flex: 1.5, minHeight: isMobile ? 'auto' : '340px', display: 'flex', flexDirection: 'column' }}>
+        <Card sx={{
+          flex: 1.5,
+          minHeight: isMobile ? 'auto' : '340px',
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(12px)',
+          boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
+          border: '1px solid rgba(255, 255, 255, 0.18)',
+        }}>
           <CardContent sx={{
             display: 'flex',
             flexDirection: 'column',
             height: '100%',
-            p: 2,
-            pr: 1,
+            p: isMobile ? 1.5 : 2,
+            pr: isMobile ? 0.5 : 1,
             '&:last-child': {
-              pb: 2,
+              pb: isMobile ? 1.5 : 2,
             }
           }}>
             {/* Header */}
@@ -508,15 +517,23 @@ const RightColumn: React.FC<RightColumnProps> = ({
 
 
         {/* Published Content Card */}
-        <Card sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Card sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(12px)',
+          boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
+          border: '1px solid rgba(255, 255, 255, 0.18)',
+        }}>
           <CardContent sx={{
             display: 'flex',
             flexDirection: 'column',
             height: '100%',
-            p: 2,
-            pr: 1,
+            p: isMobile ? 1.5 : 2,
+            pr: isMobile ? 0.5 : 1,
             '&:last-child': {
-              pb: 2,
+              pb: isMobile ? 1.5 : 2,
             }
           }}>
             {/* Header */}

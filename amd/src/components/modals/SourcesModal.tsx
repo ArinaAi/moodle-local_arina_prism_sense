@@ -56,17 +56,29 @@ interface BoxState {
 
 // Helper function to get border color based on box type
 const getBorderColor = (boxType: BoxState['type']): string => {
-  if (boxType === 'error') return '#dc3545';
-  if (boxType === 'existing') return '#28a745';
-  if (boxType === 'uploading' || boxType === 'pending_details') return '#0D5CA2';
+  if (boxType === 'error') {
+    return '#dc3545';
+  }
+  if (boxType === 'existing') {
+    return '#28a745';
+  }
+  if (boxType === 'uploading' || boxType === 'pending_details') {
+    return '#0D5CA2';
+  }
   return '#cbd5e0';
 };
 
 // Helper function to get background color based on box type
 const getBackgroundColor = (boxType: BoxState['type']): string => {
-  if (boxType === 'existing') return '#f0fff4';
-  if (boxType === 'error') return '#fff5f5';
-  if (boxType === 'uploading' || boxType === 'pending_details') return '#f0f7ff';
+  if (boxType === 'existing') {
+    return '#f0fff4';
+  }
+  if (boxType === 'error') {
+    return '#fff5f5';
+  }
+  if (boxType === 'uploading' || boxType === 'pending_details') {
+    return '#f0f7ff';
+  }
   return '#fafbfc';
 };
 
@@ -151,7 +163,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
         }
       } catch (apiError) {
         // If API fails, just use sections without sources
-        console.warn('Could not fetch existing sources:', apiError);
+
       }
 
       const sectionList = Array.from(sectionMap.entries()).map(([id, name]) => ({
@@ -168,7 +180,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
       }
     } catch (err) {
       setErrors({ general: (err as Error).message });
-      console.error('Error loading sections:', err);
+
     } finally {
       setLoading(false);
     }
@@ -528,7 +540,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
               <Box
                 sx={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
                   gap: 3,
                   mb: 3,
                 }}

@@ -119,19 +119,15 @@ const ContentTypeDock: React.FC<ContentTypeDockProps> = ({
   };
 
   const handleTypeClick = (typeId: string, disabled: boolean) => {
-    console.log('🔘 ContentTypeDock: Clicked', typeId);
     if (disabled) {
-      console.log('🚫 ContentTypeDock: Button disabled');
       return;
     }
     if (typeId === 'slide-deck') {
-      console.log('📂 ContentTypeDock: Opening Slide Deck Modal');
       // Always switch to slide-deck view
       onSelectType(typeId);
       // Always open the modal to ensure accessibility
       onOpenCurriculumModal();
     } else {
-      console.log('➡️ ContentTypeDock: Switching to', typeId);
       onSelectType(typeId);
     }
   };
@@ -141,8 +137,10 @@ const ContentTypeDock: React.FC<ContentTypeDockProps> = ({
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
-          gap: 2,
+          // Mobile: 1 column for better touch targets and readability
+          // Tablet/Desktop: 2 columns
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
+          gap: 1.5, // Slightly smaller gap for mobile
         }}
       >
         {contentTypes.map((type) => {
@@ -181,11 +179,9 @@ const ContentTypeDock: React.FC<ContentTypeDockProps> = ({
                     transition: 'all 0.3s ease',
                     '&:hover': getHoverStyles(disabled, isActive, type.color),
                     cursor: disabled ? 'not-allowed' : 'pointer',
-                    minHeight: '64px',
-                    position: 'relative',
-                    overflow: 'hidden',
+                    minHeight: '70px', // Increased height for better visibility
+                    py: 2,
                     px: 2,
-                    py: 1.5,
                   }}
                   fullWidth
                 >
@@ -202,9 +198,9 @@ const ContentTypeDock: React.FC<ContentTypeDockProps> = ({
                       variant="body2"
                       sx={{
                         fontWeight: isActive ? 700 : 500,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
+                        whiteSpace: 'normal', // Allow text to wrap
+                        lineHeight: 1.2,
+                        textAlign: 'left',
                         color: '#000000',
                       }}
                     >
