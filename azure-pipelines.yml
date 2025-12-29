@@ -1,0 +1,147 @@
+trigger: none
+
+parameters:
+  - name: buildNumber
+    displayName: "Build Number"
+    type: string
+    default: ""
+
+variables:
+  - group: arina-workspace-variables
+  - group: arina-moodle-plugin-variables
+  - name: system.debug
+
+name: $(Rev:r)
+
+pool:
+  name: Default
+
+stages:
+  - stage: Build
+    displayName: "Build and Push Docker Images"
+    jobs:
+      - job: BuildAndPush
+        displayName: "Build and push docker image to Azure"
+        variables:
+          - name: BUILD_NO
+            value: ${{ parameters.buildNumber }}
+        steps:
+          - script: |
+              git clone https://$(AZURE_PAT)@dev.azure.com/ARINA-AI/NextGenChatBot/_git/arina-moodle
+            displayName: "Cloning Moodle repository"
+
+          - script: |
+              cd arina-moodle/local
+              git clone https://$(AZURE_PAT)@dev.azure.com/ARINA-AI/NextGenChatBot/_git/arina-moodle-plugin lecturebot
+            displayName: "Setup Plugin in Local Directory"
+
+          - script: |
+              echo "Build Number: $(BUILD_NO)"
+              if [ -z "$(BUILD_NO)" ]; then
+                echo "Error: BUILD_NO is empty"
+                exit 1
+              fi
+
+              echo "$(ACR_PASSWORD)" | docker login $(ACR_LOGIN_SERVER) -u $(ACR_USERNAME) --password-stdin
+
+              # Copy required files from plugin directory to arina-moodle root
+              cp arina-moodle/local/lecturebot/{Dockerfile,docker-compose.yml,config.docker.php,moodle.ini} arina-moodle/
+
+              # Build and push Docker image from arina-moodle directory
+              cd arina-moodle
+              docker build -t arina-moodle:amd-$(BUILD_NO) .
+              docker tag arina-moodle:amd-$(BUILD_NO) $(ACR_LOGIN_SERVER)/arina-moodle:amd-$(BUILD_NO)
+              docker push $(ACR_LOGIN_SERVER)/arina-moodle:amd-$(BUILD_NO)
+
+            displayName: "Build and Push Docker Image"
+
+  - stage: DeployToDev
+    displayName: "Deploy to Development"
+    dependsOn: Build
+    jobs:
+      - deployment: DeployDev
+        displayName: "Deploy to Development Environment"
+        environment: Development
+        variables:
+          - name: BUILD_NO
+            value: ${{ parameters.buildNumber }}
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: DownloadSecureFile@1
+                  name: sshKey
+                  inputs:
+                    secureFile: "azure-key.pem"
+                - script: |
+                    VM_IP="$(LMS_SERVER_IP)"
+                    VM_PASS="$(LMS_SERVER_PASS)"
+                    USERNAME="$(USERNAME)"
+                    BUILD_NO="$(BUILD_NO)"
+
+                    # Validate required variables
+                    if [ -z "$VM_IP" ] || [ -z "$VM_PASS" ] || [ -z "$USERNAME" ] || [ -z "$BUILD_NO" ]; then
+                      echo "Error: Missing required variables"
+                      echo "VM_IP: $VM_IP"
+                      echo "USERNAME: $USERNAME" 
+                      echo "BUILD_NO: $BUILD_NO"
+                      exit 1
+                    fi
+
+                    echo "Deploying with BUILD_NO: $BUILD_NO"
+
+                    # Update package lists and install required packages with sudo
+                    sudo apt-get update
+                    sudo apt-get install -y sshpass
+
+                    chmod 600 $(sshKey.secureFilePath)
+
+                    if ! ssh-keyscan "$VM_IP" >> ~/.ssh/known_hosts 2>/dev/null; then
+                      echo "Warning: ssh-keyscan failed; proceeding with caution."
+                    fi
+
+                    # SSH into server using the downloaded secure key
+                    ssh -i $(sshKey.secureFilePath) "$USERNAME@$VM_IP" << EOF
+                      set -e
+                      set -x
+
+                      echo "Starting deployment process..."
+                      echo "Using BUILD_NO: $BUILD_NO"
+
+                      # Clean old repo
+                      if [ -d "./arina-moodle" ]; then
+                        sudo rm -rf ./arina-moodle
+                      fi
+
+                      # Clone Azure DevOps repo
+                      echo "Cloning repository..."
+                      git clone "https://$(AZURE_PAT)@dev.azure.com/ARINA-AI/NextGenChatBot/_git/arina-moodle-plugin" ./arina-moodle
+
+                      cd ./arina-moodle
+
+                      # Login to ACR
+                      echo "Logging into Azure Container Registry..."
+                      echo "$(ACR_PASSWORD)" | docker login $(ACR_LOGIN_SERVER) -u $(ACR_USERNAME) --password-stdin
+
+                      # Stop existing containers
+                      echo "Stopping existing containers..."
+                      docker compose down
+
+                      # Clean up old images and networks
+                      docker system prune -f || true
+                      
+                      # Remove any dangling networks
+                      docker network prune -f || true
+
+                      # Start new containers with build number
+                      echo "Starting new containers with build number: $BUILD_NO"
+                      BUILD_NO="$BUILD_NO" MOODLE_DATABASE_TYPE="$(MOODLE_DATABASE_TYPE)" MOODLE_DATABASE_HOST="$(MOODLE_DATABASE_HOST)" MOODLE_DATABASE_NAME="$(MOODLE_DATABASE_NAME)" MOODLE_DATABASE_USER="$(MOODLE_DATABASE_USER)" MOODLE_DATABASE_PASSWORD="$(MOODLE_DATABASE_PASSWORD)" MYSQL_ROOT_PASSWORD="$(MYSQL_ROOT_PASSWORD)" MOODLE_WWWROOT="$(MOODLE_WWWROOT)" docker compose up -d
+
+                      # Wait for containers to start
+                      sleep 10
+
+                      echo "Deployment completed successfully!"
+                    EOF
+
+                    echo "Development deployment completed!"
+                  displayName: "Deploy to Development Server"

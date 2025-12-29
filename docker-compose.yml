@@ -1,0 +1,81 @@
+version: "3.8"
+
+services:
+  # MySQL Database Service
+  db:
+    image: mysql:8.4
+    container_name: mysql-moodle
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MOODLE_DATABASE_NAME}
+      MYSQL_USER: ${MOODLE_DATABASE_USER}
+      MYSQL_PASSWORD: ${MOODLE_DATABASE_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - moodle-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p${MYSQL_ROOT_PASSWORD}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Moodle Web Application Service
+  moodle:
+    container_name: arina-moodle
+    image: arinactrregistry.azurecr.io/arina-moodle:amd-${BUILD_NO}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      MOODLE_DATABASE_TYPE: ${MOODLE_DATABASE_TYPE}
+      MOODLE_DATABASE_HOST: ${MOODLE_DATABASE_HOST}
+      MOODLE_DATABASE_NAME: ${MOODLE_DATABASE_NAME}
+      MOODLE_DATABASE_USER: ${MOODLE_DATABASE_USER}
+      MOODLE_DATABASE_PASSWORD: ${MOODLE_DATABASE_PASSWORD}
+      MOODLE_WWWROOT: ${MOODLE_WWWROOT}
+    ports:
+      - "8080:80"
+    volumes:
+      - moodledata:/var/www/moodledata
+      - ./config.docker.php:/var/www/html/config.php
+    networks:
+      - moodle-network
+
+  # phpMyAdmin Service
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: moodle-phpmyadmin
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      PMA_HOST: ${MOODLE_DATABASE_HOST}
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "8081:80"
+    networks:
+      - moodle-network
+
+volumes:
+  db_data:
+    driver: local
+  moodledata:
+    driver: local
+
+networks:
+  moodle-network:
+    driver: bridge
