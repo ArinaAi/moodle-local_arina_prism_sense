@@ -125,7 +125,8 @@ try {
             'approved' => (bool)$content->approved,
             'approvedby' => $content->approvedby,
             'timeapproved' => $content->timeapproved,
-            'approver' => $approver
+            'approver' => $approver,
+            'video_length' => $generationData['video_length'] ?? null
         ];
     }
     

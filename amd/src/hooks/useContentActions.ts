@@ -1,0 +1,466 @@
+import { useState, useCallback } from 'react';
+import type { AppState, AppAction, CurriculumStructure, ContentItem } from '../types/app';
+import type { NotificationSeverity } from './useNotification';
+
+export const useContentActions = (
+    state: AppState,
+    dispatch: React.Dispatch<AppAction>,
+    showNotification: (msg: string, severity: NotificationSeverity) => void
+) => {
+    const [isLoadingContent, setIsLoadingContent] = useState(false);
+
+    // Load content state from database
+    const loadContentState = useCallback(async (showSpinner = true) => {
+        if (!state.moodleContext) {
+            return;
+        }
+
+        if (showSpinner) {
+            setIsLoadingContent(true);
+        }
+        try {
+            const response = await fetch(
+                `${state.moodleContext.wwwroot}/local/lecturebot/api/get_content_state.php?courseid=${state.moodleContext.courseid}`,
+                {
+                    method: 'GET',
+                    credentials: 'include',
+                }
+            );
+
+            const data = await response.json();
+
+            if (data.success && data.contents) {
+                dispatch({ type: 'SET_CONTENT_ITEMS', payload: data.contents });
+            }
+        } catch (error) {
+            console.error('Failed to load content state:', error);
+        } finally {
+            if (showSpinner) {
+                setIsLoadingContent(false);
+            }
+        }
+    }, [state.moodleContext, dispatch]);
+
+    const handleGenerateSlides = useCallback(async (
+        curriculum: CurriculumStructure,
+        contentStrategy: 'standard' | 'example_driven',
+        sectionId: number,
+        videoLength: string
+    ) => {
+        if (!state.moodleContext) {
+            showNotification('Moodle context not available', 'error');
+            return;
+        }
+
+        // Get section name
+        const section = state.moodleContext.sections.find(s => s.id === sectionId);
+        const sectionName = section?.name || `Section ${section?.section || ''} `;
+
+        // Show started notification immediately for UX
+        showNotification(`Generation started for "${sectionName}"...`, 'info');
+
+        // Create a temporary content item immediately for instant UI feedback
+        const tempContentItem: ContentItem = {
+            id: Date.now(), // Temporary ID
+            sectionid: sectionId,
+            sectionname: sectionName,
+            contenttype: 'slide-deck',
+            status: 'generating' as const,
+            title: `Slides: ${sectionName} `,
+            errormessage: null,
+            timecreated: Math.floor(Date.now() / 1000),
+            timemodified: Math.floor(Date.now() / 1000),
+            timepublished: null,
+            cmid: null,
+            result: null,
+            approved: false,
+            approvedby: null,
+            timeapproved: null,
+            approver: null,
+        };
+
+        // Add temporary item to the UI immediately
+        dispatch({
+            type: 'SET_CONTENT_ITEMS',
+            payload: [...state.contentItems, tempContentItem]
+        });
+
+        // Store curriculum and content strategy
+
+        dispatch({ type: 'SET_GENERATING_SLIDES', payload: true });
+
+        // Clear previous generated content to show loading state
+        dispatch({ type: 'SET_GENERATED_SLIDES', payload: null });
+        dispatch({ type: 'SET_GENERATED_CONTENT', payload: null });
+        dispatch({ type: 'SET_CURRENT_CONTENT_ID', payload: null });
+        dispatch({ type: 'SET_SLIDES_APPROVED', payload: false });
+
+        try {
+            // Use generate_content.php for real backend integration
+            const proxyUrl = `${state.moodleContext.wwwroot}/local/lecturebot/api/generate_content.php?courseid=${state.moodleContext.courseid}&sesskey=${state.moodleContext.sesskey}`;
+
+            const requestBody = {
+                section_id: sectionId,
+                content_strategy: contentStrategy,
+                video_length: videoLength,
+            };
+
+            const response = await fetch(proxyUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody),
+                credentials: 'include',
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                try {
+                    const errorData = JSON.parse(errorText);
+                    throw new Error(errorData.error || `Generation failed: ${response.status} `);
+                } catch (parseError) {
+                    throw new Error(`Generation failed: ${response.status} - ${errorText.substring(0, 200)} `);
+                }
+            }
+
+            const responseText = await response.text();
+            let result;
+            try {
+                result = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('Failed to parse JSON:', responseText.substring(0, 500));
+                throw new Error('Server returned invalid JSON. Check PHP error logs.');
+            }
+
+            console.log('📦 Parsed result:', result);
+
+            if (result.status === 'success' && result.content_id) {
+                console.log('✅ Generation successful, content_id:', result.content_id);
+                dispatch({ type: 'SET_GENERATING_SLIDES', payload: false });
+
+                // Reload content state silently to replace temp item with real data
+                console.log('🔄 Calling loadContentState (silent)...');
+                await loadContentState(false);
+                console.log('✅ loadContentState completed');
+            } else {
+                throw new Error(result.error || 'Invalid response from server');
+            }
+
+        } catch (error) {
+            console.error('Slide generation error:', error);
+            showNotification(`Error generating slides: ${(error as Error).message} `, 'error');
+            // Remove temp item on error
+            await loadContentState();
+        } finally {
+            dispatch({ type: 'SET_GENERATING_SLIDES', payload: false });
+        }
+    }, [state.moodleContext, state.contentItems, dispatch, showNotification, loadContentState]);
+
+    const handleGenerateVideoLecture = async (
+        contentId: number,
+        contentStrategy: 'standard' | 'example_driven',
+        language: 'en' | 'hi' | 'mr',
+        voiceGender: 'female' | 'male',
+        avatarStrategy: 'none' | 'title_only'
+    ) => {
+        if (!state.moodleContext) {
+            showNotification('Moodle context not available', 'error');
+            return;
+        }
+
+        // Find the selected slide deck
+        const slideItem = state.contentItems.find(item => item.id === contentId);
+        if (!slideItem) {
+            showNotification('Slide deck not found', 'error');
+            return;
+        }
+
+        // Extract metadata from selected slide
+        const sectionId = slideItem.sectionid;
+        const sectionName = slideItem.sectionname;
+        const generationData = slideItem.generationdata ? JSON.parse(slideItem.generationdata) : {};
+        const regenCount = generationData.regen_count || 0;
+
+        console.log(`🎥 Video generation for section ${sectionId}, regen_count: ${regenCount}`);
+
+        // Close modal
+        dispatch({ type: 'SHOW_VIDEO_LECTURE_MODAL', payload: false });
+
+        // Set generating state
+        dispatch({ type: 'SET_GENERATING_SLIDES', payload: true });
+
+        // Clear previous content state
+        dispatch({ type: 'SET_GENERATED_CONTENT', payload: null });
+        dispatch({ type: 'SET_CURRENT_CONTENT_ID', payload: null });
+        dispatch({ type: 'SET_SLIDES_APPROVED', payload: false });
+
+        // Optimistic Update: Create a local "generating" item
+        const tempId = Date.now();
+        const tempItem: ContentItem = {
+            id: tempId,
+            sectionid: sectionId,
+            sectionname: sectionName,
+            contenttype: 'video',
+            status: 'generating',
+            title: `Video: ${sectionName}`,
+            result: null,
+            errormessage: null,
+            timecreated: Math.floor(Date.now() / 1000),
+            timemodified: Math.floor(Date.now() / 1000),
+            timepublished: null,
+            cmid: null,
+            approved: false,
+            approvedby: null,
+            timeapproved: null,
+            approver: null,
+        };
+
+        // Add to local items
+        const newContentItems = [...state.contentItems, tempItem];
+        dispatch({ type: 'SET_CONTENT_ITEMS', payload: newContentItems });
+
+        showNotification(`Video generation started for "${sectionName}"...`, 'info');
+
+        try {
+            const response = await fetch(`${state.moodleContext.wwwroot}/local/lecturebot/api/generate_content.php?courseid=${state.moodleContext.courseid}&sesskey=${state.moodleContext.sesskey}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    section_id: sectionId,
+                    content_type: 'video',
+                    source_content_id: contentId,
+                    regen_count: regenCount,
+                    content_strategy: contentStrategy,
+                    language: language,
+                    voice_gender: voiceGender,
+                    avatar_strategy: avatarStrategy,
+                }),
+                credentials: 'include',
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                try {
+                    const errorData = JSON.parse(errorText);
+                    throw new Error(errorData.error || `Generation failed: ${response.status}`);
+                } catch (parseError) {
+                    throw new Error(`Generation failed: ${response.status} - ${errorText.substring(0, 200)}`);
+                }
+            }
+
+            const data = await response.json();
+            if (data.status === 'error') {
+                throw new Error(data.error);
+            }
+
+            showNotification(`Video generation completed for "${sectionName}"!`, 'info');
+
+            // Reload content state silently to replace temp item with real data
+            console.log('🔄 Calling loadContentState (silent) after video generation request...');
+            await loadContentState(false);
+            console.log('✅ loadContentState completed for video generation');
+
+        } catch (error: any) {
+            console.error('Video generation failed:', error);
+            showNotification(error.message || 'Failed to start video generation', 'error');
+            // Remove temp item on error
+            await loadContentState();
+        } finally {
+            dispatch({ type: 'SET_GENERATING_SLIDES', payload: false });
+        }
+    };
+
+    const handleApproveSlides = useCallback(async () => {
+        if (!state.moodleContext || !state.currentContentId) {
+            showNotification('No content to approve', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `${state.moodleContext.wwwroot}/local/lecturebot/api/approve_content.php?contentid=${state.currentContentId}&courseid=${state.moodleContext.courseid}&sesskey=${state.moodleContext.sesskey}`,
+                {
+                    method: 'POST',
+                    credentials: 'include',
+                }
+            );
+
+            const result = await response.json();
+
+            if (result.success) {
+                dispatch({ type: 'SET_SLIDES_APPROVED', payload: true });
+                showNotification(
+                    `Content approved by ${result.approver.fullname} `,
+                    'success'
+                );
+
+                // Reload content state to update approval status in the list
+                await loadContentState();
+            } else {
+                throw new Error(result.error || 'Failed to approve content');
+            }
+        } catch (error) {
+            console.error('Approval error:', error);
+            showNotification(`Error approving content: ${(error as Error).message} `, 'error');
+        }
+    }, [state.moodleContext, state.currentContentId, dispatch, showNotification, loadContentState]);
+
+    const handlePublishContent = useCallback(async (contentId: string) => {
+        // Extract numeric ID from "content-123" format
+        const numericId = contentId.startsWith('content-')
+            ? parseInt(contentId.replace('content-', ''), 10)
+            : null;
+
+        if (!numericId || !state.moodleContext) {
+            showNotification('Invalid content ID', 'error');
+            return;
+        }
+
+        // Find the content item - convert item.id to number for comparison
+        const contentItem = state.contentItems.find(item => Number(item.id) === numericId);
+
+        if (!contentItem) {
+            showNotification('Content not found', 'error');
+            return;
+        }
+
+        if (!contentItem.approved) {
+            showNotification('Content must be approved before publishing', 'warning');
+            return;
+        }
+
+        if (contentItem.status === 'published') {
+            showNotification('Content is already published', 'warning');
+            return;
+        }
+
+        try {
+            // Show loading notification
+            showNotification(`Publishing to ${contentItem.sectionname}...`, 'info');
+
+            // Call publish API with the original section ID from generation
+            const apiUrl = `${state.moodleContext.wwwroot}/local/lecturebot/api/publish_content.php?sesskey=${state.moodleContext.sesskey}`;
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    courseid: state.moodleContext.courseid,
+                    sectionid: contentItem.sectionid,
+                    contentid: numericId,
+                    title: contentItem.title,
+                    content: contentItem.result,
+                    type: contentItem.contenttype,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to publish content: ${errorText} `);
+            }
+
+            const result = await response.json();
+
+            // Update the content item in local state to mark it as published
+            const updatedItems = state.contentItems.map(item => {
+                if (Number(item.id) === numericId) {
+                    return {
+                        ...item,
+                        status: 'published' as const,
+                        timepublished: Math.floor(Date.now() / 1000),
+                        cmid: result.moduleid || null,
+                    };
+                }
+                return item;
+            });
+
+            dispatch({ type: 'SET_CONTENT_ITEMS', payload: updatedItems });
+
+            showNotification('Content published successfully!', 'success');
+        } catch (error) {
+            console.error('Error publishing content:', error);
+            showNotification('Failed to publish content. Please try again.', 'error');
+        }
+    }, [state.contentItems, state.moodleContext, dispatch, showNotification]);
+
+    const handleClearAllContent = useCallback(async () => {
+        if (!state.moodleContext) {
+            showNotification('Moodle context not available', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `${state.moodleContext.wwwroot}/local/lecturebot/api/cleanup_content.php?courseid=${state.moodleContext.courseid}&sesskey=${state.moodleContext.sesskey}`,
+                {
+                    method: 'POST',
+                    credentials: 'include',
+                }
+            );
+
+            const responseText = await response.text();
+
+            let result;
+            try {
+                result = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('Failed to parse cleanup response:', responseText);
+                throw new Error('Server returned invalid JSON');
+            }
+
+            if (result.success) {
+                dispatch({ type: 'SET_CONTENT_ITEMS', payload: [] });
+                showNotification('All content cleared successfully', 'success');
+            } else {
+                throw new Error(result.error || 'Failed to clear content');
+            }
+        } catch (error) {
+            console.error('Clear content error:', error);
+            showNotification(`Error clearing content: ${(error as Error).message} `, 'error');
+        }
+    }, [state.moodleContext, dispatch, showNotification]);
+
+    const handleDeleteContent = useCallback(async (contentId: number) => {
+        if (!state.moodleContext) {
+            showNotification('Moodle context not available', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `${state.moodleContext.wwwroot}/local/lecturebot/api/delete_content.php?contentid=${contentId}&sesskey=${state.moodleContext.sesskey}`,
+                {
+                    method: 'POST',
+                    credentials: 'include',
+                }
+            );
+
+            const result = await response.json();
+
+            if (result.status === 'success') {
+                // Remove from state
+                const updatedItems = state.contentItems.filter(item => item.id !== contentId);
+                dispatch({ type: 'SET_CONTENT_ITEMS', payload: updatedItems });
+
+                showNotification('Content deleted. Azure files preserved for restoration.', 'success');
+            } else {
+                throw new Error(result.error || 'Failed to delete content');
+            }
+        } catch (error) {
+            console.error('Delete content error:', error);
+            showNotification(`Error deleting content: ${(error as Error).message} `, 'error');
+        }
+    }, [state.moodleContext, state.contentItems, dispatch, showNotification]);
+
+    return {
+        isLoadingContent,
+        loadContentState,
+        handleGenerateSlides,
+        handleGenerateVideoLecture,
+        handleApproveSlides,
+        handlePublishContent,
+        handleClearAllContent,
+        handleDeleteContent
+    };
+};

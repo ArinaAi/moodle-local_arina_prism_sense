@@ -14,3 +14,6 @@ Dockerfile
 docker-compose.yml
 azure-pipelines.yml
 azure-lint-pipelines.yml
+
+# Mock files
+*mock.php

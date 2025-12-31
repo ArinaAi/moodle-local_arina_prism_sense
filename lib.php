@@ -98,6 +98,10 @@ function local_lecturebot_before_footer()
 {
     global $COURSE, $CFG;
 
+    if (defined('AJAX_SCRIPT') && AJAX_SCRIPT) {
+        return;
+    }
+
     if (!local_lecturebot_can_access()) {
         return;
     }

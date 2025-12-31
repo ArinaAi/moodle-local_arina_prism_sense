@@ -15,6 +15,12 @@ require_once(__DIR__ . '/../../../config.php');
 require_once(__DIR__ . '/../config_azure.php');
 require_once(__DIR__ . '/../lib_azure_storage.php');
 
+// Developer Mode: Redirect to mock handler
+if (defined('DEVELOPER_MODE') && DEVELOPER_MODE) {
+    require_once(__DIR__ . '/get_slide_images_mock.php');
+    exit;
+}
+
 // Suppress all output before JSON
 ob_start();
 

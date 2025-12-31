@@ -7,14 +7,12 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-// Disable HTML error output to prevent breaking JSON response
-define('NO_DEBUG_DISPLAY', true);
 define('AJAX_SCRIPT', true);
 
 require_once(__DIR__ . '/../../../config.php');
 require_once(__DIR__ . '/../config_api.php');
 require_once(__DIR__ . '/../config_azure.php');
-define('CURL_ERROR_PREFIX', 'cURL error: ');
+
 $courseid = required_param('courseid', PARAM_INT);
 require_login($courseid, false);
 require_sesskey();
@@ -31,10 +29,16 @@ session_write_close();
 
 header('Content-Type: application/json');
 
-// Increase PHP execution time
-set_time_limit(900);
-ini_set('max_execution_time', '900');
+// Enable high memory limit for any lightweight overhead
 ini_set('memory_limit', '512M');
+
+// Disable error display to prevent HTML in JSON response (errors go to log)
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+ini_set('log_errors', '1');
+ini_set('html_errors', '0');
+// Safety: Hide arguments in stack traces to prevent sensitive data leakage
+ini_set('zend.exception_ignore_args', '1');
 
 try {
     // Get POST data
@@ -64,6 +68,13 @@ try {
     $sectionid = $input['section_id'];
     $contentStrategy = $input['content_strategy'] ?? 'standard';
     $videoLength = isset($input['video_length']) ? (int)$input['video_length'] : LECTUREBOT_DEFAULT_VIDEO_LENGTH;
+    $language = $input['language'] ?? 'english';
+    $voiceGender = $input['voice_gender'] ?? 'female';
+    $avatarStrategy = $input['avatar_strategy'] ?? 'title_only';
+    $avatarVideoNeeded = $input['avtar_video_needed'] ?? 'no'; // Use 'avtar' as per user request variable name
+    
+    // Determine content type
+    $contentType = ($avatarVideoNeeded === 'yes') ? 'video' : 'slide-deck';
 
     // Fetch curriculum directly from the section's Page activity
     require_once($CFG->libdir . '/modinfolib.php');
@@ -80,47 +91,64 @@ try {
     }
     
     if (!$sectioninfo) {
-        throw new moodle_exception('error', 'moodle', '', 'Section not found');
+        throw new \local_lecturebot\exception\section_not_found_exception('Section not found');
     }
     
-    // Get curriculum from first Page activity or Label (text and media area) in the section
+    // Check if source_content_id is provided (to use specific slide deck's text)
+    $sourceContentId = isset($input['source_content_id']) ? (int)$input['source_content_id'] : 0;
     $curriculumText = '';
-    $cms = $sectioninfo->modinfo->get_cms();
-    
-    foreach ($cms as $cm) {
-        // Check if this module is in our section
-        if ($cm->sectionnum == $sectioninfo->section) {
-            // Check for Page activity
-            if ($cm->modname == 'page') {
-                $page = $DB->get_record('page', ['id' => $cm->instance]);
-                if ($page) {
-                    $curriculumText = strip_tags($page->content);
-                    $curriculumText = trim($curriculumText);
-                    break;
-                }
-            } elseif ($cm->modname == 'label') {
-                $label = $DB->get_record('label', ['id' => $cm->instance]);
-                if ($label && !empty($label->intro)) {
-                    $curriculumText = strip_tags($label->intro);
-                    $curriculumText = trim($curriculumText);
-                    break;
-                }
+
+    if ($sourceContentId > 0) {
+        $sourceContent = $DB->get_record('local_lecturebot_content', ['id' => $sourceContentId]);
+        if ($sourceContent && !empty($sourceContent->generationdata)) {
+            $genData = json_decode($sourceContent->generationdata, true);
+            if (isset($genData['curriculum_text'])) {
+                $curriculumText = $genData['curriculum_text'];
+                error_log("LectureBot: Using curriculum text from source content ID: $sourceContentId");
+            }
+            if (isset($genData['regen_count'])) {
+                $sourceRegenCount = $genData['regen_count']; // Capture regen_count from source
             }
         }
     }
-    
-    // If no page found, check section summary as fallback
-    if (empty($curriculumText) && !empty($sectioninfo->summary)) {
-        $curriculumText = strip_tags($sectioninfo->summary);
-        $curriculumText = trim($curriculumText);
+
+    // If no source content or text not found, fetch live from section
+    if (empty($curriculumText)) {
+        // Get curriculum from first Page activity or Label (text and media area) in the section
+        $cms = $sectioninfo->modinfo->get_cms();
+        
+        foreach ($cms as $cm) {
+            // Check if this module is in our section
+            if ($cm->sectionnum == $sectioninfo->section) {
+                // Check for Page activity
+                if ($cm->modname == 'page') {
+                    $page = $DB->get_record('page', ['id' => $cm->instance]);
+                    if ($page) {
+                        $curriculumText = strip_tags($page->content);
+                        $curriculumText = trim($curriculumText);
+                        break;
+                    }
+                }else   if ($cm->modname == 'label') {
+                    $label = $DB->get_record('label', ['id' => $cm->instance]);
+                    if ($label && !empty($label->intro)) {
+                        $curriculumText = strip_tags($label->intro);
+                        $curriculumText = trim($curriculumText);
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // If no page found, check section summary as fallback
+        if (empty($curriculumText) && !empty($sectioninfo->summary)) {
+            $curriculumText = strip_tags($sectioninfo->summary);
+            $curriculumText = trim($curriculumText);
+        }
     }
     
     // If still empty, throw error
     if (empty($curriculumText)) {
-        throw new moodle_exception(
-            'error',
-            'moodle',
-            '',
+        throw new \local_lecturebot\exception\curriculum_not_found_exception(
             'No curriculum content found in section. ' .
             'Please add a Page activity or section summary with curriculum content.'
         );
@@ -138,13 +166,7 @@ try {
     ]);
 
     if (empty($sources)) {
-        throw new moodle_exception(
-            'error',
-            'moodle',
-            '',
-            'No source PDFs found for this section. ' .
-            'Please add a PDF file to the sources for this section.'
-        );
+        throw new \local_lecturebot\exception\source_not_found_exception('No source PDFs found for this section');
     }
 
     // Note: The new API (http://0.0.0.0:8034/generate_pptx) doesn't require PDF upload
@@ -158,26 +180,56 @@ try {
     // Log warning if tenant ID was a string so admin knows to fix it
     if (!is_numeric($tenantConfig)) {
         error_log("LectureBot: LECTUREBOT_TENANT_ID ('$tenantConfig') is not numeric. " .
-            "falling back to 1 for organization_id.");
+                  "falling back to 1 for organization_id.");
     }
 
-    // Calculate regen_count by counting existing records for this section
-    $regenCount = $DB->count_records('local_lecturebot_content', [
-        'courseid' => $courseid,
-        'sectionid' => $sectionid,
-        'contenttype' => 'slide-deck'
-    ]);
+    // Calculate regen_count by querying Azure directly (Source of Truth)
+    // This ensures we continue the sequence (0, 1, 2...) even if Moodle records are deleted
+    // Determine regen_count (Azure folder index)
+    // Priority:
+    // 1. Explicit regen_count from request (if provided)
+    // 2. regen_count from source content (if source_content_id provided)
+    // 3. Calculate next available index from Azure
+    $regenCount = null;
+    
+    if (isset($input['regen_count']) && is_numeric($input['regen_count'])) {
+        $regenCount = (int)$input['regen_count'];
+        error_log("LectureBot: Using explicit regen_count $regenCount from request");
+    } elseif (!empty($sourceRegenCount)) {
+        $regenCount = $sourceRegenCount;
+        error_log("LectureBot: Reusing regen_count $regenCount from source content ID $sourceContentId");
+    } else {
+        $regenCount = get_azure_regen_count($courseid, $sectionid, $tenantId);
+        error_log("LectureBot: Calculated regen_count $regenCount from Azure");
+    }
+
+    // Enforce logic to start from 0 if no records found
+    if ($regenCount < 0) {
+        $regenCount = 0;
+    }
+
+    // Check for explicit content_type from input
+    // This allows forcing 'video' even if avatar is not needed
+    if (isset($input['content_type']) && $input['content_type'] === 'video') {
+        $contentType = 'video';
+    }
 
     // Create database entry with status='generating'
     $content = new stdClass();
     $content->courseid = $courseid;
     $content->sectionid = $sectionid;
-    $content->contenttype = 'slide-deck';
+    $content->contenttype = $contentType;
     $content->status = 'generating';
-    $content->title = 'Slides: ' . $sectionName;
+    $content->title = ($contentType === 'video' ? 'Video: ' : 'Slides: ') . $sectionName;
     $content->generationdata = json_encode([
         'curriculum_text' => $curriculumText,
         'content_strategy' => $contentStrategy,
+        'video_length' => $videoLength,
+        'language' => $language,
+        'voice_gender' => $voiceGender,
+        'avatar_strategy' => $avatarStrategy,
+        'avtar_video_needed' => $avatarVideoNeeded,
+        'content_type' => $contentType, // Save explicitly mapping
         'requested_at' => time(),
         'regen_count' => $regenCount
     ]);
@@ -186,267 +238,66 @@ try {
 
     $contentId = $DB->insert_record('local_lecturebot_content', $content);
     
-    // Call the external lecture content generation API
-    // Using the new endpoint: http://bots.arina.ai/tutorial_generation/generate_pptx
-    $apiUrl = LECTUREBOT_API_GENERATE_PPTX .
-              '?curriculum_text=' . urlencode(trim($curriculumText)) .
-              '&organization_id=' . urlencode($tenantId) .
-              '&course_id=' . $courseid .
-              '&chapter_id=' . $sectionid .
-              '&regen_count=' . $regenCount .
-              '&video_length=' . $videoLength .
-              '&content_strategy=' . urlencode($contentStrategy);
-
-    error_log('LectureBot: Calling API URL: ' . $apiUrl);
-    error_log('LectureBot: Organization ID: ' . $tenantId);
-    error_log('LectureBot: Chapter ID: ' . $sectionid);
-    error_log('LectureBot: Regen Count: ' . $regenCount);
-    error_log('LectureBot: Video Length: ' . $videoLength);
-    error_log('LectureBot: Curriculum length: ' . strlen($curriculumText) . ' characters');
-
-    $ch = curl_init($apiUrl);
-    
-    if ($ch === false) {
-        error_log('LectureBot: Failed to initialize cURL');
-        
-        // Update status to error
-        $DB->update_record(
-            'local_lecturebot_content',
-            (object)[
-                'id' => $contentId,
-                'status' => 'error',
-                'errormessage' => 'Failed to initialize cURL',
-                'timemodified' => time()
-            ]
-        );
-        
-        throw new moodle_exception('error', 'moodle', '', 'Failed to initialize cURL');
-    }
-    
-    curl_setopt_array($ch, [
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => '',
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => LECTUREBOT_API_TIMEOUT,
-        CURLOPT_CONNECTTIMEOUT => LECTUREBOT_API_CONNECT_TIMEOUT,
-        CURLOPT_HTTPHEADER => [
-            'Accept: application/json',
-            'Content-Type: application/x-www-form-urlencoded'
-        ],
-        CURLOPT_SSL_VERIFYPEER => true,
-        CURLOPT_SSL_VERIFYHOST => 2,
-    ]);
-
-    $response = curl_exec($ch);
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    
-    if (curl_errno($ch)) {
-        $curlError = curl_error($ch);
-        curl_close($ch);
-        error_log('LectureBot: cURL error: ' . $curlError);
-        
-        // Update status to error
-        $DB->update_record(
-            'local_lecturebot_content',
-            (object)[
-                'id' => $contentId,
-                'status' => 'error',
-                'errormessage' => CURL_ERROR_PREFIX . $curlError,
-                'timemodified' => time()
-            ]
-        );
-        
-        http_response_code(500);
-        echo json_encode([
-            'status' => 'error',
-            'error' => CURL_ERROR_PREFIX . $curlError,
-            'content_id' => $contentId
+    // ==========================================
+    // NEW: Queue Adhoc Task
+    // ==========================================
+    // Create Adhoc Task (Real or Mock based on config)
+    // Create Adhoc Task (Real or Mock based on config)
+    if (defined('DEVELOPER_MODE') && DEVELOPER_MODE) {
+        $task = new \local_lecturebot\task\generate_content_task_mock();
+        $task->set_custom_data([
+            'content_id' => $contentId,
+            'curriculum_text' => $curriculumText,
+            'tenant_id' => $tenantId,
+            'course_id' => $courseid,
+            'section_id' => $sectionid,
+            'regen_count' => $regenCount,
+            'video_length' => $videoLength,
+            'content_strategy' => $contentStrategy,
+            'language' => $language,
+            'voice_gender' => $voiceGender,
+            'avatar_strategy' => $avatarStrategy,
+            'avtar_video_needed' => $avatarVideoNeeded,
+            'content_type' => $contentType // Pass to task
         ]);
-        exit;
-    }
-    
-    curl_close($ch);
-
-    // Log the API response for debugging
-    error_log('LectureBot: API response (HTTP ' . $http_code . '): ' . strlen($response) . ' bytes received');
-
-    // Check if the response is successful
-    if ($http_code === 200 && !empty($response)) {
-        // Parse JSON response from backend
-        $apiResponse = json_decode($response, true);
         
-        if ($apiResponse && ((isset($apiResponse['success']) && $apiResponse['success'] === true) ||
-            (isset($apiResponse['Success']) && $apiResponse['Success'] === true))) {
-            error_log('LectureBot: Backend API returned success, fetching PPTX from Azure Blob Storage');
-            
-            // Construct new Azure paths
-            // Container: blob-tutorial-gen-<TenantId> (Must be lowercase for Azure)
-            $containerName = strtolower('Blob-Tutorial-Gen-' . $tenantId);
-            
-            // Folder: Tutorial_<course_id>_<chapter_id>_<regen_count>
-            $folderName = "Tutorial_{$courseid}_{$sectionid}_{$regenCount}";
-            
-            // PPTX File: slide_tutorial_<course_id>_<chapter_id>.pptx
-            // Full Blob Path: <Folder>/<Filename>
-            $pptxFileName = "slide_tutorial_{$courseid}_{$sectionid}.pptx";
-            $blobName = $folderName . '/' . $pptxFileName;
-            
-            error_log("LectureBot: Container: $containerName");
-            error_log("LectureBot: Blob Path: $blobName");
-            error_log('LectureBot: Attempting to download blob...');
-            
-            try {
-                // Download PPTX from Azure Blob Storage
-                // Note: We need to update downloadPptxFromAzure to accept container name
-                $pptxContent = downloadPptxFromAzure($blobName, $containerName);
-                
-                if ($pptxContent === false || empty($pptxContent)) {
-                    throw new moodle_exception('error', 'moodle', '', 'Failed to download PPTX from Azure Blob Storage'
-                    );
-                }
-                
-                error_log('LectureBot: Successfully downloaded PPTX from Azure (' . strlen($pptxContent) . ' bytes)');
-                
-                // Save the PPTX file locally
-                $filename = 'slides_' . $contentId . '_' . time() . '.pptx';
-                $filepath = $CFG->tempdir . '/lecturebot/' . $filename;
-                
-                // Create directory if it doesn't exist
-                if (!is_dir($CFG->tempdir . '/lecturebot')) {
-                    mkdir($CFG->tempdir . '/lecturebot', 0755, true);
-                }
-                
-                file_put_contents($filepath, $pptxContent);
-                
-                error_log('LectureBot: PPTX file saved locally: ' . $filepath);
-                
-                // Count slides in PPTX
-                $slideCount = countSlidesInPptx($filepath);
-                
-                error_log('LectureBot: PPTX contains ' . $slideCount . ' slides');
-                
-                // Create minimal result structure for frontend
-                $resultsData = [
-                    [
-                        'topic' => $sectionName,
-                        'slideCount' => $slideCount,
-                        'pptxFile' => $filename
-                    ]
-                ];
-                
-                // Update status to ready and store the file info
-                $DB->update_record(
-                    'local_lecturebot_content',
-                    (object)[
-                    'id' => $contentId,
-                    'status' => 'ready',
-                    'generationdata' => json_encode(array_merge(
-                        json_decode($content->generationdata, true),
-                        [
-                            'pptx_file' => $filename,
-                            'pptx_path' => $filepath,
-                            'slide_count' => $slideCount,
-                            'slide_count' => $slideCount,
-                            'completed_at' => time(),
-                            'azure_blob_name' => $blobName,
-                            'azure_container' => $containerName,
-                            'azure_folder' => $folderName,
-                            'result' => [
-                                'status' => 'success',
-                                'results' => $resultsData
-                            ]
-                        ]
-                    )),
-                    'timemodified' => time()
-                ]
-            );
-                
-                // Return success with content_id
-                echo json_encode([
-                    'status' => 'success',
-                    'content_id' => $contentId,
-                    'message' => 'Content generated successfully',
-                    'pptx_file' => $filename,
-                    'slide_count' => $slideCount,
-                    'results' => $resultsData
-                ]);
-                
-            } catch (Exception $azureError) {
-                error_log('LectureBot: Azure download error: ' . $azureError->getMessage());
-                
-                $DB->update_record(
-                    'local_lecturebot_content',
-                    (object)[
-                        'id' => $contentId,
-                        'status' => 'error',
-                        'errormessage' => 'Failed to download from Azure: ' . $azureError->getMessage(),
-                        'timemodified' => time()
-                    ]
-                );
-                
-                http_response_code(500);
-                echo json_encode([
-                    'status' => 'error',
-                    'error' => 'Failed to download from Azure: ' . $azureError->getMessage(),
-                    'content_id' => $contentId
-                ]);
-            }
-        } else {
-            // API returned success=false or malformed response
-            $errorMsg = isset($apiResponse['error']) ? $apiResponse['error'] : 'API returned unsuccessful response';
-            
-            error_log('LectureBot: API returned error: ' . $errorMsg);
-            
-            $DB->update_record(
-                'local_lecturebot_content',
-                (object)[
-                    'id' => $contentId,
-                    'status' => 'error',
-                    'errormessage' => $errorMsg,
-                    'timemodified' => time()
-                    ]
-            );
-            
-            http_response_code(500);
-            echo json_encode([
-                'status' => 'error',
-                'error' => $errorMsg,
-                'content_id' => $contentId
-            ]);
-        }
+        // DEVELOPER MODE: EXECUTE SYNCHRONOUSLY
+        // Bypassing Adhoc Queue to avoid Cron dependencies in local dev
+        error_log("LectureBot: [DEV] Executing mock task synchronously");
+        $task->execute();
+        
     } else {
-        // Log the actual response for debugging
-        error_log('LectureBot: API Error Response Body: ' . substr($response, 0, 1000));
-        
-        // Try to parse the response as JSON to get error details
-        $errorDetails = 'Generation failed with HTTP ' . $http_code;
-        if (!empty($response)) {
-            $jsonResponse = json_decode($response, true);
-            if ($jsonResponse && isset($jsonResponse['error'])) {
-                $errorDetails .= ': ' . $jsonResponse['error'];
-            } else {
-                $errorDetails .= ': ' . substr($response, 0, 200);
-            }
-        }
-        
-        // Update status to error
-        $DB->update_record(
-            'local_lecturebot_content',
-            (object)[
-            'id' => $contentId,
-            'status' => 'error',
-            'errormessage' => $errorDetails,
-            'timemodified' => time()
-        ]
-    );
-        
-        http_response_code($http_code);
-        echo json_encode([
-            'status' => 'error',
-            'error' => $errorDetails,
-            'content_id' => $contentId
+        $task = new \local_lecturebot\task\generate_content_task();
+        $task->set_custom_data([
+            'content_id' => $contentId,
+            'curriculum_text' => $curriculumText,
+            'tenant_id' => $tenantId,
+            'course_id' => $courseid,
+            'section_id' => $sectionid,
+            'regen_count' => $regenCount,
+            'video_length' => $videoLength,
+            'content_strategy' => $contentStrategy,
+            'language' => $language,
+            'voice_gender' => $voiceGender,
+            'avatar_strategy' => $avatarStrategy,
+            'avtar_video_needed' => $avatarVideoNeeded,
+            'content_type' => $contentType // Pass to task
         ]);
+        
+        // PRODUCTION: Queue the task
+        \core\task\manager::queue_adhoc_task($task);
+        error_log("LectureBot: Queued generation task for content $contentId");
     }
+    
+    error_log("LectureBot: Queued generation task for content $contentId");
+
+    // Return success immediately
+    echo json_encode([
+        'status' => 'success',
+        'content_id' => $contentId,
+        'message' => 'Generation queued successfully',
+        'is_queued' => true
+    ]);
     
 } catch (Exception $e) {
     error_log('LectureBot: Exception caught: ' . $e->getMessage());
@@ -458,118 +309,111 @@ try {
 }
 
 /**
- * Download PPTX file from Azure Blob Storage
- * @param string $blobName Name of the blob to download (e.g., folder/tutorial_123.pptx)
- * @param string|null $containerName Optional container name. If null, uses default constant.
- * @return string|false Binary content of the PPTX file, or false on failure
+ * Helper to query Azure Blob Storage for the highest regen_count
+ * Matches folders like Tutorial_{courseid}_{sectionid}_{count}
  */
-function downloadPptxFromAzure($blobName, $containerName = null)
+/**
+ * Execute Azure Blob List API call
+ */
+function execute_azure_blob_list_call($accountName, $accountKey, $containerName, $prefix)
 {
-    try {
-        // Construct the blob URL
-        $accountName = AZURE_STORAGE_ACCOUNT_NAME;
-        $targetContainer = $containerName ? $containerName : AZURE_BLOB_CONTAINER_NAME;
-        $blobUrl = "https://{$accountName}.blob.core.windows.net/{$targetContainer}/{$blobName}";
-        
-        error_log('LectureBot: Azure blob URL: ' . $blobUrl);
-        
-        // Generate authorization header using Shared Key
-        $date = gmdate('D, d M Y H:i:s T');
-        $version = '2020-04-08';
-        
-        // Construct the string to sign
-        $stringToSign = "GET\n" .  // HTTP Verb
-                       "\n" .      // Content-Encoding
-                       "\n" .      // Content-Language
-                       "\n" .      // Content-Length
-                       "\n" .      // Content-MD5
-                       "\n" .      // Content-Type
-                       "\n" .      // Date
-                       "\n" .      // If-Modified-Since
-                       "\n" .      // If-Match
-                       "\n" .      // If-None-Match
-                       "\n" .      // If-Unmodified-Since
-                       "\n" .      // Range
-                       "x-ms-date:{$date}\n" .
-                       "x-ms-version:{$version}\n" .
-                       "/{$accountName}/{$targetContainer}/{$blobName}";
-        
-        // Sign the string
-        $signature = base64_encode(hash_hmac(
-            'sha256',
-            mb_convert_encoding($stringToSign, "UTF-8"),
-            base64_decode(AZURE_STORAGE_ACCOUNT_KEY),
-            true
-        ));
-        $authHeader = "SharedKey {$accountName}:{$signature}";
-        
-        // Download the blob using cURL
-        $ch = curl_init($blobUrl);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => [
-                "x-ms-date: {$date}",
-                "x-ms-version: {$version}",
-                "Authorization: {$authHeader}"
-            ],
-            CURLOPT_TIMEOUT => 300,
-            CURLOPT_CONNECTTIMEOUT => 30,
-            CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_SSL_VERIFYHOST => 2,
-        ]);
-        
-        $content = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        
-        if (curl_errno($ch)) {
-            $error = curl_error($ch);
-            curl_close($ch);
-            error_log('LectureBot: cURL error downloading from Azure: ' . $error);
-            throw new moodle_exception('error', 'moodle', '', CURL_ERROR_PREFIX . $error);
-        }
-        
-        curl_close($ch);
-        
-        if ($httpCode !== 200) {
-            error_log('LectureBot: Azure returned HTTP ' . $httpCode . ': ' . substr($content, 0, 500));
-            throw new moodle_exception('error', 'moodle', '', 'Azure Blob Storage returned HTTP ' . $httpCode);
-        }
-        
-        error_log('LectureBot: Successfully downloaded ' . strlen($content) . ' bytes from Azure');
-        
-        return $content;
-        
-    } catch (Exception $e) {
-        error_log('LectureBot: Error downloading from Azure: ' . $e->getMessage());
-        return false;
+    if (!defined('AZURE_STORAGE_ACCOUNT_NAME') || !defined('AZURE_STORAGE_ACCOUNT_KEY')) {
+         error_log("LectureBot: Azure credentials not defined.");
+         return null;
     }
+
+    $url = "https://{$accountName}.blob.core.windows.net/{$containerName}" .
+           "?restype=container&comp=list&delimiter=/&prefix={$prefix}";
+    
+    $date = gmdate('D, d M Y H:i:s T', time());
+    $canonicalizedHeaders = "x-ms-date:$date\nx-ms-version:2020-04-08";
+    $canonicalizedResource = "/{$accountName}/{$containerName}\ncomp:list\ndelimiter:/\n" .
+                             "prefix:{$prefix}\nrestype:container";
+    
+    $stringToSign = "GET\n\n\n\n\n\n\n\n\n\n\n\n" .
+                    $canonicalizedHeaders . "\n" .
+                    $canonicalizedResource;
+                    
+    $signature = base64_encode(hash_hmac('sha256', utf8_encode($stringToSign), base64_decode($accountKey), true));
+    $authHeader = "SharedKey $accountName:$signature";
+    
+    $ch = curl_init();
+    curl_setopt_array($ch, [
+        CURLOPT_URL => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => [
+            "x-ms-date: $date",
+            "x-ms-version: 2020-04-08",
+            "Authorization: $authHeader"
+        ],
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_TIMEOUT => 10
+    ]);
+    
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode !== 200) {
+        error_log("LectureBot Azure List failed: $httpCode. Response: " . substr($response, 0, 100));
+        return null;
+    }
+
+    return $response;
 }
 
 /**
- * Count slides in PPTX file
- * @param string $pptxPath Path to the PPTX file
- * @return int Number of slides
+ * Parse Azure XML response to find max regen count
  */
-function countSlidesInPptx($pptxPath) 
+function parse_azure_blob_list_response($response)
 {
-    $slideCount = 0;
-    
+    $maxCount = -1;
     try {
-        $zip = new ZipArchive();
-        if ($zip->open($pptxPath) === true) {
-            // Count slide XML files
-            for ($i = 0; $i < $zip->numFiles; $i++) {
-                $filename = $zip->getNameIndex($i);
-                if (preg_match('/ppt\/slides\/slide(\d+)\.xml/', $filename, $matches)) {
-                    $slideNumber = (int)$matches[1];
-                    $slideCount = max($slideCount, $slideNumber);
+        $xml = new SimpleXMLElement($response);
+        if (!isset($xml->Blobs->BlobPrefix)) {
+            error_log("LectureBot: No BlobPrefix found in XML");
+            return 0;
+        }
+
+        foreach ($xml->Blobs->BlobPrefix as $prefixNode) {
+            $dirName = (string)$prefixNode->Name;
+            if (preg_match('/_(\d+)\/$/', $dirName, $matches)) {
+                $count = (int)$matches[1];
+                if ($count > $maxCount) {
+                    $maxCount = $count;
                 }
             }
-            $zip->close();
         }
     } catch (Exception $e) {
-        error_log('LectureBot: Error counting slides in PPTX: ' . $e->getMessage());
+        error_log("LectureBot XML Parse Error: " . $e->getMessage());
+        return 0;
     }
     
-    return $slideCount;
+    return $maxCount + 1;
+}
+
+/**
+ * Helper to query Azure Blob Storage for the highest regen_count
+ * Matches folders like Tutorial_{courseid}_{sectionid}_{count}
+ */
+function get_azure_regen_count($courseid, $sectionid, $tenantId)
+{
+    // Check credentials first
+    if (!defined('AZURE_STORAGE_ACCOUNT_NAME') || !defined('AZURE_STORAGE_ACCOUNT_KEY')) {
+         error_log("LectureBot: Azure credentials not defined, falling back to 0");
+         return 0;
+    }
+
+    $containerName = strtolower('Blob-Tutorial-Gen-' . $tenantId);
+    $accountName = AZURE_STORAGE_ACCOUNT_NAME;
+    $accountKey = AZURE_STORAGE_ACCOUNT_KEY;
+    $prefix = "Tutorial_{$courseid}_{$sectionid}_";
+
+    $response = execute_azure_blob_list_call($accountName, $accountKey, $containerName, $prefix);
+
+    if ($response) {
+        return parse_azure_blob_list_response($response);
+    }
+    
+    return 0;
 }

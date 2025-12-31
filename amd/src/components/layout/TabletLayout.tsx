@@ -1,0 +1,73 @@
+import React from 'react';
+import { Box } from '@mui/material';
+import LeftColumn from '../LeftColumn/LeftColumn';
+import CenterColumn from '../CenterColumn/CenterColumn';
+import RightColumn from '../RightColumn/RightColumn';
+import type { LayoutProps } from '../../types/layout';
+
+const TabletLayout: React.FC<LayoutProps> = ({
+    state,
+    dispatch,
+    onOpenSourcesModal,
+    onOpenCurriculumModal,
+    onOpenVideoModal,
+    onApproveSlides,
+    onClosePreview,
+    onOpenFeedbackModal,
+    onPublishContent,
+    onClearAllContent,
+    onDeleteContent,
+    isLoadingContent,
+}) => {
+    return (
+        <Box
+            sx={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gridTemplateRows: '1fr',
+                gap: 2,
+                p: 2,
+                height: 'calc(100vh - 120px)',
+                minHeight: '500px',
+                overflow: 'hidden',
+                alignItems: 'stretch',
+            }}
+        >
+            {/* Left Column */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <LeftColumn
+                    state={state}
+                    onOpenSourcesModal={onOpenSourcesModal}
+                    onOpenCurriculumModal={onOpenCurriculumModal}
+                    onOpenVideoModal={onOpenVideoModal}
+                    dispatch={dispatch}
+                />
+            </Box>
+
+            {/* Right Column (stacked Center + Right) */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 2 }}>
+                <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+                    <CenterColumn
+                        state={state}
+                        onApproveSlides={onApproveSlides}
+                        onClosePreview={onClosePreview}
+                        onOpenFeedbackModal={onOpenFeedbackModal}
+                        onOpenSourcesModal={onOpenSourcesModal}
+                        hasAnySources={state.sources.length > 0}
+                    />
+                </Box>
+                <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+                    <RightColumn
+                        state={{ contentItems: state.contentItems }}
+                        onPublishContent={onPublishContent}
+                        onClearAll={onClearAllContent}
+                        onDeleteContent={onDeleteContent}
+                        isLoading={isLoadingContent}
+                    />
+                </Box>
+            </Box>
+        </Box>
+    );
+};
+
+export default TabletLayout;

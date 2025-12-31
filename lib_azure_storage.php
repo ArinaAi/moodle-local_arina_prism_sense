@@ -269,3 +269,63 @@ function restore_slide_version($contentid, $timestamp)
     return download_slides_from_azure($previewId);
 }
 
+/**
+ * Generate a SAS token for a blob
+ * @param string $accountName Storage account name
+ * @param string $containerName Container name
+ * @param string $blobName Blob name
+ * @param string $accountKey Account key
+ * @return string SAS token query string (starting with ?)
+ */
+function generate_blob_sas_token($accountName, $containerName, $blobName, $accountKey)
+{
+    $signedPermissions = 'r'; // Read
+    $signedStart = gmdate('Y-m-d\TH:i:s\Z', strtotime('-5 minutes'));
+    $signedExpiry = gmdate('Y-m-d\TH:i:s\Z', strtotime('+2 hours')); // 2 hour expiry
+    $signedService = 'b'; // Blob
+    $signedVersion = '2020-04-08';
+    $signedProtocol = 'https';
+    
+    // Canonicalized Resource: /blob/account/container/blob
+    $canonicalizedResource = "/blob/{$accountName}/{$containerName}/{$blobName}";
+    
+    // String to sign order for 2020-04-08:
+    // permissions, start, expiry, canonicalizedResource, identifier, ip, protocol, version,
+    // resources, snapshot, encryption scope, cache control, disposition, encoding, language, type
+    $stringToSign = $signedPermissions . "\n" .
+                    $signedStart . "\n" .
+                    $signedExpiry . "\n" .
+                    $canonicalizedResource . "\n" .
+                    "" . "\n" . // identifier
+                    "" . "\n" . // ip
+                    $signedProtocol . "\n" .
+                    $signedVersion . "\n" .
+                    $signedService . "\n" .
+                    "" . "\n" . // snapshot
+                    "\n" . // rscc
+                    "\n" . // rscd
+                    "\n" . // rsce
+                    "\n" . // rscl
+                    "";    // rsct
+                    
+    $signature = base64_encode(hash_hmac(
+        'sha256',
+        mb_convert_encoding($stringToSign, 'UTF-8'),
+        base64_decode($accountKey),
+        true
+    ));
+    
+    $queryParams = [
+        'sv' => $signedVersion,
+        'st' => $signedStart,
+        'se' => $signedExpiry,
+        'sr' => $signedService,
+        'sp' => $signedPermissions,
+        'spr' => $signedProtocol,
+        'sig' => $signature
+    ];
+    
+    // MUST use '&' separator, otherwise Azure fails to parse
+    return '?' . http_build_query($queryParams, '', '&');
+}
+

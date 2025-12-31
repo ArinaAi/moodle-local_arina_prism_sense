@@ -4,9 +4,6 @@ amd/package-lock.json
 amd/yarn.lock
 amd/pnpm-lock.yaml
 
-# Build artifacts
-amd/build/
-
 # TypeScript compilation cache
 amd/.tsbuildinfo
 amd/src/**/*.js
@@ -22,6 +19,8 @@ yarn-error.log*
 *.tmp
 *.temp
 *.cache
+cli
+build
 
 # Backup files
 *.bak
@@ -32,6 +31,9 @@ yarn-error.log*
 # Secrets and Local Config
 config_azure.php
 
-# Internal Documentation
-CLEANUP_PLAN.md
-UX_IMPROVEMENT_PLAN.md
+# IDE and Dev Tools
+.idea
+.vscode
+sync_plugin.sh
+node_modules/
+lecturebot_debug.log

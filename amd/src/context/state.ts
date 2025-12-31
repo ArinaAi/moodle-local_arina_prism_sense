@@ -6,14 +6,12 @@ export const initialState: AppState = {
     generatedSlides: null,
     generatedContent: null,
     currentContentId: null,
-    curriculum: null,
-    contentStrategy: 'standard',
-    publishedLectures: [],
     contentItems: [],
     activeContentType: 'slide-deck',
     isGeneratingSlides: false,
     showSourcesModal: false,
     showCurriculumModal: false,
+    showVideoLectureModal: false,
     showFeedbackModal: false,
     moodleContext: null,
     slidesApproved: false,
@@ -37,17 +35,6 @@ export function appReducer(state: AppState, action: AppAction): AppState {
             return { ...state, generatedContent: action.payload };
         case 'SET_CURRENT_CONTENT_ID':
             return { ...state, currentContentId: action.payload };
-        case 'SET_CURRICULUM':
-            return { ...state, curriculum: action.payload };
-        case 'SET_CONTENT_STRATEGY':
-            return { ...state, contentStrategy: action.payload };
-        case 'SET_PUBLISHED_LECTURES':
-            return { ...state, publishedLectures: action.payload };
-        case 'ADD_PUBLISHED_LECTURE':
-            return {
-                ...state,
-                publishedLectures: [...state.publishedLectures, action.payload],
-            };
         case 'SET_CONTENT_ITEMS':
             // Deduplicate items based on ID to prevent UI glitches
             // const uniqueItems = Array.from(new Map(action.payload.map(item => [item.id, item])).values());
@@ -62,6 +49,9 @@ export function appReducer(state: AppState, action: AppAction): AppState {
             return { ...state, showSourcesModal: action.payload };
         case 'SHOW_CURRICULUM_MODAL':
             return { ...state, showCurriculumModal: action.payload };
+        case 'SHOW_VIDEO_LECTURE_MODAL':
+            console.log('🔴 Reducer: SHOW_VIDEO_LECTURE_MODAL ->', action.payload);
+            return { ...state, showVideoLectureModal: action.payload };
         case 'SHOW_FEEDBACK_MODAL':
             return { ...state, showFeedbackModal: action.payload };
         case 'SET_MOODLE_CONTEXT':

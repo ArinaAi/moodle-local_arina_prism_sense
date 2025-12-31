@@ -1,16 +1,16 @@
 // types/app.ts
 import { MoodleContext } from './moodle';
 
-export interface Source {
-  id: string;
-  file: File;
-  title: string;
-  author: string;
-  status: 'pending' | 'uploading' | 'success' | 'error';
-  uploadedAt: Date;
+// Curriculum Types
+export interface SourceFile {
+  id: number;
+  filename: string;
+  filesize: number;
+  sectionid: number;
+  sectionname: string;
+  timecreated: number;
 }
 
-// Curriculum Types
 export interface CurriculumSubtopic {
   title: string;
   type: 'sub-topic';
@@ -55,10 +55,10 @@ export interface TwoContentSlideContent {
   'right-content': string[];
 }
 
-export type SlideContent = 
-  | TitleSlideContent 
-  | TitleAndContentSlideContent 
-  | ComparisonSlideContent 
+export type SlideContent =
+  | TitleSlideContent
+  | TitleAndContentSlideContent
+  | ComparisonSlideContent
   | TwoContentSlideContent;
 
 export interface SlideInfo {
@@ -99,6 +99,8 @@ export interface SubtopicResult {
   content?: SlideWithNotes[]; // Optional - for text-based slides
   slideCount?: number; // Optional - for PPTX mode
   pptxFile?: string; // Optional - PPTX filename
+  videoUrl?: string; // Optional - for Video mode
+  videoDuration?: number; // Optional - in seconds
 }
 
 export interface GenerateLectureResponse {
@@ -114,14 +116,6 @@ export interface Slide {
   content: string;
   imageUrl?: string;
   order: number;
-}
-
-export interface PublishedLecture {
-  id: string;
-  title: string;
-  type: 'slides' | 'video' | 'flashcards' | 'mind-map' | 'practice' | 'case-study';
-  publishedAt: Date;
-  url: string;
 }
 
 // Content Item from database
@@ -148,42 +142,39 @@ export interface ContentItem {
     fullname: string;
     email: string;
   } | null;
+  video_length?: string;
+  generationdata?: string;
 }
 
 export interface AppState {
-  sources: Source[];
+  sources: SourceFile[];
   generatedSlides: Slide[] | null;
   generatedContent: GenerateLectureResponse | null; // New comprehensive content
   currentContentId: number | null; // Track current content being viewed
-  curriculum: CurriculumStructure | null;
-  contentStrategy: 'standard' | 'example_driven';
-  publishedLectures: PublishedLecture[];
   contentItems: ContentItem[]; // Content from database
   activeContentType: 'slide-deck' | 'video' | 'flashcards' | 'mind-map' | 'practice' | 'case-study';
   isGeneratingSlides: boolean;
   showSourcesModal: boolean;
   showCurriculumModal: boolean;
+  showVideoLectureModal: boolean;
   showFeedbackModal: boolean;
   moodleContext: MoodleContext | null;
   slidesApproved: boolean;
 }
 
 export type AppAction =
-  | { type: 'SET_SOURCES'; payload: Source[] }
-  | { type: 'ADD_SOURCE'; payload: Source }
-  | { type: 'REMOVE_SOURCE'; payload: string }
+  | { type: 'SET_SOURCES'; payload: SourceFile[] }
+  | { type: 'ADD_SOURCE'; payload: SourceFile }
+  | { type: 'REMOVE_SOURCE'; payload: number }
   | { type: 'SET_GENERATED_SLIDES'; payload: Slide[] | null }
   | { type: 'SET_GENERATED_CONTENT'; payload: GenerateLectureResponse | null }
   | { type: 'SET_CURRENT_CONTENT_ID'; payload: number | null }
-  | { type: 'SET_CURRICULUM'; payload: CurriculumStructure | null }
-  | { type: 'SET_CONTENT_STRATEGY'; payload: 'standard' | 'example_driven' }
-  | { type: 'SET_PUBLISHED_LECTURES'; payload: PublishedLecture[] }
-  | { type: 'ADD_PUBLISHED_LECTURE'; payload: PublishedLecture }
   | { type: 'SET_CONTENT_ITEMS'; payload: ContentItem[] }
   | { type: 'SET_ACTIVE_CONTENT_TYPE'; payload: AppState['activeContentType'] }
   | { type: 'SET_GENERATING_SLIDES'; payload: boolean }
   | { type: 'SHOW_SOURCES_MODAL'; payload: boolean }
   | { type: 'SHOW_CURRICULUM_MODAL'; payload: boolean }
+  | { type: 'SHOW_VIDEO_LECTURE_MODAL'; payload: boolean }
   | { type: 'SHOW_FEEDBACK_MODAL'; payload: boolean }
-  | { type: 'SET_MOODLE_CONTEXT'; payload: MoodleContext }
+  | { type: 'SET_MOODLE_CONTEXT'; payload: MoodleContext | null }
   | { type: 'SET_SLIDES_APPROVED'; payload: boolean };

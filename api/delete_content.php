@@ -49,12 +49,12 @@ try {
         
         echo json_encode([
             'status' => 'success',
-            'message' => 'Content deleted successfully',
+            'message' => 'Content deleted from database. Azure files preserved for restoration.',
             'contentid' => $contentid,
             'azure_preserved' => true,
         ]);
     } else {
-        throw new moodle_exception('error', 'moodle', '', 'Failed to delete content from database');
+        throw new \local_lecturebot\exception\content_deletion_exception('Failed to delete content from database');
     }
     
 } catch (Exception $e) {

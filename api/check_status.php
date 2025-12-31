@@ -10,89 +10,31 @@
 define('AJAX_SCRIPT', true);
 require_once(__DIR__ . '/../../../config.php');
 
-// Process any pending updates (mock async completion)
-$temp_dir = $CFG->dataroot . '/temp';
-error_log('CHECK_STATUS: Checking temp dir: ' . $temp_dir);
-
-if (is_dir($temp_dir)) {
-    $files = glob($temp_dir . '/lecturebot_pending_*.json');
-    error_log('CHECK_STATUS: Found ' . count($files) . ' pending files');
-    
-    foreach ($files as $file) {
-        error_log('CHECK_STATUS: Processing file: ' . basename($file));
-        $data = json_decode(file_get_contents($file), true);
-        
-        if ($data && isset($data['update_time'])) {
-            error_log('CHECK_STATUS: File update_time: ' . $data['update_time'] .
-                ', Current time: ' . time() .
-                ', Diff: ' . (time() - $data['update_time']));
-            
-            if (time() >= $data['update_time']) {
-                // Time to update - mark as ready
-                $content_id = $data['content_id'];
-                error_log('CHECK_STATUS: Time to update content_id: ' . $content_id);
-                
-                // Get current record
-                $current = $DB->get_record('local_lecturebot_content', ['id' => $content_id]);
-                if ($current) {
-                    error_log('CHECK_STATUS: Current status: ' . $current->status);
-                    
-                    if ($current->status === 'generating') {
-                        // Update to ready
-                        $current->status = 'ready';
-                        $current->timemodified = time();
-                        $current->generationdata = $data['update_record']['generationdata'];
-                        $DB->update_record('local_lecturebot_content', $current);
-                        error_log('CHECK_STATUS: ✅ Updated to ready!');
-                    } else {
-                        error_log('CHECK_STATUS: ⚠️ Status is not generating, skipping');
-                    }
-                } else {
-                    error_log('CHECK_STATUS: ❌ Content record not found!');
-                }
-                
-                // Delete the pending file
-                unlink($file);
-                error_log('CHECK_STATUS: Deleted pending file');
-            } else {
-                error_log('CHECK_STATUS: Not ready yet, waiting...');
-            }
-        }
-    }
-} else {
-    error_log('CHECK_STATUS: ❌ Temp directory does not exist!');
-}
-
 header('Content-Type: application/json');
 
 try {
     // Get parameters
     $courseid = required_param('courseid', PARAM_INT);
     $contentid = optional_param('contentid', 0, PARAM_INT);
-    
+    $idsParam = optional_param('ids', '', PARAM_RAW); // "1,2,3"
+
     // Require login and capability
     require_login($courseid);
     $context = context_course::instance($courseid);
     require_capability('moodle/course:update', $context);
     
-    // Release session lock to prevent blocking other requests during long polls
+    // Release session lock to prevent blocking
     \core\session\manager::write_close();
     
-    if ($contentid) {
-        // Get specific content item
-        $content = $DB->get_record('local_lecturebot_content', [
-            'id' => $contentid,
-            'courseid' => $courseid
-        ]);
-        
-        if (!$content) {
-            throw new moodle_exception('Content not found');
-        }
-        
+    $contents = [];
+
+    // Helper to format content
+    $formatContent = function ($content) use ($DB, $courseid)
+    {
         // Parse generation data
         $generationData = json_decode($content->generationdata, true);
         
-        // Get approver information if content is approved
+        // Get approver information
         $approver = null;
         if ($content->approved && $content->approvedby) {
             $approverUser = $DB->get_record('user', ['id' => $content->approvedby], 'id, firstname, lastname, email');
@@ -107,93 +49,76 @@ try {
             }
         }
         
-        echo json_encode([
-            'status' => 'success',
-            'content' => [
-                'id' => $content->id,
-                'sectionid' => $content->sectionid,
-                'contenttype' => $content->contenttype,
-                'status' => $content->status,
-                'title' => $content->title,
-                'errormessage' => $content->errormessage,
-                'timecreated' => $content->timecreated,
-                'timemodified' => $content->timemodified,
-                'result' => $generationData['result'] ?? null,
-                'approved' => (bool)$content->approved,
-                'approvedby' => $content->approvedby,
-                'timeapproved' => $content->timeapproved,
-                'approver' => $approver
-            ]
-        ]);
+       // Get section name helper
+       static $section_names = null;
+       if ($section_names === null) {
+           $modinfo = get_fast_modinfo($courseid);
+           $sections = $modinfo->get_section_info_all();
+           $section_names = [];
+           foreach ($sections as $sec) {
+               $section_names[$sec->id] = $sec->name ?: "Section " . $sec->section;
+           }
+       }
+
+        return [
+            'id' => $content->id,
+            'sectionid' => $content->sectionid,
+            'sectionname' => $section_names[$content->sectionid] ?? "Unknown Section",
+            'contenttype' => $content->contenttype,
+            'status' => $content->status,
+            'title' => $content->title,
+            'errormessage' => $content->errormessage,
+            'timecreated' => $content->timecreated,
+            'timemodified' => $content->timemodified,
+            'result' => $generationData['result'] ?? null,
+            'approved' => (bool)$content->approved,
+            'approvedby' => $content->approvedby,
+            'timeapproved' => $content->timeapproved,
+            'approver' => $approver,
+            // Add video_length for re-use
+            'video_length' => $generationData['video_length'] ?? null
+        ];
+    };
+
+    if ($contentid) {
+        // Single ID fetch
+        // Single ID fetch
+        $content = $DB->get_record('local_lecturebot_content', ['id' => $contentid, 'courseid' => $courseid]);
+        if ($content) {
+            $contents[] = $content;
+        }
+    } elseif (!empty($idsParam)) {
+        // Targeted Multiple IDs fetch
+        $ids = explode(',', $idsParam);
+        $cleanIds = [];
+        foreach ($ids as $id) {
+            if (is_numeric($id)) {$cleanIds[] = (int)$id;}
+        }
+        
+        if (!empty($cleanIds)) {
+            list($insql, $inparams) = $DB->get_in_or_equal($cleanIds);
+            // Verify courseid too for security
+            $sql = "id $insql AND courseid = ?";
+            $params = array_merge($inparams, [$courseid]);
+            $contents = $DB->get_records_select('local_lecturebot_content', $sql, $params);
+        }
     } else {
-        // Get all content items for course
-        error_log('CHECK_STATUS: Querying all content for course ' . $courseid);
-        $contents = $DB->get_records('local_lecturebot_content', [
-            'courseid' => $courseid
-        ], 'timemodified DESC');
-        
-        error_log('CHECK_STATUS: Found ' . count($contents) . ' content records');
-        
-        // Get section names
-        $modinfo = get_fast_modinfo($courseid);
-        $sections = $modinfo->get_section_info_all();
-        $section_names = [];
-        foreach ($sections as $section) {
-            $section_names[$section->id] = $section->name ?: "Section " . $section->section;
-        }
-        
-        $contentList = [];
-        foreach ($contents as $content) {
-            $generationData = json_decode($content->generationdata, true);
-            
-            // Get approver information if content is approved
-            $approver = null;
-            if ($content->approved && $content->approvedby) {
-                $approverUser = $DB->get_record(
-                    'user',
-                    ['id' => $content->approvedby],
-                    'id, firstname, lastname, email'
-                );
-                if ($approverUser) {
-                    $approver = [
-                        'id' => $approverUser->id,
-                        'firstname' => $approverUser->firstname,
-                        'lastname' => $approverUser->lastname,
-                        'fullname' => fullname($approverUser),
-                        'email' => $approverUser->email
-                    ];
-                }
-            }
-            
-            error_log('CHECK_STATUS: Content ' . $content->id . ' - status: ' . $content->status);
-            
-            $contentList[] = [
-                'id' => $content->id,
-                'sectionid' => $content->sectionid,
-                'sectionname' => $section_names[$content->sectionid] ?? "Unknown Section",
-                'contenttype' => $content->contenttype,
-                'status' => $content->status,
-                'title' => $content->title,
-                'errormessage' => $content->errormessage,
-                'timecreated' => $content->timecreated,
-                'timemodified' => $content->timemodified,
-                'timepublished' => $content->timepublished,
-                'cmid' => $content->cmid,
-                'result' => $generationData['result'] ?? null,
-                'approved' => (bool)$content->approved,
-                'approvedby' => $content->approvedby,
-                'timeapproved' => $content->timeapproved,
-                'approver' => $approver
-            ];
-        }
-        
-        error_log('CHECK_STATUS: Returning ' . count($contentList) . ' items');
-        
-        echo json_encode([
-            'status' => 'success',
-            'contents' => $contentList
-        ]);
+        // Fetch All (Fallback/Load)
+        // Fetch All (Fallback/Load)
+        $contents = $DB->get_records('local_lecturebot_content', ['courseid' => $courseid], 'timemodified DESC');
     }
+
+    $contentList = [];
+    if ($contents) {
+        foreach ($contents as $c) {
+            $contentList[] = $formatContent($c);
+        }
+    }
+        
+    echo json_encode([
+        'status' => 'success',
+        'contents' => $contentList
+    ]);
     
 } catch (Exception $e) {
     http_response_code(500);

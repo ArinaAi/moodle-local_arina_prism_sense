@@ -50,7 +50,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
   const [sectionsWithSources, setSectionsWithSources] = useState<SectionWithSources[]>([]);
   const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
   const [contentStrategy, setContentStrategy] = useState<'standard' | 'example_driven'>('standard');
-  const [videoLength, setVideoLength] = useState<string>('short'); // Changed to string for new options
+  const [videoLength, setVideoLength] = useState<string>('5'); // Changed to '5' (Short) as default
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCurriculum, setShowCurriculum] = useState(false);
@@ -402,7 +402,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
               label={
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Short (~5 mins)
+                    Short (5 - 10 mins)
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     Slide: 10 credits • Video: 200 credits
@@ -417,7 +417,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
               label={
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Medium (~15 mins)
+                    Medium (15 - 30 mins)
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     Slide: 10 credits • Video: 200 credits
@@ -432,7 +432,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
               label={
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Long (~30 mins)
+                    Long (30 - 45 mins)
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     Slide: 10 credits • Video: 200 credits
@@ -447,7 +447,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
               label={
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Extended (~45 mins)
+                    Extended (45 - 60 mins)
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     Slide: 10 credits • Video: 200 credits
