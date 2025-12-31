@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxml2-dev \
     unzip \
     curl \
+    gnupg \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
     gd \
@@ -25,6 +26,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+# Install Node.js 22.x for building frontend assets
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y nodejs \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 # Set Apache ServerName to suppress warning
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
@@ -36,6 +43,14 @@ WORKDIR /var/www/html
 
 # Copy entire Moodle installation (including the plugin in local/lecturebot)
 COPY --chown=www-data:www-data . /var/www/html/
+
+# Build frontend assets for the lecturebot plugin
+RUN if [ -d "/var/www/html/local/lecturebot/amd" ] && [ -f "/var/www/html/local/lecturebot/amd/package.json" ]; then \
+    cd /var/www/html/local/lecturebot/amd && \
+    npm ci && \
+    npm run build && \
+    rm -rf node_modules; \
+    fi
 
 # Set proper permissions for Moodle directories
 RUN chmod -R 755 /var/www/html && \

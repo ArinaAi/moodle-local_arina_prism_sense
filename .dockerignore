@@ -1,0 +1,16 @@
+# Node modules - will be installed during build
+amd/node_modules
+
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+README copy.md
+
+# Docker files
+Dockerfile
+docker-compose.yml
+azure-pipelines.yml
+azure-lint-pipelines.yml
