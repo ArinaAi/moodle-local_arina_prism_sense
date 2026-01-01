@@ -39,7 +39,9 @@ const PptxViewer: React.FC<PptxViewerProps> = ({ contentId, courseId: _courseId 
           `${wwwroot}/local/lecturebot/api/get_slide_images.php?contentid=${contentId}`
         );
 
-        if (!response.ok) throw new Error('Failed to load slides');
+        if (!response.ok) {
+          throw new Error('Failed to load slides');
+        }
 
         const data = await response.json();
 
@@ -342,3 +344,5 @@ const PptxViewer: React.FC<PptxViewerProps> = ({ contentId, courseId: _courseId 
 };
 
 export default PptxViewer;
+
+

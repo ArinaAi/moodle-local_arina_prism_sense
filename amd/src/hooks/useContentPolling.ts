@@ -7,7 +7,7 @@ export const useContentPolling = (
     dispatch: Dispatch<AppAction>,
     showNotification: (msg: string, severity: NotificationSeverity) => void
 ) => {
-    const processItemUpdate = (updatedItem: ContentItem, currentItem: ContentItem) => {
+    const processItemUpdate = (updatedItem: ContentItem) => {
         // NOTIFICATIONS & PREVIEW LOGIC
         if (updatedItem.status === 'ready') {
             showNotification(`Playback ready for "${updatedItem.sectionname}"`, 'success');
@@ -45,7 +45,7 @@ export const useContentPolling = (
                             hasUpdates = true;
                             // Update item in place
                             newContentItems[index] = updatedItem;
-                            processItemUpdate(updatedItem, currentItem);
+                            processItemUpdate(updatedItem);
                         }
                     }
                 });

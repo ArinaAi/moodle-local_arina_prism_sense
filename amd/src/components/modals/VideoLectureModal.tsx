@@ -40,7 +40,7 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
     onClose,
     onGenerate,
     contentItems,
-    moodleContext,
+
 }) => {
     const [selectedSlideId, setSelectedSlideId] = useState<number | null>(null);
     const [contentStrategy, setContentStrategy] = useState<'standard' | 'example_driven'>('standard');
@@ -85,7 +85,9 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
     }, [open]);
 
     const handleGenerate = () => {
-        if (!selectedSlideId) return;
+        if (!selectedSlideId) {
+            return;
+        }
         onGenerate(selectedSlideId, contentStrategy, language, voiceGender, avatarStrategy);
         onClose();
     };

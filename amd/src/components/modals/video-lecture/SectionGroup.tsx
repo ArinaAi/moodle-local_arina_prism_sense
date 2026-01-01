@@ -21,7 +21,6 @@ interface SectionGroupProps {
 }
 
 const SectionGroup: React.FC<SectionGroupProps> = ({
-    sectionId,
     sectionName,
     slides,
     selectedSlideId,

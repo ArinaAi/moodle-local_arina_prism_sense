@@ -7,7 +7,9 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ moodleContext }) => {
-    if (!moodleContext) return null;
+    if (!moodleContext) {
+        return null;
+    }
 
     return (
         <Box
