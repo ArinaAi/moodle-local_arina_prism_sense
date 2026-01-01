@@ -25,6 +25,15 @@ $CFG->dboptions = [
 //=========================================================================
 $CFG->wwwroot   = getenv('MOODLE_WWWROOT');
 
+$CFG->reverseproxy = true;
+$CFG->sslproxy = true;
+
+$CFG->proxyhost = 'demo.arina.ai';
+$CFG->proxyport = 443;
+
+// ADD THIS
+$CFG->behatrunprocesses = false;
+
 //=========================================================================
 // 3. DATA DIRECTORY
 //=========================================================================
