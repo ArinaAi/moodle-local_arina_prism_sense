@@ -30,12 +30,9 @@ const formatTime = (timestamp: number) => {
 
 // Helper to count slides
 const getSlideCount = (content: ContentItem): number => {
-    if (!content.result || !content.result.results) {
-        return 0;
-    }
-    return content.result.results.reduce((total, subtopic) => {
+    return content.result?.results?.reduce((total, subtopic) => {
         return total + (subtopic.slideCount || 0);
-    }, 0);
+    }, 0) || 0;
 };
 
 const SlideDeckItem: React.FC<SlideDeckItemProps> = ({

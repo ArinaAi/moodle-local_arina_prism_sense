@@ -4,6 +4,10 @@ amd/package-lock.json
 amd/yarn.lock
 amd/pnpm-lock.yaml
 
+# Build artifacts
+amd/build/
+amd/src/student/
+
 # TypeScript compilation cache
 amd/.tsbuildinfo
 amd/src/**/*.js
@@ -19,8 +23,8 @@ yarn-error.log*
 *.tmp
 *.temp
 *.cache
+generate_content_task_mock.php
 cli
-build
 
 # Backup files
 *.bak
@@ -34,6 +38,5 @@ config_azure.php
 # IDE and Dev Tools
 .idea
 .vscode
-sync_plugin.sh
 node_modules/
 lecturebot_debug.log

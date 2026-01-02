@@ -11,8 +11,11 @@ define('AJAX_SCRIPT', true);
 require_once(__DIR__ . '/../../../config.php');
 require_once(__DIR__ . '/../config_api.php');
 require_once($CFG->libdir . '/filelib.php');
+require_once(__DIR__ . '/../lib_azure_storage.php');
 
 header('Content-Type: application/json');
+
+error_log('LectureBot: upload_source.php initialized');
 
 try {
     // Get parameters
@@ -20,7 +23,9 @@ try {
     $sectionid = required_param('sectionid', PARAM_INT);
     
     // Require login and capability
+    error_log("LectureBot: Checking login for course $courseid");
     require_login($courseid);
+    error_log("LectureBot: Login successful");
     $context = context_course::instance($courseid);
     require_capability('moodle/course:update', $context);
     require_sesskey();
@@ -94,8 +99,25 @@ try {
             // Get the actual file content from Moodle storage
             $pdfContent = $storedfile->get_content();
             
-            // Prepare the API URL with course_id
-            $apiUrl = LECTUREBOT_API_UPLOAD_PDF . '?course_id=' . $courseid;
+            // Get tenant ID
+            $tenantConfig = defined('LECTUREBOT_TENANT_ID') ? LECTUREBOT_TENANT_ID : 1;
+            $tenantId = is_numeric($tenantConfig) ? (int)$tenantConfig : 1;
+            
+            // Get regen count (next available)
+            // Note: For upload, we use the next available count to ensure it lands in a new folder if needed
+            // or aligns with the next generation. Check if we should use current or next.
+            // Assuming next since it's a new upload.
+            $regenCount = get_azure_regen_count($courseid, $sectionid, $tenantId);
+            
+            // Prepare the API URL with all required params
+            // Params: course_id, organization_id, chapter_id, regen_count
+            $queryParams = [
+                'course_id' => $courseid,
+                'organization_id' => $tenantId,
+                'chapter_id' => $sectionid,
+                'regen_count' => $regenCount
+            ];
+            $apiUrl = LECTUREBOT_API_UPLOAD_PDF . '?' . http_build_query($queryParams, '', '&');
             
             error_log('LectureBot: Uploading PDF to backend API: ' . $apiUrl);
             
@@ -113,7 +135,10 @@ try {
                 CURLOPT_POSTFIELDS => ['file' => $cfile], // Backend expects 'file' not 'pdf'
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_TIMEOUT => 60,
-                CURLOPT_CONNECTTIMEOUT => 10,
+                CURLOPT_CONNECTTIMEOUT => 20,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_POSTREDIR => 3, // Preserve POST on redirects (CURL_REDIR_POST_ALL)
             ]);
             
             $backendResponse = curl_exec($ch);
@@ -124,7 +149,7 @@ try {
                 curl_close($ch);
                 @unlink($tempFilePath); // Clean up temp file
                 error_log('LectureBot: Backend upload failed - cURL error: ' . $curlError);
-                throw new moodle_exception('error', 'moodle', '', 'Failed to upload PDF to backend: ' . $curlError);
+                throw new moodle_exception('Failed to upload PDF to backend: ' . $curlError);
             }
             
             curl_close($ch);
@@ -148,7 +173,6 @@ try {
             
             if ($httpCode === 200) {
                 if ($backendData) {
-                    // Check for explicit success field
                     // Check for explicit success field or message
                     if ((isset($backendData['success']) && $backendData['success'] === true) ||
                         (isset($backendData['Success']) && $backendData['Success'] === true) ||
@@ -180,7 +204,7 @@ try {
                 }
                 
                 error_log('LectureBot: Backend upload failed: ' . $errorMsg);
-                throw new moodle_exception('error', 'moodle', '', 'Backend API upload failed: ' . $errorMsg);
+                throw new moodle_exception('Backend API upload failed: ' . $errorMsg);
             }
             
             error_log('LectureBot: Successfully uploaded PDF to backend API');
@@ -219,10 +243,10 @@ try {
         ]
     ]);
     
-} catch (Exception $e) {
+} catch (\Throwable $e) {
     http_response_code(500);
     echo json_encode([
         'status' => 'error',
-        'error' => $e->getMessage()
+        'error' => 'Fatal error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine()
     ]);
 }

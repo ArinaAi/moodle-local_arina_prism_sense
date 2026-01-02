@@ -21,6 +21,13 @@ import SectionGroup from './video-lecture/SectionGroup';
 
 type Language = 'en' | 'hi' | 'mr';
 
+const OPTION_PAPER_STYLE = {
+    p: 3,
+    borderRadius: '12px',
+    bgcolor: 'white',
+    border: '2px solid #e9ecef',
+} as const;
+
 interface VideoLectureModalProps {
     open: boolean;
     onClose: () => void;
@@ -40,7 +47,6 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
     onClose,
     onGenerate,
     contentItems,
-
 }) => {
     const [selectedSlideId, setSelectedSlideId] = useState<number | null>(null);
     const [contentStrategy, setContentStrategy] = useState<'standard' | 'example_driven'>('standard');
@@ -84,10 +90,12 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
         }
     }, [open]);
 
+    if (!open) {
+        return null;
+    }
+
     const handleGenerate = () => {
-        if (!selectedSlideId) {
-            return;
-        }
+        if (!selectedSlideId) { return; }
         onGenerate(selectedSlideId, contentStrategy, language, voiceGender, avatarStrategy);
         onClose();
     };
@@ -151,16 +159,9 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                             Video Options
                         </Typography>
 
-                        {/* Content Strategy */}
                         <Paper
                             variant="outlined"
-                            sx={{
-                                p: 3,
-                                mb: 2,
-                                borderRadius: '12px',
-                                bgcolor: 'white',
-                                border: '2px solid #e9ecef',
-                            }}
+                            sx={{ ...OPTION_PAPER_STYLE, mb: 2 }}
                         >
                             <FormControl component="fieldset">
                                 <FormLabel
@@ -209,16 +210,9 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                             </FormControl>
                         </Paper>
 
-                        {/* Language */}
                         <Paper
                             variant="outlined"
-                            sx={{
-                                p: 3,
-                                mb: 2,
-                                borderRadius: '12px',
-                                bgcolor: 'white',
-                                border: '2px solid #e9ecef',
-                            }}
+                            sx={{ ...OPTION_PAPER_STYLE, mb: 2 }}
                         >
                             <FormControl component="fieldset">
                                 <FormLabel
@@ -240,16 +234,9 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                             </FormControl>
                         </Paper>
 
-                        {/* Voice Tone */}
                         <Paper
                             variant="outlined"
-                            sx={{
-                                p: 3,
-                                mb: 2,
-                                borderRadius: '12px',
-                                bgcolor: 'white',
-                                border: '2px solid #e9ecef',
-                            }}
+                            sx={{ ...OPTION_PAPER_STYLE, mb: 2 }}
                         >
                             <FormControl component="fieldset">
                                 <FormLabel
@@ -270,15 +257,9 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                             </FormControl>
                         </Paper>
 
-                        {/* Avatar Strategy */}
                         <Paper
                             variant="outlined"
-                            sx={{
-                                p: 3,
-                                borderRadius: '12px',
-                                bgcolor: 'white',
-                                border: '2px solid #e9ecef',
-                            }}
+                            sx={OPTION_PAPER_STYLE}
                         >
                             <FormControl component="fieldset">
                                 <FormLabel

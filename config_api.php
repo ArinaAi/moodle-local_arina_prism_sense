@@ -31,4 +31,4 @@ define('LECTUREBOT_API_CONNECT_TIMEOUT', 30); // 30 seconds to establish connect
 
 // Backend PDF Upload - Set to false to disable backend upload for testing
 
-define('LECTUREBOT_ENABLE_BACKEND_PDF_UPLOAD', false);
+define('LECTUREBOT_ENABLE_BACKEND_PDF_UPLOAD', true);

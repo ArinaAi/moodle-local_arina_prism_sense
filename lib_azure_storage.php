@@ -329,3 +329,112 @@ function generate_blob_sas_token($accountName, $containerName, $blobName, $accou
     return '?' . http_build_query($queryParams, '', '&');
 }
 
+/**
+ * Execute Azure Blob List API call
+ */
+function execute_azure_blob_list_call($accountName, $accountKey, $containerName, $prefix)
+{
+    if (!defined('AZURE_STORAGE_ACCOUNT_NAME') || !defined('AZURE_STORAGE_ACCOUNT_KEY')) {
+         error_log("LectureBot: Azure credentials not defined.");
+         return null;
+    }
+
+    $url = "https://{$accountName}.blob.core.windows.net/{$containerName}" .
+           "?restype=container&comp=list&delimiter=/&prefix={$prefix}";
+    
+    $date = gmdate('D, d M Y H:i:s T', time());
+    $canonicalizedHeaders = "x-ms-date:$date\nx-ms-version:2020-04-08";
+    $canonicalizedResource = "/{$accountName}/{$containerName}\ncomp:list\ndelimiter:/\n" .
+                             "prefix:{$prefix}\nrestype:container";
+    
+    $stringToSign = "GET\n\n\n\n\n\n\n\n\n\n\n\n" .
+                    $canonicalizedHeaders . "\n" .
+                    $canonicalizedResource;
+                    
+    $utf8String = mb_convert_encoding($stringToSign, 'UTF-8', 'ISO-8859-1');
+    $hash = hash_hmac('sha256', $utf8String, base64_decode($accountKey), true);
+    $signature = base64_encode($hash);
+    $authHeader = "SharedKey $accountName:$signature";
+    
+    $ch = curl_init();
+    curl_setopt_array($ch, [
+        CURLOPT_URL => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => [
+            "x-ms-date: $date",
+            "x-ms-version: 2020-04-08",
+            "Authorization: $authHeader"
+        ],
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_TIMEOUT => 10
+    ]);
+    
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode !== 200) {
+        error_log("LectureBot Azure List failed: $httpCode. Response: " . substr($response, 0, 100));
+        return null;
+    }
+
+    return $response;
+}
+
+/**
+ * Parse Azure XML response to find max regen count
+ */
+function parse_azure_blob_list_response($response)
+{
+    $maxCount = -1;
+    try {
+        $xml = new SimpleXMLElement($response);
+        if (!isset($xml->Blobs->BlobPrefix)) {
+            error_log("LectureBot: No BlobPrefix found in XML");
+            return 0;
+        }
+
+        foreach ($xml->Blobs->BlobPrefix as $prefixNode) {
+            $dirName = (string)$prefixNode->Name;
+            if (preg_match('/_(\d+)\/$/', $dirName, $matches)) {
+                $count = (int)$matches[1];
+                if ($count > $maxCount) {
+                    $maxCount = $count;
+                }
+            }
+        }
+    } catch (Exception $e) {
+        error_log("LectureBot XML Parse Error: " . $e->getMessage());
+        return 0;
+    }
+    
+    return $maxCount + 1;
+}
+
+/**
+ * Helper to query Azure Blob Storage for the highest regen_count
+ * Matches folders like Tutorial_{courseid}_{sectionid}_{count}
+ */
+function get_azure_regen_count($courseid, $sectionid, $tenantId)
+{
+    // Check credentials first
+    if (!defined('AZURE_STORAGE_ACCOUNT_NAME') || !defined('AZURE_STORAGE_ACCOUNT_KEY')) {
+         error_log("LectureBot: Azure credentials not defined, falling back to 0");
+         return 0;
+    }
+
+    $containerName = strtolower('Blob-Tutorial-Gen-' . $tenantId);
+    $accountName = AZURE_STORAGE_ACCOUNT_NAME;
+    $accountKey = AZURE_STORAGE_ACCOUNT_KEY;
+    $prefix = "Tutorial_{$courseid}_{$sectionid}_";
+
+    $response = execute_azure_blob_list_call($accountName, $accountKey, $containerName, $prefix);
+
+    if ($response) {
+        return parse_azure_blob_list_response($response);
+    }
+    
+    return 0;
+}
+
+
