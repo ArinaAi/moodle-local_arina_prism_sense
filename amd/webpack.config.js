@@ -1,13 +1,16 @@
 const path = require('path');
 
 module.exports = {
-  entry: './src/index.ts',
+  entry: {
+    teacher: './src/index.ts',
+    student: './src/student/index.tsx'
+  },
   output: {
     path: path.resolve(__dirname, 'build'),
-    filename: 'lecturebot_built.js',
+    filename: '[name].min.js',
     library: {
       name: 'LectureBot',
-      type: 'window' // Export to window.LectureBot
+      type: 'window'
     },
     publicPath: '/local/lecturebot/amd/build/'
   },

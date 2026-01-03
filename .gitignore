@@ -6,7 +6,6 @@ amd/pnpm-lock.yaml
 
 # Build artifacts
 amd/build/
-amd/src/student/
 
 # TypeScript compilation cache
 amd/.tsbuildinfo
