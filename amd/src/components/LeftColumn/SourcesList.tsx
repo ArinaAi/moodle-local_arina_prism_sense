@@ -10,6 +10,8 @@ import {
 } from '@mui/material';
 import { Description, ExpandMore } from '@mui/icons-material';
 import { FileText } from 'lucide-react';
+import { formatFileSize } from '../../utils/helpers';
+import { accordionStyles } from '../../styles/accordionStyles';
 import type { SourceFile } from '../../types/app';
 
 interface SourcesListProps {
@@ -43,15 +45,6 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources }) => {
         return acc;
     }, {} as Record<number, { sectionName: string; files: SourceFile[] }>);
 
-    const formatFileSize = (bytes: number): string => {
-        if (bytes < 1024) {
-            return bytes + ' B';
-        }
-        if (bytes < 1024 * 1024) {
-            return (bytes / 1024).toFixed(1) + ' KB';
-        }
-        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-    };
 
     return (
         <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
@@ -75,31 +68,12 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources }) => {
                                 return newSet;
                             });
                         }}
-                        sx={{
-                            border: `1px solid rgba(37, 99, 235, 0.3)`,
-                            borderRadius: '12px !important',
-                            backgroundColor: '#ffffffff',
-                            '&:before': { display: 'none' },
-                            boxShadow: 'none',
-                            transition: 'all 0.3s ease',
-                            '&:hover': {
-                                boxShadow: '0 2px 8px rgba(13, 92, 162, 0.15)',
-                            },
-                            '&.Mui-expanded': {
-                                margin: 0,
-                                marginBottom: '12px',
-                            },
-                        }}
+                        sx={accordionStyles.root}
                     >
                         <AccordionSummary
                             expandIcon={<ExpandMore />}
-                            sx={{
-                                minHeight: '48px',
-                                '& .MuiAccordionSummary-content': {
-                                    margin: '8px 0',
-                                    alignItems: 'center',
-                                },
-                            }}
+                            disableRipple
+                            sx={accordionStyles.summary}
                         >
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%', pr: 1 }}>
                                 <FileText size={18} color="#2563eb" strokeWidth={2.5} />

@@ -14,14 +14,13 @@ require_once(__DIR__ . '/config_azure.php');
 /**
  * Upload slide images to Azure Blob Storage
  * @param array $slideFiles Array of slide file paths
- * @param string $previewId Unique identifier for this set of slides
+ * @param string $containerName Azure container name
  * @return bool True if successful
  */
-function upload_slides_to_azure($slideFiles, $previewId)
+function upload_slides_to_azure($slideFiles, $previewId, $containerName)
 {
     try {
         $accountName = AZURE_STORAGE_ACCOUNT_NAME;
-        $containerName = AZURE_BLOB_CONTAINER_NAME;
         $accountKey = AZURE_STORAGE_ACCOUNT_KEY;
         
         $uploadedCount = 0;
@@ -58,13 +57,13 @@ function upload_slides_to_azure($slideFiles, $previewId)
 /**
  * Download slides from Azure Blob Storage
  * @param string $previewId Unique identifier for this set of slides
+ * @param string $containerName Azure container name
  * @return array Array of slide data with Azure URLs
  */
-function download_slides_from_azure($previewId)
+function download_slides_from_azure($previewId, $containerName)
 {
     try {
         $accountName = AZURE_STORAGE_ACCOUNT_NAME;
-        $containerName = AZURE_BLOB_CONTAINER_NAME;
         
         $images = [];
         $slideNumber = 0;
@@ -260,13 +259,15 @@ function get_latest_slide_version()
 /**
  * Restore slides from a specific version
  * @param int $contentid Content ID
+ * @param int $contentid Content ID
  * @param int $timestamp Version timestamp to restore
+ * @param string $containerName Azure container name
  * @return array Array of slide URLs
  */
-function restore_slide_version($contentid, $timestamp)
+function restore_slide_version($contentid, $timestamp, $containerName)
 {
     $previewId = 'content_' . $contentid . '_' . $timestamp;
-    return download_slides_from_azure($previewId);
+    return download_slides_from_azure($previewId, $containerName);
 }
 
 /**

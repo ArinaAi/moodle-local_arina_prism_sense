@@ -32,7 +32,7 @@ cli
 .DS_Store
 
 # Secrets and Local Config
-config_azure.php
+.env
 
 # IDE and Dev Tools
 .idea

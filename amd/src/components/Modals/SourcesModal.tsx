@@ -22,6 +22,7 @@ import {
 } from '@mui/material';
 import { Close, Error as ErrorIcon, Add, Check, Delete } from '@mui/icons-material';
 import { FileText } from 'lucide-react';
+import { formatFileSize } from '../../utils/helpers';
 import type { MoodleContext } from '../../types/moodle';
 
 interface SourcesModalProps {
@@ -455,16 +456,6 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
     const newBoxes = [...boxes] as [BoxState, BoxState, BoxState];
     newBoxes[boxIndex] = { type: 'empty', title: '', author: '' };
     setBoxes(newBoxes);
-  };
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) {
-      return bytes + ' B';
-    }
-    if (bytes < 1024 * 1024) {
-      return (bytes / 1024).toFixed(1) + ' KB';
-    }
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
   const truncateFilename = (filename: string, maxLength: number = 25): string => {

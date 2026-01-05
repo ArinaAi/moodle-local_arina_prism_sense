@@ -20,6 +20,7 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import { FileText } from 'lucide-react';
 import { mockSections, ContentItem } from '../../mockData';
 import { useContent } from '../../context/ContentContext';
+import { accordionStyles } from '../../../styles/accordionStyles';
 
 const ContentNavigator: React.FC = () => {
     const { selectedContent, setSelectedContent } = useContent();
@@ -149,35 +150,12 @@ const ContentNavigator: React.FC = () => {
                             key={section.id}
                             expanded={isExpanded}
                             onChange={() => toggleSection(section.id)}
-                            sx={{
-                                border: '1px solid rgba(37, 99, 235, 0.3)',
-                                borderRadius: '12px !important',
-                                backgroundColor: '#ffffff',
-                                '&:before': { display: 'none' },
-                                boxShadow: 'none !important',
-                                transition: 'all 0.3s ease',
-                                WebkitTapHighlightColor: 'transparent',
-                                '&:hover': {
-                                    boxShadow: '0 2px 8px rgba(13, 92, 162, 0.15)',
-                                },
-                                '&.Mui-expanded': {
-                                    margin: 0,
-                                    marginBottom: '12px',
-                                },
-                            }}
+                            sx={accordionStyles.root}
                         >
                             <AccordionSummary
                                 expandIcon={<ExpandMore />}
                                 disableRipple
-                                sx={{
-                                    minHeight: '48px',
-                                    boxShadow: 'none !important',
-                                    WebkitTapHighlightColor: 'transparent',
-                                    '& .MuiAccordionSummary-content': {
-                                        margin: '8px 0',
-                                        alignItems: 'center',
-                                    },
-                                }}
+                                sx={accordionStyles.summary}
                             >
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%', pr: 1 }}>
                                     <FileText size={18} color="#2563eb" strokeWidth={2.5} />

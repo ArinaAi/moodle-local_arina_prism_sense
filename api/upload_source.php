@@ -81,11 +81,31 @@ try {
         throw new moodle_exception('Failed to store file');
     }
     
+    // Get title and author
+    $title = optional_param('title', '', PARAM_TEXT);
+    $author = optional_param('author', '', PARAM_TEXT);
+    
+    // Debug logging
+    error_log("LectureBot Upload: Title param: '$title', Author param: '$author'");
+    
+    // Fallback to POST directly if empty (just in case)
+    if ($title === '') {
+        $title = isset($_POST['title']) ? clean_param($_POST['title'], PARAM_TEXT) : '';
+        error_log("LectureBot Upload: Title fallback to POST: '$title'");
+    }
+    if ($author === '') {
+        $author = isset($_POST['author']) ? clean_param($_POST['author'], PARAM_TEXT) : '';
+        error_log("LectureBot Upload: Author fallback to POST: '$author'");
+    }
+
     // Insert record into database
     $record = new stdClass();
     $record->courseid = $courseid;
     $record->sectionid = $sectionid;
     $record->filename = $storedfile->get_filename();
+    // Ensure we never save NULL
+    $record->title = $title ?: '';
+    $record->author = $author ?: '';
     $record->fileitemid = $itemid;
     $record->filesize = $storedfile->get_filesize();
     $record->timecreated = time();
@@ -236,6 +256,8 @@ try {
         'source' => [
             'id' => $id,
             'filename' => $record->filename,
+            'title' => $record->title,
+            'author' => $record->author,
             'filesize' => $record->filesize,
             'sectionid' => $sectionid,
             'timecreated' => $record->timecreated,
