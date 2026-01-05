@@ -105,7 +105,7 @@ const RightColumn: React.FC<RightColumnProps> = ({
         anchorEl={menuAnchor.element}
         open={Boolean(menuAnchor.element)}
         onClose={handleMenuClose}
-        sx={{ zIndex: 10005 }}
+        sx={{ zIndex: 100005 }}
         anchorOrigin={{
           vertical: 'bottom',
           horizontal: 'right',
@@ -148,7 +148,7 @@ const RightColumn: React.FC<RightColumnProps> = ({
         maxWidth="xs"
         fullWidth
         sx={{
-          zIndex: 10010,
+          zIndex: 100010,
           '& .MuiDialog-paper': {
             borderRadius: '20px',
             p: 1,
@@ -191,7 +191,7 @@ const RightColumn: React.FC<RightColumnProps> = ({
         maxWidth="xs"
         fullWidth
         sx={{
-          zIndex: 10010,
+          zIndex: 100010,
           '& .MuiDialog-paper': {
             borderRadius: '20px',
             p: 1,

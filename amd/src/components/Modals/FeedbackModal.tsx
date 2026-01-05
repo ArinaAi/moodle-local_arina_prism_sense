@@ -59,7 +59,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ open, onClose, onSubmitFe
   ];
 
   return (
-    <Modal open={open} onClose={onClose} sx={{ zIndex: 10015 }}>
+    <Modal open={open} onClose={onClose} sx={{ zIndex: 100001 }}>
       <Box
         sx={{
           position: 'absolute',

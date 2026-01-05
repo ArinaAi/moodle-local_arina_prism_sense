@@ -314,7 +314,7 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
     };
 
     return (
-        <Modal open={open} onClose={onClose} sx={{ zIndex: 10001 }}>
+        <Modal open={open} onClose={onClose} sx={{ zIndex: 100001 }}>
             <Box
                 sx={{
                     position: 'absolute',

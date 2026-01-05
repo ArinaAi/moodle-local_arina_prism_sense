@@ -30,4 +30,4 @@ window.local_lecturebot = {
 window.initLectureBotGlobal = initLectureBot;
 
 export { initLectureBot };
-export default { init: initLectureBot };
+export const init = initLectureBot;

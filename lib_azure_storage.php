@@ -412,29 +412,83 @@ function parse_azure_blob_list_response($response)
 }
 
 /**
+ * Check if a specific folder already contains generated content
+ * Looks for lecture_content.json file
+ */
+function check_folder_has_generated_content($accountName, $accountKey, $containerName, $prefix)
+{
+    $hasContent = false;
+    $response = execute_azure_blob_list_call($accountName, $accountKey, $containerName, $prefix);
+    
+    if ($response) {
+        try {
+            $xml = new SimpleXMLElement($response);
+            if (isset($xml->Blobs->Blob)) {
+                foreach ($xml->Blobs->Blob as $blob) {
+                    $name = (string)$blob->Name;
+                    // Check for key generated files
+                    if (strpos($name, '/lecture_content.json') !== false ||
+                        strpos($name, '/video_tutorial_') !== false) {
+                        $hasContent = true;
+                        break;
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            error_log("LectureBot XML Parse Error in check content: " . $e->getMessage());
+        }
+    }
+    
+    return $hasContent;
+}
+
+/**
  * Helper to query Azure Blob Storage for the highest regen_count
  * Matches folders like Tutorial_{courseid}_{sectionid}_{count}
  */
 function get_azure_regen_count($courseid, $sectionid, $tenantId)
 {
+    $regenCount = 0;
+
     // Check credentials first
-    if (!defined('AZURE_STORAGE_ACCOUNT_NAME') || !defined('AZURE_STORAGE_ACCOUNT_KEY')) {
+    if (defined('AZURE_STORAGE_ACCOUNT_NAME') && defined('AZURE_STORAGE_ACCOUNT_KEY')) {
+        $containerName = strtolower('Blob-Tutorial-Gen-' . $tenantId);
+        $accountName = AZURE_STORAGE_ACCOUNT_NAME;
+        $accountKey = AZURE_STORAGE_ACCOUNT_KEY;
+        $prefix = "Tutorial_{$courseid}_{$sectionid}_";
+
+        $response = execute_azure_blob_list_call($accountName, $accountKey, $containerName, $prefix);
+
+        $nextCount = 0;
+        if ($response) {
+            $nextCount = parse_azure_blob_list_response($response);
+        }
+        
+        $latestIndex = $nextCount - 1;
+        
+        if ($latestIndex >= 0) {
+            // Check if the latest folder has generated content
+            $latestFolderPrefix = $prefix . $latestIndex . '/';
+            $hasContent = check_folder_has_generated_content(
+                $accountName,
+                $accountKey,
+                $containerName,
+                $latestFolderPrefix
+            );
+            
+            if ($hasContent) {
+                // Latest folder is "used" (has generated content), so we must use a new one
+                $regenCount = $latestIndex + 1;
+            } else {
+                // Latest folder is "draft" (no generated content), so we reuse it
+                $regenCount = $latestIndex;
+            }
+        }
+    } else {
          error_log("LectureBot: Azure credentials not defined, falling back to 0");
-         return 0;
     }
 
-    $containerName = strtolower('Blob-Tutorial-Gen-' . $tenantId);
-    $accountName = AZURE_STORAGE_ACCOUNT_NAME;
-    $accountKey = AZURE_STORAGE_ACCOUNT_KEY;
-    $prefix = "Tutorial_{$courseid}_{$sectionid}_";
-
-    $response = execute_azure_blob_list_call($accountName, $accountKey, $containerName, $prefix);
-
-    if ($response) {
-        return parse_azure_blob_list_response($response);
-    }
-    
-    return 0;
+    return $regenCount;
 }
 
 

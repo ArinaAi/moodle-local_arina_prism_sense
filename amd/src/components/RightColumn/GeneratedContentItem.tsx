@@ -116,7 +116,7 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPre
                     </Box>
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Tooltip title="More options" arrow placement="top" PopperProps={{ sx: { zIndex: 10006 } }}>
+                    <Tooltip title="More options" arrow placement="top" PopperProps={{ sx: { zIndex: 100006 } }}>
                         <IconButton
                             size="small"
                             onClick={(e) => onMenuOpen(e, item.id)}
@@ -192,7 +192,7 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPre
             </Box>
 
             <Box sx={{ display: 'flex', gap: 1 }}>
-                <Tooltip title={item.contenttype === 'video' ? "Preview video" : "Preview slides"} arrow placement="top" PopperProps={{ sx: { zIndex: 10006 } }}>
+                <Tooltip title={item.contenttype === 'video' ? "Preview video" : "Preview slides"} arrow placement="top" PopperProps={{ sx: { zIndex: 100006 } }}>
                     <IconButton
                         size="small"
                         onClick={(e) => {
@@ -212,7 +212,7 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPre
                         <Visibility fontSize="small" />
                     </IconButton>
                 </Tooltip>
-                <Tooltip title={item.approved ? "Publish to course page" : "Approve content first"} arrow placement="top" PopperProps={{ sx: { zIndex: 10006 } }}>
+                <Tooltip title={item.approved ? "Publish to course page" : "Approve content first"} arrow placement="top" PopperProps={{ sx: { zIndex: 100006 } }}>
                     <span>
                         <IconButton
                             size="small"
@@ -239,7 +239,7 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPre
                         </IconButton>
                     </span>
                 </Tooltip>
-                <Tooltip title="More options" arrow placement="top" PopperProps={{ sx: { zIndex: 10006 } }}>
+                <Tooltip title="More options" arrow placement="top" PopperProps={{ sx: { zIndex: 100006 } }}>
                     <IconButton
                         size="small"
                         onClick={(e) => onMenuOpen(e, item.id)}

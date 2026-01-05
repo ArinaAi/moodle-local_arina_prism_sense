@@ -556,7 +556,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
         disablePortal={false}
         container={() => document.body}
         sx={{
-          zIndex: 10002, // Extremely high to override all Moodle/Slide layers
+          zIndex: 100001, // Extremely high to override all Moodle/Slide layers
         }}
       >
         <Box
@@ -663,7 +663,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
       <Modal
         open={showCurriculum}
         onClose={() => setShowCurriculum(false)}
-        sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1500 }}
+        sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100002 }}
       >
         <Fade in={showCurriculum}>
           <Box

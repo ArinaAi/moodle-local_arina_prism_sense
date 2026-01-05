@@ -32,7 +32,7 @@ const ChatBot: React.FC = () => {
     }, [messages, isTyping]);
 
     const handleSendMessage = (text: string) => {
-        if (!text.trim()) return;
+        if (!text.trim()) { return; }
 
         const userMessage: Message = {
             id: Date.now().toString(), // Simple unique ID
@@ -149,10 +149,10 @@ const ChatBot: React.FC = () => {
                         </Avatar>
                         <Box sx={{ textAlign: 'center', maxWidth: '80%' }}>
                             <Typography variant="h6" fontWeight={700} gutterBottom>
-                                Hi! I'm your AI Tutor
+                                Hi! I&apos;m your AI Tutor
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
-                                Ask me anything about this lecture. I'm here to help you understand better!
+                                Ask me anything about this lecture. I&apos;m here to help you understand better!
                             </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%' }}>

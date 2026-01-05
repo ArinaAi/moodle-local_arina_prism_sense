@@ -41,8 +41,8 @@ const ContentNavigator: React.FC = () => {
     };
 
     const getContentIcon = (item: ContentItem) => {
-        if (item.isCompleted) return <CheckCircleIcon sx={{ fontSize: 20, color: '#22c55e' }} />;
-        if (item.type === 'video') return <PlayCircleOutlineIcon sx={{ fontSize: 20, color: '#2563eb' }} />;
+        if (item.isCompleted) { return <CheckCircleIcon sx={{ fontSize: 20, color: '#22c55e' }} />; }
+        if (item.type === 'video') { return <PlayCircleOutlineIcon sx={{ fontSize: 20, color: '#2563eb' }} />; }
         return <DescriptionIcon sx={{ fontSize: 20, color: '#2563eb' }} />;
     };
 
@@ -214,7 +214,7 @@ const ContentNavigator: React.FC = () => {
 
                             <AccordionDetails sx={{ pt: 0, pb: 1.5, px: 2 }}>
                                 <List sx={{ p: 0 }}>
-                                    {section.items.map((item, index) => {
+                                    {section.items.map((item) => {
                                         const isSelected = selectedContent?.id === item.id;
 
                                         return (

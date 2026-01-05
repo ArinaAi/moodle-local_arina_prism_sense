@@ -91,7 +91,7 @@ const PublishedContentItem: React.FC<PublishedContentItemProps> = ({ item, onPre
                 </Box>
             </Box>
 
-            <Tooltip title="Preview slides" arrow placement="top" PopperProps={{ sx: { zIndex: 10006 } }}>
+            <Tooltip title="Preview slides" arrow placement="top" PopperProps={{ sx: { zIndex: 100006 } }}>
                 <IconButton
                     size="small"
                     onClick={(e) => {

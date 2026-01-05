@@ -329,7 +329,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
     setBoxes(newBoxes);
   };
 
-  const uploadFile = async (file: File, boxIndex: number, title: string, author: string) => {
+  const uploadFile = async (file: File, boxIndex: number, title: string, author: string, skipRefresh: boolean = false) => {
     if (!selectedSection) {
       return;
     }
@@ -355,41 +355,49 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
         throw new Error(data.error || 'Upload failed');
       }
 
-      // Reload all sources from server to ensure fresh data
-      await loadSections();
+      // If skipping refresh, we just mark this box as success temporarily or leave it as uploading until final refresh
+      // But to be safe, let's mark it as 'success' type with existing source data if returned, or just keep it until refresh
+      if (!skipRefresh) {
+        // Reload all sources from server to ensure fresh data
+        await loadSections();
 
-      // Reload the current section's sources
-      if (selectedSection !== null) {
-        const sourcesResponse = await fetch(
-          `${moodleContext.wwwroot}/local/lecturebot/api/get_sources.php?courseid=${moodleContext.courseid}&sectionid=${selectedSection}`,
-          {
-            method: 'GET',
-            credentials: 'include',
+        // Reload the current section's sources
+        if (selectedSection !== null) {
+          const sourcesResponse = await fetch(
+            `${moodleContext.wwwroot}/local/lecturebot/api/get_sources.php?courseid=${moodleContext.courseid}&sectionid=${selectedSection}`,
+            {
+              method: 'GET',
+              credentials: 'include',
+            }
+          );
+          const sourcesData = await sourcesResponse.json();
+
+          if (sourcesData.success && sourcesData.sources) {
+            setSectionSources((prev) => ({
+              ...prev,
+              [selectedSection]: sourcesData.sources,
+            }));
+
+            // Reload boxes with fresh data
+            loadSectionSources(selectedSection);
           }
-        );
-        const sourcesData = await sourcesResponse.json();
-
-        if (sourcesData.success && sourcesData.sources) {
-          setSectionSources((prev) => ({
-            ...prev,
-            [selectedSection]: sourcesData.sources,
-          }));
-
-          // Reload boxes with fresh data
-          loadSectionSources(selectedSection);
         }
       }
     } catch (error) {
       // Update box to error state
-      const newBoxes = [...boxes] as [BoxState, BoxState, BoxState];
-      newBoxes[boxIndex] = {
-        type: 'error',
-        file,
-        error: (error as Error).message,
-        title: '',
-        author: '',
-      };
-      setBoxes(newBoxes);
+      setBoxes((prevBoxes) => {
+        const newBoxes = [...prevBoxes] as [BoxState, BoxState, BoxState];
+        newBoxes[boxIndex] = {
+          type: 'error',
+          file,
+          error: (error as Error).message,
+          title: '',
+          author: '',
+        };
+        return newBoxes;
+      });
+      // Re-throw to let the caller know it failed
+      throw error;
     }
   };
 
@@ -468,6 +476,93 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
     return name.slice(0, maxLength - ext.length - 3) + '...' + ext;
   };
 
+  // --- Helper Functions for Done Handler ---
+
+  const validatePendingBoxes = () => {
+    const newValidationErrors = boxes.map(
+      box => box.type === 'pending_details' && (!box.title.trim() || !box.author.trim())
+    );
+    const hasInvalidPending = newValidationErrors.some(error => error);
+
+    if (hasInvalidPending) {
+      setValidationErrors(newValidationErrors);
+      setErrors({ general: 'Please provide Title and Author for all selected files.' });
+      return false;
+    }
+
+    setValidationErrors([false, false, false]);
+    return true;
+  };
+
+  const markBoxesAsUploading = () => {
+    setBoxes((prevBoxes) => {
+      const newBoxes = [...prevBoxes] as [BoxState, BoxState, BoxState];
+      prevBoxes.forEach((box, idx) => {
+        if (box.type === 'pending_details') {
+          newBoxes[idx] = { ...box, type: 'uploading' };
+        }
+      });
+      return newBoxes;
+    });
+  };
+
+  const processUploads = async (boxesToUpload: { box: BoxState; index: number }[]) => {
+    for (const { box, index } of boxesToUpload) {
+      if (box.type === 'pending_details' && box.file && box.title.trim() && box.author.trim()) {
+        // Pass true to skip refresh for individual uploads
+        await uploadFile(box.file, index, box.title, box.author, true);
+      }
+    }
+  };
+
+  const refreshSectionSources = async () => {
+    await loadSections();
+    if (selectedSection !== null) {
+      const sourcesResponse = await fetch(
+        `${moodleContext.wwwroot}/local/lecturebot/api/get_sources.php?courseid=${moodleContext.courseid}&sectionid=${selectedSection}`,
+        {
+          method: 'GET',
+          credentials: 'include',
+        }
+      );
+      const sourcesData = await sourcesResponse.json();
+
+      if (sourcesData.success && sourcesData.sources) {
+        setSectionSources((prev) => ({
+          ...prev,
+          [selectedSection]: sourcesData.sources,
+        }));
+        // This will re-render boxes with the final state from server
+        loadSectionSources(selectedSection);
+      }
+    }
+  };
+
+  const handleDoneClick = async () => {
+    if (!validatePendingBoxes()) {
+      return;
+    }
+
+    markBoxesAsUploading();
+
+    const boxesToUpload = boxes
+      .map((box, index) => ({ box, index }))
+      .filter(({ box }) => box.type === 'pending_details');
+
+    if (boxesToUpload.length === 0) {
+      onClose();
+      return;
+    }
+
+    try {
+      await processUploads(boxesToUpload);
+      await refreshSectionSources();
+      onClose();
+    } catch (err) {
+      console.error('Upload sequence interrupted:', err);
+    }
+  };
+
   const handleSectionChange = (sectionId: number) => {
     setSelectedSection(sectionId);
   };
@@ -477,7 +572,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
   };
 
   return (
-    <Modal open={open} onClose={onClose} sx={{ zIndex: 10015 }}>
+    <Modal open={open} onClose={onClose} sx={{ zIndex: 100001 }}>
       <Box
         sx={{
           position: 'absolute',
@@ -906,7 +1001,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
               disabled={loading}
               MenuProps={{
                 sx: {
-                  zIndex: 10018,
+                  zIndex: 100002,
                 },
               }}
             >
@@ -920,40 +1015,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
 
           {/* Done Button - Bottom Right */}
           <Button
-            onClick={() => {
-              // Check if any pending box is missing title or author
-              const newValidationErrors = boxes.map(
-                box => box.type === 'pending_details' && (!box.title.trim() || !box.author.trim())
-              );
-
-              const hasInvalidPending = newValidationErrors.some(error => error);
-
-              if (hasInvalidPending) {
-                setValidationErrors(newValidationErrors);
-                setErrors({ general: 'Please provide Title and Author for all selected files.' });
-                return;
-              }
-
-              // Clear validation errors
-              setValidationErrors([false, false, false]);
-
-              // Prepare uploads
-              const uploads = boxes.map((box, index) => {
-                if (box.type === 'pending_details' && box.file && box.title.trim() && box.author.trim()) {
-                  // Optimistically set to uploading
-                  const newBoxes = [...boxes] as [BoxState, BoxState, BoxState];
-                  newBoxes[index] = { ...box, type: 'uploading' };
-                  setBoxes(newBoxes);
-
-                  return uploadFile(box.file, index, box.title, box.author);
-                }
-                return Promise.resolve();
-              });
-
-              Promise.all(uploads).then(() => {
-                onClose();
-              });
-            }}
+            onClick={handleDoneClick}
             variant="contained"
             sx={{
               fontWeight: 600,
@@ -976,7 +1038,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
         <Dialog
           open={deleteConfirmation.open}
           onClose={closeDeleteConfirmation}
-          sx={{ zIndex: 10020 }}
+          sx={{ zIndex: 100005 }}
           PaperProps={{
             sx: {
               borderRadius: '12px',

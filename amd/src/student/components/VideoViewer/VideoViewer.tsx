@@ -14,7 +14,7 @@ interface VideoViewerProps {
     title: string;
 }
 
-const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title }) => {
+const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title: _title }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -32,7 +32,7 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title }) => {
 
     useEffect(() => {
         const video = videoRef.current;
-        if (!video) return;
+        if (!video) { return; }
 
         const handleTimeUpdate = () => setCurrentTime(video.currentTime);
         const handleDurationChange = () => setDuration(video.duration);
@@ -51,7 +51,7 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title }) => {
 
     const togglePlay = () => {
         const video = videoRef.current;
-        if (!video) return;
+        if (!video) { return; }
 
         if (isPlaying) {
             video.pause();
@@ -63,7 +63,7 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title }) => {
 
     const handleSeek = (event: Event, newValue: number | number[]) => {
         const video = videoRef.current;
-        if (!video) return;
+        if (!video) { return; }
 
         const time = newValue as number;
         video.currentTime = time;
@@ -72,7 +72,7 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title }) => {
 
     const handleVolumeChange = (event: Event, newValue: number | number[]) => {
         const video = videoRef.current;
-        if (!video) return;
+        if (!video) { return; }
 
         const vol = newValue as number;
         video.volume = vol;
@@ -82,7 +82,7 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title }) => {
 
     const toggleMute = () => {
         const video = videoRef.current;
-        if (!video) return;
+        if (!video) { return; }
 
         video.muted = !isMuted;
         setIsMuted(!isMuted);
@@ -90,7 +90,7 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title }) => {
 
     const toggleFullscreen = () => {
         const container = containerRef.current;
-        if (!container) return;
+        if (!container) { return; }
 
         if (!isFullscreen) {
             if (container.requestFullscreen) {
@@ -106,7 +106,7 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title }) => {
 
     const togglePictureInPicture = async () => {
         const video = videoRef.current;
-        if (!video) return;
+        if (!video) { return; }
 
         try {
             if (document.pictureInPictureElement) {
@@ -121,7 +121,7 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title }) => {
 
     const handleSpeedChange = (speed: number) => {
         const video = videoRef.current;
-        if (!video) return;
+        if (!video) { return; }
 
         video.playbackRate = speed;
         setPlaybackSpeed(speed);
