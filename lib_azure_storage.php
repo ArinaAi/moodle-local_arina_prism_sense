@@ -9,7 +9,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once(__DIR__ . '/config_azure.php');
+require_once(__DIR__ . '/configurator_azure.php');
 
 /**
  * Upload slide images to Azure Blob Storage
@@ -453,7 +453,9 @@ function get_azure_regen_count($courseid, $sectionid, $tenantId)
 
     // Check credentials first
     if (defined('AZURE_STORAGE_ACCOUNT_NAME') && defined('AZURE_STORAGE_ACCOUNT_KEY')) {
-        $containerName = strtolower('Blob-Tutorial-Gen-' . $tenantId);
+        // Use global constant which now handles the dynamic naming
+        $containerName = defined('AZURE_BLOB_CONTAINER_NAME') ? AZURE_BLOB_CONTAINER_NAME : 'lecturebot';
+        
         $accountName = AZURE_STORAGE_ACCOUNT_NAME;
         $accountKey = AZURE_STORAGE_ACCOUNT_KEY;
         $prefix = "Tutorial_{$courseid}_{$sectionid}_";

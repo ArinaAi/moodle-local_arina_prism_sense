@@ -43,6 +43,10 @@ function xmldb_local_lecturebot_upgrade($oldversion)
         local_lecturebot_upgrade_2025122201($dbman);
     }
 
+    if ($oldversion < 2026010500) {
+        local_lecturebot_upgrade_2026010500($dbman);
+    }
+
     return true;
 }
 
@@ -176,3 +180,35 @@ function local_lecturebot_upgrade_2025122201($dbman)
     // Lecturebot savepoint reached.
     upgrade_plugin_savepoint(true, 2025122201, 'local', 'lecturebot');
 }
+
+function local_lecturebot_upgrade_2026010500($dbman)
+{
+    // Define table local_lecturebot_tracking to be created.
+    $table = new xmldb_table('local_lecturebot_tracking');
+
+    // Adding fields to table local_lecturebot_tracking.
+    $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+    $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+    $table->add_field('contentid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+    $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+    $table->add_field('status', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0');
+    $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+    $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+
+    // Adding keys to table local_lecturebot_tracking.
+    $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+    $table->add_key('userid', XMLDB_KEY_FOREIGN, ['userid'], 'user', ['id']);
+    $table->add_key('contentid', XMLDB_KEY_FOREIGN, ['contentid'], 'local_lecturebot_content', ['id']);
+
+    // Adding indexes to table local_lecturebot_tracking.
+    $table->add_index('userid_contentid', XMLDB_INDEX_UNIQUE, ['userid', 'contentid']);
+
+    // Conditionally launch create table for local_lecturebot_tracking.
+    if (!$dbman->table_exists($table)) {
+        $dbman->create_table($table);
+    }
+
+    // Lecturebot savepoint reached.
+    upgrade_plugin_savepoint(true, 2026010500, 'local', 'lecturebot');
+}
+

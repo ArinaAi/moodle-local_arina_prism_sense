@@ -154,7 +154,7 @@ try {
                 CURLOPT_POST => true,
                 CURLOPT_POSTFIELDS => ['file' => $cfile], // Backend expects 'file' not 'pdf'
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 60,
+                CURLOPT_TIMEOUT => 8250,
                 CURLOPT_CONNECTTIMEOUT => 20,
                 CURLOPT_SSL_VERIFYPEER => false,
                 CURLOPT_FOLLOWLOCATION => true,

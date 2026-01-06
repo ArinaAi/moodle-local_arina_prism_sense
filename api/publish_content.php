@@ -12,7 +12,7 @@ require_once($CFG->dirroot . '/course/lib.php');
 require_once($CFG->dirroot . '/course/modlib.php');
 require_once($CFG->dirroot . '/lib/filelib.php');
 require_once(__DIR__ . '/../lib_azure_storage.php');
-require_once(__DIR__ . '/../config_azure.php');
+require_once(__DIR__ . '/../configurator_azure.php');
 
 define('HTML_DIV_CLOSE', '</div>');
 define('HTML_LI_CLOSE', '</li>');
@@ -34,7 +34,7 @@ $title = $input['title'] ?? 'Lecture Slides';
 $content = $input['content'] ?? [];
 $type = $input['type'] ?? 'slide-deck';
 
-// Require login and course access
+// Requires login and course access
 require_login($courseid);
 $context = context_course::instance($courseid);
 require_capability('moodle/course:manageactivities', $context);
@@ -53,7 +53,6 @@ if ($contentid > 0 && empty($content)) {
 // Get section number from section ID
 $modinfo = get_fast_modinfo($courseid);
 $sectionnumber = 0;
-$debug_info = ['sections' => []];
 foreach ($modinfo->get_section_info_all() as $section) {
     if ($section->id == $sectionid) {
         $sectionnumber = $section->section;

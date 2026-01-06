@@ -40,36 +40,125 @@ function local_lecturebot_get_button_js($wwwroot)
     
     // Minified logic to inject button
     return <<<JS
-        document.addEventListener("DOMContentLoaded", function() {
-            // Remove existing button if any
-            const existingBtn = document.querySelector(".lecturebot-course-button");
-            if (existingBtn) existingBtn.remove();
+        (function() {
+            function initLectureBotAdmin() {
+                // Remove existing button if any
+                const existingBtn = document.querySelector(".lecturebot-course-button");
+                if (existingBtn) existingBtn.remove();
 
-            // Find injection target
-            const targetElement = document.querySelector(".page-header-actions, .page-header-headings") ||
-                                  document.querySelector("#page-header, .page-header, header");
+                // Find injection target
+                const targetElement = document.querySelector(".page-header-actions") ||
+                                    document.querySelector(".page-header-headings") ||
+                                    document.querySelector("#page-header .d-flex") ||
+                                    document.querySelector(".header-maxwidth") ||
+                                    document.querySelector("header");
 
-            if (targetElement) {
-                const button = document.createElement("button");
-                button.type = "button";
-                button.className = "btn btn-primary lecturebot-course-button";
-                button.innerHTML = "{$buttontext}";
-                button.style.cssText = "margin-top: 10px; background: #0f6cbf; border-color: #0f6cbf; color: white;" +
-                    " font-weight: 600; padding: 8px 16px; border-radius: 4px; display: inline-block; cursor: pointer;";
+                if (targetElement) {
+                    console.log("LectureBot: Found admin target", targetElement);
+                    const button = document.createElement("button");
+                    button.type = "button";
+                    button.className = "btn btn-primary lecturebot-course-button";
+                    button.innerHTML = "{$buttontext}";
+                    button.style.cssText = "margin-top: 10px; background: #0f6cbf; border-color: #0f6cbf; color: white;" +
+                        " font-weight: 600; padding: 8px 16px; border-radius: 4px; display: inline-block; cursor: pointer;";
 
-                button.addEventListener("click", function() {
-                    if (window.MOODLE_CONTEXT && window.MOODLE_CONTEXT.courseid) {
-                        window.location.href = "{$wwwroot}/local/lecturebot/launch.php?courseid=" +
-                            window.MOODLE_CONTEXT.courseid;
+                    button.addEventListener("click", function() {
+                        if (window.MOODLE_CONTEXT && window.MOODLE_CONTEXT.courseid) {
+                            window.location.href = "{$wwwroot}/local/lecturebot/launch.php?courseid=" +
+                                window.MOODLE_CONTEXT.courseid;
+                        } else {
+                            console.error("❌ MOODLE_CONTEXT not available");
+                            alert("Unable to open LectureBot. Please refresh the page and try again.");
+                        }
+                    });
+
+                    // Prefer prepending to actions
+                    if (targetElement.classList.contains('page-header-actions')) {
+                        targetElement.prepend(button);
                     } else {
-                        console.error("❌ MOODLE_CONTEXT not available");
-                        alert("Unable to open LectureBot. Please refresh the page and try again.");
+                        targetElement.appendChild(button);
                     }
-                });
-
-                targetElement.appendChild(button);
+                } else {
+                     console.log("LectureBot: No admin target element found");
+                }
             }
-        });
+
+            if (document.readyState === "loading") {
+                document.addEventListener("DOMContentLoaded", initLectureBotAdmin);
+            } else {
+                initLectureBotAdmin();
+            }
+        })();
+JS;
+}
+
+/**
+ * Generate JavaScript code for student button creation.
+ *
+ * @param string $wwwroot Moodle wwwroot
+ * @return string JavaScript code
+ */
+function local_lecturebot_get_student_button_js($wwwroot)
+{
+    $buttontext = get_string('courseplayer', 'local_lecturebot'); // We need to add this string too
+    if (empty($buttontext) || $buttontext == '[[courseplayer]]') {
+        $buttontext = 'Start Course';
+    }
+    
+    return <<<JS
+        (function() {
+            function initLectureBotStudent() {
+                // Remove existing button if any
+                const existingBtn = document.querySelector(".lecturebot-student-button");
+                if (existingBtn) existingBtn.remove();
+
+                // Find injection target - Student view might differ
+                const targetElement = document.querySelector(".page-header-actions") ||
+                                    document.querySelector(".page-header-headings") ||
+                                    document.querySelector("#page-header .d-flex") ||
+                                    document.querySelector(".header-maxwidth") ||
+                                    document.querySelector("header");
+
+                if (targetElement) {
+                    console.log("LectureBot: Found student target", targetElement);
+                    const button = document.createElement("a");
+                    button.className = "btn btn-primary lecturebot-student-button"; // Changed to btn-primary
+                    button.innerHTML = '<i class="fa fa-play-circle" aria-hidden="true"></i> ' + "{$buttontext}";
+                    button.href = "#";
+                    // Matched colors: background: #0f6cbf; border-color: #0f6cbf; color: white;
+                    button.style.cssText = "margin-top: 10px; margin-right: 10px; background: #0f6cbf; " +
+                        "border-color: #0f6cbf; color: white; " +
+                        "font-weight: 600; padding: 8px 16px; border-radius: 4px; " +
+                        "display: inline-block; cursor: pointer;";
+
+                    button.addEventListener("click", function(e) {
+                        e.preventDefault();
+                        if (window.MOODLE_CONTEXT && window.MOODLE_CONTEXT.courseid) {
+                            window.location.href = "{$wwwroot}/local/lecturebot/student_view.php?courseid=" +
+                                window.MOODLE_CONTEXT.courseid;
+                        } else {
+                            console.error("❌ MOODLE_CONTEXT not available");
+                        }
+                    });
+
+                    // Prepend or Append?
+                    // If page-header-actions, append to behave like other actions
+                    if (targetElement.classList.contains('page-header-actions')) {
+                         targetElement.insertBefore(button, targetElement.firstChild);
+                    } else {
+                         targetElement.appendChild(button);
+                    }
+                } else {
+                    console.log("LectureBot: No student target element found");
+                }
+            }
+
+            if (document.readyState === "loading") {
+                document.addEventListener("DOMContentLoaded", initLectureBotStudent);
+            } else {
+                initLectureBotStudent();
+            }
+        })();
 JS;
 }
 
@@ -92,6 +181,34 @@ function local_lecturebot_can_access()
 }
 
 /**
+ * Check if user can access Student View.
+ *
+ * @return bool True if user has access
+ */
+function local_lecturebot_can_access_student()
+{
+    global $PAGE, $COURSE, $USER;
+
+    $isCourseView = strpos($PAGE->pagetype, 'course-view') === 0;
+    
+    // Check if course is valid
+    if (!isset($COURSE->id) || $COURSE->id == 1) { // 1 is frontpage
+        return false;
+    }
+
+    $context = context_course::instance($COURSE->id);
+
+    // Allow if they can update (Teacher) OR are enrolled (Student)
+    // is_enrolled(context, user, withcapability, onlyactive)
+    $isEnrolled = is_enrolled($context, $USER, '', true);
+    
+    // Also allow managers/teachers who might not be "enrolled" but have update rights
+    $canUpdate = has_capability('moodle/course:update', $context);
+
+    return $isCourseView && ($isEnrolled || $canUpdate);
+}
+
+/**
  * Inject JavaScript to add button in correct position with proper styling.
  */
 function local_lecturebot_before_footer()
@@ -102,15 +219,36 @@ function local_lecturebot_before_footer()
         return;
     }
 
-    if (!local_lecturebot_can_access()) {
-        return;
+    // Use Utils class to prepare context if we are going to inject anything
+    $contextPrepared = false;
+    $jsToInject = '';
+
+    // 1. Teacher Button
+    if (local_lecturebot_can_access()) {
+        if (!$contextPrepared) {
+            $moodlecontext = Utils::prepare_context($COURSE, $CFG->wwwroot);
+            $jsToInject .= "\n window.MOODLE_CONTEXT = {$moodlecontext};\n";
+            $contextPrepared = true;
+        }
+        $jsToInject .= local_lecturebot_get_button_js($CFG->wwwroot);
     }
 
-    // Use Utils class to prepare context
-    $moodlecontext = Utils::prepare_context($COURSE, $CFG->wwwroot);
+    // 2. Student Button
+    // We show this to students, AND teachers (so they can preview)
+    $canAccessStudent = local_lecturebot_can_access_student();
+    
+    if ($canAccessStudent) {
+        if (!$contextPrepared) {
+            $moodlecontext = Utils::prepare_context($COURSE, $CFG->wwwroot);
+            $jsToInject .= "\n window.MOODLE_CONTEXT = {$moodlecontext};\n";
+            $contextPrepared = true;
+        }
+        $jsToInject .= local_lecturebot_get_student_button_js($CFG->wwwroot);
+    }
 
-    echo '<script>';
-    echo "\n window.MOODLE_CONTEXT = {$moodlecontext};\n";
-    echo local_lecturebot_get_button_js($CFG->wwwroot);
-    echo '</script>';
+    if ($jsToInject !== '') {
+        echo '<script>';
+        echo $jsToInject;
+        echo '</script>';
+    }
 }

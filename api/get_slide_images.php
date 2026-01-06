@@ -12,7 +12,7 @@ define('NO_DEBUG_DISPLAY', true);
 define('AJAX_SCRIPT', true);
 define('REDIRECT_STDERR', ' 2>&1');
 require_once(__DIR__ . '/../../../config.php');
-require_once(__DIR__ . '/../config_azure.php');
+require_once(__DIR__ . '/../configurator_azure.php');
 require_once(__DIR__ . '/../lib_azure_storage.php');
 
 // Developer Mode: Redirect to mock handler

@@ -11,6 +11,7 @@ import {
     MenuItem,
     Select,
     FormControl,
+    CircularProgress,
 } from '@mui/material';
 import { ExpandMore } from '@mui/icons-material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -18,14 +19,26 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import { FileText } from 'lucide-react';
-import { mockSections, ContentItem } from '../../mockData';
+import { ContentItem } from '../../mockData';
 import { useContent } from '../../context/ContentContext';
 import { accordionStyles } from '../../../styles/accordionStyles';
 
 const ContentNavigator: React.FC = () => {
-    const { selectedContent, setSelectedContent } = useContent();
-    const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set([1])); // First section expanded by default
+    const { selectedContent, setSelectedContent, sections, isLoading, error } = useContent();
+    const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set([1])); // Logic for default expand might need update
     const [sectionFilter, setSectionFilter] = useState<number | 'all'>('all');
+
+    if (isLoading) {
+        return <Box sx={{ p: 3, textAlign: 'center' }}><CircularProgress size={24} /></Box>;
+    }
+
+    if (error) {
+        return <Typography color="error" sx={{ p: 2 }}>{error}</Typography>;
+    }
+
+    if (!sections || sections.length === 0) {
+        return <Typography sx={{ p: 2, color: 'text.secondary' }}>No content available.</Typography>;
+    }
 
     const toggleSection = (sectionId: number) => {
         const newExpanded = new Set(expandedSections);
@@ -47,10 +60,13 @@ const ContentNavigator: React.FC = () => {
         return <DescriptionIcon sx={{ fontSize: 20, color: '#2563eb' }} />;
     };
 
+    // Filter out sections with no content
+    const visibleSections = sections.filter(section => section.items && section.items.length > 0);
+
     // Filter sections based on selected filter
     const filteredSections = sectionFilter === 'all'
-        ? mockSections
-        : mockSections.filter(section => section.id === sectionFilter);
+        ? visibleSections
+        : visibleSections.filter(section => section.id === sectionFilter);
 
     return (
         <Box sx={{ p: 2 }}>
@@ -129,7 +145,7 @@ const ContentNavigator: React.FC = () => {
                             All Sections
                         </Typography>
                     </MenuItem>
-                    {mockSections.map(section => (
+                    {visibleSections.map(section => (
                         <MenuItem key={section.id} value={section.id}>
                             <Typography variant="body2" sx={{ fontWeight: 500 }}>
                                 {section.title}
