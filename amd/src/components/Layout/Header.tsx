@@ -4,9 +4,10 @@ import type { MoodleContext } from '../../types/moodle';
 
 interface HeaderProps {
     moodleContext: MoodleContext;
+    children?: React.ReactNode;
 }
 
-const Header: React.FC<HeaderProps> = ({ moodleContext }) => {
+const Header: React.FC<HeaderProps> = ({ moodleContext, children }) => {
     if (!moodleContext) {
         return null;
     }
@@ -96,6 +97,7 @@ const Header: React.FC<HeaderProps> = ({ moodleContext }) => {
                     target.style.display = 'none';
                 }}
             />
+            {children}
         </Box>
     );
 };

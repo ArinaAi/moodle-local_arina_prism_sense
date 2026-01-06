@@ -45,10 +45,18 @@ const studentTheme = createTheme({
 });
 
 const StudentApp: React.FC = () => {
+    // Get Moodle context from window
+    const moodleContext = window.MOODLE_CONTEXT;
+
+    if (!moodleContext) {
+        console.error('Moodle context not found in window.MOODLE_CONTEXT');
+        return <div>Error: Could not load Moodle context</div>;
+    }
+
     return (
         <ThemeProvider theme={studentTheme}>
             <CssBaseline />
-            <MainLayout />
+            <MainLayout moodleContext={moodleContext} />
         </ThemeProvider>
     );
 };

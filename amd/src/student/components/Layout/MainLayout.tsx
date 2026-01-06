@@ -1,65 +1,67 @@
 import React, { useState } from 'react';
-import { Box, AppBar, Toolbar, Typography, IconButton, Avatar, Paper } from '@mui/material';
-import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
-import SchoolIcon from '@mui/icons-material/School';
+import { Box, Paper, Button } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CloseIcon from '@mui/icons-material/Close';
 import ContentNavigator from '../ContentNavigator/ContentNavigator';
 import ContentViewer from '../ContentViewer/ContentViewer';
 import ChatBot from '../ChatBot/ChatBot';
 import { ContentProvider } from '../../context/ContentContext';
+import Header from '../../../components/Layout/Header';
+import type { MoodleContext } from '../../../types/moodle';
 
-const MainLayout: React.FC = () => {
+interface MainLayoutProps {
+    moodleContext: MoodleContext;
+}
+
+const MainLayout: React.FC<MainLayoutProps> = ({ moodleContext }) => {
     const [isChatOpen, setIsChatOpen] = useState(false);
 
     return (
         <ContentProvider>
             <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', bgcolor: '#f0f4f9' }}>
-                {/* Header */}
-                <AppBar position="static" color="default" elevation={0} sx={{ borderBottom: '1px solid #e0e0e0', bgcolor: 'white', zIndex: 1200 }}>
-                    <Toolbar sx={{ minHeight: '64px !important' }}>
-                        <Avatar sx={{ bgcolor: '#0b57d0', mr: 2 }}>
-                            <SchoolIcon />
-                        </Avatar>
-                        <Box>
-                            <Typography variant="h6" color="text.primary" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
-                                LectureBot
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                                AI & Machine Learning Course
-                            </Typography>
-                        </Box>
-                        <Box sx={{ flexGrow: 1 }} />
-
-                        <IconButton
-                            onClick={() => setIsChatOpen(!isChatOpen)}
-                            sx={{
-                                mr: 1,
-                                bgcolor: isChatOpen ? '#e3f2fd' : 'transparent',
-                                color: isChatOpen ? '#0b57d0' : '#444',
-                                border: isChatOpen ? '1px solid #0b57d0' : '1px solid transparent',
-                                '&:hover': { bgcolor: '#e3f2fd' }
-                            }}
-                        >
-                            {isChatOpen ? (
-                                <>
-                                    <CloseIcon sx={{ mr: 0.5 }} />
-                                    <Typography variant="body2" sx={{ fontWeight: 500 }}>Close Chat</Typography>
-                                </>
-                            ) : (
-                                <>
-                                    <AutoAwesomeIcon sx={{ mr: 0.5 }} />
-                                    <Typography variant="body2" sx={{ fontWeight: 500 }}>Ask AI</Typography>
-                                </>
-                            )}
-                        </IconButton>
-
-                        <IconButton>
-                            <NotificationsOutlinedIcon />
-                        </IconButton>
-                        <Avatar sx={{ ml: 1, bgcolor: '#0b57d0', width: 32, height: 32, fontSize: '0.875rem' }}>JS</Avatar>
-                    </Toolbar>
-                </AppBar>
+                {/* Reused Header */}
+                <Header moodleContext={moodleContext}>
+                    <Button
+                        onClick={() => setIsChatOpen(!isChatOpen)}
+                        startIcon={isChatOpen ? <CloseIcon /> : <AutoAwesomeIcon />}
+                        variant="outlined"
+                        sx={{
+                            mr: 1,
+                            textTransform: 'none',
+                            borderRadius: '20px',
+                            padding: '6px 16px',
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            ...(isChatOpen ? {
+                                // Active/Close State
+                                bgcolor: '#f8fafc',
+                                borderColor: '#cbd5e1',
+                                color: '#64748b',
+                                boxShadow: 'none',
+                                '&:hover': {
+                                    bgcolor: '#f1f5f9',
+                                    borderColor: '#94a3b8',
+                                    color: '#475569'
+                                }
+                            } : {
+                                // "Ask AI" Premium State
+                                background: 'linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%)',
+                                borderColor: 'rgba(56, 189, 248, 0.4)',
+                                color: '#0284c7', // Primary Blue
+                                boxShadow: '0 4px 12px rgba(14, 165, 233, 0.15)',
+                                '&:hover': {
+                                    background: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)',
+                                    borderColor: 'rgba(56, 189, 248, 0.6)',
+                                    transform: 'translateY(-1px)',
+                                    boxShadow: '0 6px 16px rgba(14, 165, 233, 0.25)',
+                                }
+                            })
+                        }}
+                    >
+                        {isChatOpen ? 'Close Chat' : 'Ask AI'}
+                    </Button>
+                </Header>
 
                 {/* Main Content Area */}
                 <Box sx={{ flex: 1, position: 'relative', overflow: 'hidden', p: 2 }}>
