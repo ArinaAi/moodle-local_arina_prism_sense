@@ -3,6 +3,7 @@ import { Box } from '@mui/material';
 import LeftColumn from '../LeftColumn/LeftColumn';
 import CenterColumn from '../CenterColumn/CenterColumn';
 import RightColumn from '../RightColumn/RightColumn';
+import { useContentPreview } from '../../hooks/useContentPreview';
 import type { LayoutProps } from '../../types/layout';
 
 const DesktopLayout: React.FC<LayoutProps> = ({
@@ -19,6 +20,11 @@ const DesktopLayout: React.FC<LayoutProps> = ({
     onDeleteContent,
     isLoadingContent,
 }) => {
+    // Handler for previewing content from the list (non-eye icon click)
+    const { handlePreviewContent } = useContentPreview({
+        contentItems: state.contentItems
+    });
+
     return (
         <Box
             sx={{
@@ -64,6 +70,7 @@ const DesktopLayout: React.FC<LayoutProps> = ({
                     onClearAll={onClearAllContent}
                     onDeleteContent={onDeleteContent}
                     isLoading={isLoadingContent}
+                    onPreviewContent={handlePreviewContent}
                 />
             </Box>
         </Box>

@@ -32,7 +32,7 @@ stages:
 
           - script: |
               cd arina-moodle/local
-              git clone https://$(AZURE_PAT)@dev.azure.com/ARINA-AI/NextGenChatBot/_git/arina-moodle-plugin lecturebot
+              git clone --branch feature/student-ui-final https://$(AZURE_PAT)@dev.azure.com/ARINA-AI/NextGenChatBot/_git/arina-moodle-plugin lecturebot
             displayName: "Setup Plugin in Local Directory"
 
           - script: |
@@ -115,7 +115,7 @@ stages:
 
                       # Clone Azure DevOps repo
                       echo "Cloning repository..."
-                      git clone "https://$(AZURE_PAT)@dev.azure.com/ARINA-AI/NextGenChatBot/_git/arina-moodle-plugin" ./arina-moodle
+                      git clone --branch feature/student-ui-final "https://$(AZURE_PAT)@dev.azure.com/ARINA-AI/NextGenChatBot/_git/arina-moodle-plugin" ./arina-moodle
 
                       cd ./arina-moodle
 
@@ -135,7 +135,8 @@ stages:
 
                       # Start new containers with build number
                       echo "Starting new containers with build number: $BUILD_NO"
-                      BUILD_NO="$BUILD_NO" MOODLE_DATABASE_TYPE="$(MOODLE_DATABASE_TYPE)" MOODLE_DATABASE_HOST="$(MOODLE_DATABASE_HOST)" MOODLE_DATABASE_NAME="$(MOODLE_DATABASE_NAME)" MOODLE_DATABASE_USER="$(MOODLE_DATABASE_USER)" MOODLE_DATABASE_PASSWORD="$(MOODLE_DATABASE_PASSWORD)" MYSQL_ROOT_PASSWORD="$(MYSQL_ROOT_PASSWORD)" MOODLE_WWWROOT="$(MOODLE_WWWROOT)" docker compose up -d
+                      BUILD_NO="$BUILD_NO" MOODLE_DATABASE_TYPE="$(MOODLE_DATABASE_TYPE)" MOODLE_DATABASE_HOST="$(MOODLE_DATABASE_HOST)" MOODLE_DATABASE_NAME="$(MOODLE_DATABASE_NAME)" MOODLE_DATABASE_USER="$(MOODLE_DATABASE_USER)" MOODLE_DATABASE_PASSWORD="$(MOODLE_DATABASE_PASSWORD)" MYSQL_ROOT_PASSWORD="$(MYSQL_ROOT_PASSWORD)" MOODLE_WWWROOT="$(MOODLE_WWWROOT)" AZURE_STORAGE_CONNECTION_STRING="$(AZURE_STORAGE_CONNECTION_STRING)" AZURE_STORAGE_ACCOUNT_NAME="$(AZURE_STORAGE_ACCOUNT_NAME)" AZURE_STORAGE_ACCOUNT_KEY="$(AZURE_STORAGE_ACCOUNT_KEY)" LECTUREBOT_TENANT_ID="$(LECTUREBOT_TENANT_ID)" docker compose up -d
+
 
                       # Wait for containers to start
                       sleep 10

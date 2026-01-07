@@ -8,8 +8,8 @@ export const initStudent = (): void => {
     if (container) {
         const root = createRoot(container);
         root.render(React.createElement(StudentApp));
-        console.log('✅ Student App Initialized');
     } else {
+        // eslint-disable-next-line no-console
         console.error('❌ Student root element not found');
     }
 };

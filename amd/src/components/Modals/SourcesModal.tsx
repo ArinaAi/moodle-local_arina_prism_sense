@@ -500,8 +500,13 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
   const processUploads = async (boxesToUpload: { box: BoxState; index: number }[]) => {
     for (const { box, index } of boxesToUpload) {
       if (box.type === 'pending_details' && box.file && box.title.trim() && box.author.trim()) {
-        // Pass true to skip refresh for individual uploads
-        await uploadFile(box.file, index, box.title, box.author, true);
+        try {
+          // Pass true to skip refresh for individual uploads
+          await uploadFile(box.file, index, box.title, box.author, true);
+        } catch (error) {
+          console.error(`Failed to upload box ${index}:`, error);
+          // Loop continues to next item
+        }
       }
     }
   };

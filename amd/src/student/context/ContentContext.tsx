@@ -3,7 +3,7 @@ import { ContentItem, Section } from '../mockData';
 
 interface ContentContextType {
     selectedContent: ContentItem | null;
-    setSelectedContent: (content: ContentItem) => void;
+    setSelectedContent: (content: ContentItem | null) => void;
     sections: Section[];
     isLoading: boolean;
     error: string | null;
@@ -27,6 +27,7 @@ export const ContentProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     // Get basic config from Moodle global
     const getMoodleConfig = useCallback(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const M = (window as any).M;
         const wwwroot = M?.cfg?.wwwroot || '';
         const courseId = M?.cfg?.courseId || (new URLSearchParams(window.location.search)).get('id') || 0;
@@ -71,6 +72,7 @@ export const ContentProvider: React.FC<{ children: ReactNode }> = ({ children })
             } else {
                 setError(data.error || 'Unknown error');
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             console.error(err);
             setError(err.message);

@@ -5,7 +5,6 @@ import {
     Accordion,
     AccordionSummary,
     AccordionDetails,
-    Chip,
     List,
     ListItem,
     MenuItem,
@@ -18,8 +17,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DescriptionIcon from '@mui/icons-material/Description';
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import FilterListIcon from '@mui/icons-material/FilterList';
-import { FileText } from 'lucide-react';
-import { ContentItem } from '../../mockData';
+import { ContentItem, Section } from '../../mockData';
 import { useContent } from '../../context/ContentContext';
 import { accordionStyles } from '../../../styles/accordionStyles';
 
@@ -170,7 +168,7 @@ const getContentIcon = (item: ContentItem, isSelected: boolean) => {
 
 // Extracted Component to reduce complexity of ContentNavigator
 interface SectionAccordionProps {
-    section: any; // Ideally typed from sections prop
+    section: Section; // Ideally typed from sections prop
     isExpanded: boolean;
     onToggle: (id: number) => void;
     selectedContent: ContentItem | null;
@@ -184,7 +182,7 @@ const SectionAccordion: React.FC<SectionAccordionProps> = ({
     selectedContent,
     onItemClick
 }) => {
-    const completedCount = section.items.filter((i: any) => i.isCompleted).length;
+    const completedCount = section.items.filter((i: ContentItem) => i.isCompleted).length;
     const progress = (completedCount / section.items.length) * 100;
 
     return (

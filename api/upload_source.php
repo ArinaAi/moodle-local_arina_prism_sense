@@ -112,6 +112,10 @@ try {
     $record->timemodified = time();
     
     $id = $DB->insert_record('local_lecturebot_sources', $record);
+
+    // Release session lock early so other requests (like concurrent uploads) aren't blocked
+    // while we wait for the potentially slow backend upload
+    \core\session\manager::write_close();
     
     // ===== UPLOAD PDF TO BACKEND API (if enabled) =====
     if (defined('LECTUREBOT_ENABLE_BACKEND_PDF_UPLOAD') && LECTUREBOT_ENABLE_BACKEND_PDF_UPLOAD) {

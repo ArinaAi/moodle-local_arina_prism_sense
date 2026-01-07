@@ -3,6 +3,7 @@ import { Box, Tabs, Tab } from '@mui/material';
 import LeftColumn from '../LeftColumn/LeftColumn';
 import CenterColumn from '../CenterColumn/CenterColumn';
 import RightColumn from '../RightColumn/RightColumn';
+import { useContentPreview } from '../../hooks/useContentPreview';
 import type { LayoutProps } from '../../types/layout';
 
 const MobileLayout: React.FC<LayoutProps> = ({
@@ -24,6 +25,12 @@ const MobileLayout: React.FC<LayoutProps> = ({
     const handleTabChange = (_event: React.SyntheticEvent, newValue: 'sources' | 'content' | 'publish') => {
         setActiveTab(newValue);
     };
+
+    // Handler for previewing content from the list (non-eye icon click)
+    const { handlePreviewContent } = useContentPreview({
+        contentItems: state.contentItems,
+        onAfterPreview: () => setActiveTab('content')
+    });
 
     return (
         <Box
@@ -99,6 +106,7 @@ const MobileLayout: React.FC<LayoutProps> = ({
                         onDeleteContent={onDeleteContent}
                         isMobile={true}
                         isLoading={isLoadingContent}
+                        onPreviewContent={handlePreviewContent}
                     />
                 )}
             </Box>
