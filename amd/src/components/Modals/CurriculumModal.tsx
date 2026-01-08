@@ -420,7 +420,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
                     Medium (15 - 30 mins)
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Slide: 10 credits • Video: 200 credits
+                    Slide: 10 credits • Video: 400 credits
                   </Typography>
                 </Box>
               }
@@ -435,7 +435,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
                     Long (30 - 45 mins)
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Slide: 10 credits • Video: 200 credits
+                    Slide: 10 credits • Video: 600 credits
                   </Typography>
                 </Box>
               }
@@ -450,7 +450,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
                     Extended (45 - 60 mins)
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Slide: 10 credits • Video: 200 credits
+                    Slide: 10 credits • Video: 800 credits
                   </Typography>
                 </Box>
               }

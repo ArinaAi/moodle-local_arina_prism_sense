@@ -212,3 +212,28 @@ function local_lecturebot_upgrade_2026010500($dbman)
     upgrade_plugin_savepoint(true, 2026010500, 'local', 'lecturebot');
 }
 
+function local_lecturebot_upgrade_2026010700($dbman)
+{
+    // Define table local_lecturebot_sources to be modified.
+    $table = new xmldb_table('local_lecturebot_sources');
+
+    // Define field title to be added to local_lecturebot_sources.
+    $fieldTitle = new xmldb_field('title', XMLDB_TYPE_CHAR, '255', null, null, null, null, 'filesize');
+
+    // Conditionally launch add field title.
+    if (!$dbman->field_exists($table, $fieldTitle)) {
+        $dbman->add_field($table, $fieldTitle);
+    }
+
+    // Define field author to be added to local_lecturebot_sources.
+    $fieldAuthor = new xmldb_field('author', XMLDB_TYPE_CHAR, '255', null, null, null, null, 'title');
+
+    // Conditionally launch add field author.
+    if (!$dbman->field_exists($table, $fieldAuthor)) {
+        $dbman->add_field($table, $fieldAuthor);
+    }
+
+    // Lecturebot savepoint reached.
+    upgrade_plugin_savepoint(true, 2026010700, 'local', 'lecturebot');
+}
+

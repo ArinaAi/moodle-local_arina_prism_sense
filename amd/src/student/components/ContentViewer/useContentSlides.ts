@@ -1,0 +1,72 @@
+import { useState, useEffect } from 'react';
+
+export interface SlideImage {
+    filename: string;
+    data: string; // base64
+    slideNumber: number;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const useContentSlides = (selectedContent: any, isVideo: boolean) => {
+    const [slides, setSlides] = useState<SlideImage[]>([]);
+    const [currentSlide, setCurrentSlide] = useState(0);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!selectedContent || isVideo) {
+            return;
+        }
+
+        const loadSlides = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const M = (window as any).M;
+                const wwwroot = M?.cfg?.wwwroot || '';
+                const response = await fetch(`${wwwroot}/local/lecturebot/api/get_slide_images.php?contentid=${selectedContent.id}`);
+
+                if (!response.ok) {
+                    throw new Error('Failed to load slides');
+                }
+
+                const data = await response.json();
+                if (data.status === 'success' && data.images) {
+                    setSlides(data.images);
+                    setCurrentSlide(0);
+                } else {
+                    setError('No slides found');
+                }
+            } catch (err) {
+                console.error(err);
+                setError('Error loading presentation');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadSlides();
+    }, [selectedContent, isVideo]);
+
+    const handleNext = () => {
+        if (currentSlide < slides.length - 1) {
+            setCurrentSlide(prev => prev + 1);
+        }
+    };
+
+    const handlePrev = () => {
+        if (currentSlide > 0) {
+            setCurrentSlide(prev => prev - 1);
+        }
+    };
+
+    return {
+        slides,
+        currentSlide,
+        isLoading,
+        error,
+        handleNext,
+        handlePrev,
+    };
+};

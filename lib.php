@@ -59,7 +59,8 @@ function local_lecturebot_get_button_js($wwwroot)
                     button.type = "button";
                     button.className = "btn btn-primary lecturebot-course-button";
                     button.innerHTML = "{$buttontext}";
-                    button.style.cssText = "margin-top: 10px; background: #0f6cbf; border-color: #0f6cbf; color: white;" +
+                    button.style.cssText = "margin-top: 10px; margin-right: 15px; background: #0f6cbf;" +
+                        " border-color: #0f6cbf; color: white;" +
                         " font-weight: 600; padding: 8px 16px; border-radius: 4px; display: inline-block; cursor: pointer;";
 
                     button.addEventListener("click", function() {

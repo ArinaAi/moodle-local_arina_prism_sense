@@ -107,7 +107,16 @@ try {
                 );
             }
         }
-        
+
+
+
+        // Check for student tracking status
+        $tracking = $DB->get_record('local_lecturebot_tracking', [
+            'userid' => $USER->id,
+            'contentid' => $content->id
+        ]);
+        $isCompleted = $tracking ? (bool)$tracking->status : false;
+
         $result[] = [
             'id' => $content->id,
             'sectionid' => $content->sectionid,
@@ -126,7 +135,8 @@ try {
             'approvedby' => $content->approvedby,
             'timeapproved' => $content->timeapproved,
             'approver' => $approver,
-            'video_length' => $generationData['video_length'] ?? null
+            'video_length' => $generationData['video_length'] ?? null,
+            'isCompleted' => $isCompleted
         ];
     }
     

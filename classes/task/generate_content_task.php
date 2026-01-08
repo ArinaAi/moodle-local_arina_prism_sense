@@ -23,6 +23,10 @@ class generate_content_task extends \core\task\adhoc_task
         global $DB;
 
         $data = $this->get_custom_data();
+        
+        // Debugging: Log raw input data to identify missing fields
+        mtrace("Task Custom Data: " . json_encode($data));
+
         $contentId = $data->content_id;
         
         // Optional params for decision making
@@ -41,9 +45,13 @@ class generate_content_task extends \core\task\adhoc_task
 
             // 1. Prepare API Request
             $endpoint = $this->getApiEndpoint($contentType, $avatarVideoNeeded);
-            $payload = $this->getApiPayload($data, $contentType, $avatarVideoNeeded);
+            $params = $this->getApiParams($data, $contentType, $avatarVideoNeeded);
             
-            mtrace("Calling API URL: $endpoint");
+            // Construct URL with query parameters using http_build_query for safety
+            // FORCE RFC 3986 (%20 for spaces)
+            $apiUrl = $endpoint . '?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+            
+            mtrace("Calling API URL: " . $apiUrl);
 
             // 2. Execute API Call
             $apiResponse = $this->executeApiCall($endpoint, $payload);
@@ -76,45 +84,31 @@ class generate_content_task extends \core\task\adhoc_task
     }
 
     /**
-     * Construct the API Payload
+     * Construct the API Parameters (for Query String)
      */
-    private function getApiPayload($data, $contentType, $avatarVideoNeeded)
+    private function getApiParams($data, $contentType, $avatarVideoNeeded)
     {
-        $payload = [
+        $params = [
             'organization_id' => (string)$data->tenant_id,
             'course_id' => (string)$data->course_id,
             'chapter_id' => (string)$data->section_id,
-            'regen_count' => (int)$data->regen_count, // Keep int as per likely requirement, but check if needed
+            'regen_count' => (int)$data->regen_count,
             'content_strategy' => $data->content_strategy,
             'video_length' => (int)$data->video_length,
         ];
 
         // Specific fields
+        // Specific fields
         if ($contentType === 'video' || $avatarVideoNeeded === 'yes') {
-            $payload['language'] = isset($data->language) ? $data->language : 'english';
-            $payload['voice_gender'] = isset($data->voice_gender) ? $data->voice_gender : 'female';
-            $payload['avatar_strategy'] = isset($data->avatar_strategy) ? $data->avatar_strategy : 'title_only';
+            $params['language'] = isset($data->language) ? $data->language : 'english';
+            $params['voice_gender'] = isset($data->voice_gender) ? $data->voice_gender : 'female';
+            $params['avatar_strategy'] = isset($data->avatar_strategy) ? $data->avatar_strategy : 'title_only';
         } else {
             // PPTX specific
-            $payload['curriculum_text'] = trim($data->curriculum_text);
-            
-            // Fix for 400 Error: "curriculum_structure must be a list"
-            // The API requires a structure outline. We provide a default one if none exists.
-            $payload['curriculum_structure'] = [
-                [
-                    'title' => 'Lecture Content',
-                    'type' => 'topic',
-                    'subtopics' => [
-                        [
-                            'title' => 'Overview',
-                            'type' => 'sub-topic'
-                        ]
-                    ]
-                ]
-            ];
+            $params['curriculum_text'] = trim($data->curriculum_text);
         }
 
-        return $payload;
+        return $params;
     }
 
     /**
@@ -127,11 +121,7 @@ class generate_content_task extends \core\task\adhoc_task
             throw new \local_lecturebot\exception\curl_init_exception('Failed to initialize cURL');
         }
 
-        $jsonData = json_encode($data);
-
-        mtrace("LectureBot API Request Payload: " . $jsonData);
-        error_log("LectureBot API Request Payload: " . $jsonData);
-
+        // POST request with empty body, parameters are in the URL
         curl_setopt_array($ch, [
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => $jsonData,
@@ -143,8 +133,8 @@ class generate_content_task extends \core\task\adhoc_task
             CURLOPT_TCP_KEEPINTVL => 15,
             CURLOPT_HTTPHEADER => [
                 'Accept: application/json',
-                'Content-Type: application/json',
-                'Content-Length: ' . strlen($jsonData)
+                'Content-Type: application/x-www-form-urlencoded',
+                'Content-Length: 0'
             ],
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_SSL_VERIFYPEER => true,
@@ -175,6 +165,7 @@ class generate_content_task extends \core\task\adhoc_task
         throw new \local_lecturebot\exception\api_http_exception(
             'API returned HTTP ' . $httpCode . ' Body: ' . $preview
         );
+
     }
 
     /**

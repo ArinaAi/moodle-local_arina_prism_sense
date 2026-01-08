@@ -1,17 +1,18 @@
 import React from 'react';
 import { Box, Typography, ListItem, Chip, IconButton, Tooltip, useTheme } from '@mui/material';
 import { Visibility } from '@mui/icons-material';
-import { Presentation } from 'lucide-react';
+import { Presentation, Play } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import type { ContentItem } from '../../types/app';
+import { useContentPreview } from '../../hooks/useContentPreview';
 
 interface PublishedContentItemProps {
     item: ContentItem;
-    onPreview: (contentId: number) => void;
 }
 
-const PublishedContentItem: React.FC<PublishedContentItemProps> = ({ item, onPreview }) => {
+const PublishedContentItem: React.FC<PublishedContentItemProps> = ({ item }) => {
     const theme = useTheme();
+    const { handlePreviewContent } = useContentPreview({ contentItems: [item] });
 
     const formatDate = (timestamp: number) => {
         const date = new Date(timestamp * 1000);
@@ -52,10 +53,19 @@ const PublishedContentItem: React.FC<PublishedContentItemProps> = ({ item, onPre
                     borderColor: theme.palette.success.main,
                 },
             }}
-            onClick={() => onPreview(item.id)}
+            onClick={(e) => {
+                e.stopPropagation();
+                if (item.result) {
+                    handlePreviewContent(item.id);
+                }
+            }}
         >
             <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Presentation size={28} color="#28a745" strokeWidth={2.5} />
+                {item.contenttype === 'video' ? (
+                    <Play size={28} color="#28a745" strokeWidth={2.5} />
+                ) : (
+                    <Presentation size={28} color="#28a745" strokeWidth={2.5} />
+                )}
             </Box>
 
             <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -74,30 +84,32 @@ const PublishedContentItem: React.FC<PublishedContentItemProps> = ({ item, onPre
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
                     <StatusBadge status="published" size="small" />
-                    <Chip
-                        label={`${getSlideCount(item)} slides`}
-                        size="small"
-                        sx={{
-                            backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                            color: '#28a745',
-                            fontWeight: 500,
-                            fontSize: '0.7rem',
-                            height: '20px',
-                        }}
-                    />
+                    {item.contenttype !== 'video' && (
+                        <Chip
+                            label={`${getSlideCount(item)} slides`}
+                            size="small"
+                            sx={{
+                                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                                color: '#28a745',
+                                fontWeight: 500,
+                                fontSize: '0.7rem',
+                                height: '20px',
+                            }}
+                        />
+                    )}
                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                         {item.timepublished ? formatDate(item.timepublished) : 'Published'}
                     </Typography>
                 </Box>
             </Box>
 
-            <Tooltip title="Preview slides" arrow placement="top" PopperProps={{ sx: { zIndex: 100006 } }}>
+            <Tooltip title={item.contenttype === 'video' ? "Preview video" : "Preview slides"} arrow placement="top" PopperProps={{ sx: { zIndex: 100006 } }}>
                 <IconButton
                     size="small"
                     onClick={(e) => {
                         e.stopPropagation();
                         if (item.result) {
-                            window.dispatchEvent(new CustomEvent('lecturebot:preview', { detail: { contentItem: item } }));
+                            handlePreviewContent(item.id);
                         }
                     }}
                     sx={{

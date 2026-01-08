@@ -6,11 +6,10 @@ import PublishedContentItem from './PublishedContentItem';
 
 interface PublishedContentListProps {
     contentItems: ContentItem[];
-    onPreview: (contentId: number) => void;
     isMobile?: boolean;
 }
 
-const PublishedContentList: React.FC<PublishedContentListProps> = ({ contentItems, onPreview, isMobile = false }) => {
+const PublishedContentList: React.FC<PublishedContentListProps> = ({ contentItems, isMobile = false }) => {
     const theme = useTheme();
     const publishedItems = contentItems.filter(item => item.status === 'published');
 
@@ -42,7 +41,7 @@ const PublishedContentList: React.FC<PublishedContentListProps> = ({ contentItem
                 {publishedItems.length === 0 ? renderEmptyState() : (
                     <List sx={{ flex: 1, overflow: 'auto', p: 0, pr: 1, scrollbarWidth: 'none', msOverflowStyle: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
                         {publishedItems.map(item => (
-                            <PublishedContentItem key={item.id} item={item} onPreview={onPreview} />
+                            <PublishedContentItem key={item.id} item={item} />
                         ))}
                     </List>
                 )}

@@ -83,21 +83,23 @@ const Header: React.FC<HeaderProps> = ({ moodleContext, children }) => {
                     </Typography>
                 </Box>
             </Box>
-            <Box
-                component="img"
-                src={`${moodleContext.wwwroot}/local/lecturebot/pix/arina-logo.png`}
-                alt="Arina AI"
-                sx={{
-                    height: 60,
-                    width: 'auto',
-                    objectFit: 'contain',
-                }}
-                onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-                    const target = e.currentTarget;
-                    target.style.display = 'none';
-                }}
-            />
-            {children}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                {children}
+                <Box
+                    component="img"
+                    src={`${moodleContext.wwwroot}/local/lecturebot/pix/arina-logo.png`}
+                    alt="Arina AI"
+                    sx={{
+                        height: 60,
+                        width: 'auto',
+                        objectFit: 'contain',
+                    }}
+                    onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                        const target = e.currentTarget;
+                        target.style.display = 'none';
+                    }}
+                />
+            </Box>
         </Box>
     );
 };

@@ -7,11 +7,30 @@ interface ContentContextType {
     sections: Section[];
     isLoading: boolean;
     error: string | null;
-    markAsComplete: (contentId: number) => Promise<void>;
+    markAsComplete: (contentId: number, status: boolean) => Promise<void>;
     refreshContent: () => void;
 }
 
 const ContentContext = createContext<ContentContextType | undefined>(undefined);
+
+// Helper functions to reduce complexity
+const updateSectionCompletion = (sections: Section[], contentId: number, status: boolean): Section[] => {
+    return sections.map(sec => ({
+        ...sec,
+        items: sec.items.map(item =>
+            item.id === contentId
+                ? { ...item, isCompleted: status, progress: status ? 100 : 0 }
+                : item
+        )
+    }));
+};
+
+const updateSelectedContentCompletion = (content: ContentItem | null, contentId: number, status: boolean): ContentItem | null => {
+    if (content && content.id === contentId) {
+        return { ...content, isCompleted: status, progress: status ? 100 : 0 };
+    }
+    return content;
+};
 
 export const ContentProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [selectedContent, setSelectedContent] = useState<ContentItem | null>(null);
@@ -81,31 +100,28 @@ export const ContentProvider: React.FC<{ children: ReactNode }> = ({ children })
         }
     }, [getMoodleConfig, findContentById]);
 
-    const markAsComplete = useCallback(async (contentId: number) => {
+    const markAsComplete = useCallback(async (contentId: number, status: boolean) => {
         try {
             const { wwwroot, courseId } = getMoodleConfig();
-            const response = await fetch(`${wwwroot}/local/lecturebot/api/mark_content_complete.php?courseid=${courseId}&contentid=${contentId}`, {
+
+            // Convert status to 1 or 0
+            const statusInt = status ? 1 : 0;
+
+            const response = await fetch(`${wwwroot}/local/lecturebot/api/track_content.php?courseid=${courseId}&contentid=${contentId}&status=${statusInt}`, {
                 method: 'POST'
             });
             const data = await response.json();
 
-            if (data.status === 'success') {
+            if (data.success) {
                 // Optimistic update
-                setSections(prev => prev.map(sec => ({
-                    ...sec,
-                    items: sec.items.map(item =>
-                        item.id === contentId
-                            ? { ...item, isCompleted: true, progress: 100 }
-                            : item
-                    )
-                })));
+                setSections(prev => updateSectionCompletion(prev, contentId, status));
 
-                if (selectedContentRef.current && selectedContentRef.current.id === contentId) {
-                    setSelectedContent(prev => prev ? { ...prev, isCompleted: true, progress: 100 } : null);
+                if (selectedContentRef.current?.id === contentId) {
+                    setSelectedContent(prev => updateSelectedContentCompletion(prev, contentId, status));
                 }
             }
         } catch (err) {
-            console.error('Failed to mark complete', err);
+            console.error('Failed to update completion status', err);
         }
     }, [getMoodleConfig]);
 

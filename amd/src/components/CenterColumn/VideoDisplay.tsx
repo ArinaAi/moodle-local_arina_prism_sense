@@ -15,6 +15,7 @@ const VideoDisplay: React.FC<VideoDisplayProps> = ({
     isApproved,
     isMobile = false
 }) => {
+
     return (
         <Box className="animate-scale-up" sx={{ width: '100%' }}>
             <Box sx={{ mb: 2 }}>
@@ -36,7 +37,7 @@ const VideoDisplay: React.FC<VideoDisplayProps> = ({
                     minHeight: isMobile ? '250px' : '400px',
                     maxHeight: isMobile ? '50vh' : '650px',
                     border: '2px solid #e0e0e0',
-                    borderRadius: 2,
+                    borderRadius: 1,
                     overflow: 'hidden',
                     backgroundColor: '#000',
                     boxShadow: '0 4px 20px rgba(0,0,0,0.2)',

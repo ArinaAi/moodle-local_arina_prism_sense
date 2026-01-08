@@ -65,11 +65,16 @@ try {
     // Construct URL
     $azureUrl = get_azure_blob_url($accountName, $containerName, $blobName) . $sasToken;
     
-    // Redirect to the signed URL
-    redirect($azureUrl);
+    // Redirect to the signed URL using raw header to avoid Moodle's external redirect blocked in AJAX
+    header('Location: ' . $azureUrl);
+    exit;
     
 } catch (Exception $e) {
-    // Return simple error or image placeholder
     http_response_code(404);
-    die('Video not found or access denied: ' . $e->getMessage());
+    // DEBUG INFORMATION
+    $debugInfo = "Error: " . $e->getMessage();
+    if (isset($containerName)) {$debugInfo .= " | Container: " . $containerName;}
+    if (isset($blobName)) {$debugInfo .= " | Blob: " . $blobName;}
+    
+    die($debugInfo);
 }

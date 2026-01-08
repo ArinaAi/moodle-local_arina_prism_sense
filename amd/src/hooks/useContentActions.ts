@@ -253,9 +253,7 @@ export const useContentActions = (
             if (data.status === 'error') {
                 throw new Error(data.error);
             }
-
-            showNotification(`Video generation completed for "${sectionName}"!`, 'info');
-
+        
             // Reload content state silently to replace temp item with real data
             console.log('🔄 Calling loadContentState (silent) after video generation request...');
             await loadContentState(false);

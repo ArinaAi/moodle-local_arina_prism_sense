@@ -32,7 +32,7 @@ stages:
 
           - script: |
               cd arina-moodle/local
-              git clone --branch feature/student-ui-final https://$(AZURE_PAT)@dev.azure.com/ARINA-AI/NextGenChatBot/_git/arina-moodle-plugin lecturebot
+              git clone https://$(AZURE_PAT)@dev.azure.com/ARINA-AI/NextGenChatBot/_git/arina-moodle-plugin lecturebot
             displayName: "Setup Plugin in Local Directory"
 
           - script: |
@@ -115,7 +115,7 @@ stages:
 
                       # Clone Azure DevOps repo
                       echo "Cloning repository..."
-                      git clone --branch feature/student-ui-final "https://$(AZURE_PAT)@dev.azure.com/ARINA-AI/NextGenChatBot/_git/arina-moodle-plugin" ./arina-moodle
+                      git clone "https://$(AZURE_PAT)@dev.azure.com/ARINA-AI/NextGenChatBot/_git/arina-moodle-plugin" ./arina-moodle
 
                       cd ./arina-moodle
 

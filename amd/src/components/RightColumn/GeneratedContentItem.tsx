@@ -4,16 +4,26 @@ import { Visibility, Add, MoreVert, Error as ErrorIcon } from '@mui/icons-materi
 import { Play, Presentation } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import type { ContentItem } from '../../types/app';
+import { useContentPreview } from '../../hooks/useContentPreview';
 
 interface GeneratedContentItemProps {
     item: ContentItem;
-    onPreview: (contentId: number) => void;
     onPublish: (contentId: string) => void;
     onMenuOpen: (event: React.MouseEvent<HTMLButtonElement>, contentId: number) => void;
+    onPreview?: (contentId: number) => void;
 }
 
-const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPreview, onPublish, onMenuOpen }) => {
+const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPublish, onMenuOpen, onPreview }) => {
     const theme = useTheme();
+    const { handlePreviewContent: localHandlePreview } = useContentPreview({ contentItems: [item] });
+
+    const handlePreview = (id: number) => {
+        if (onPreview) {
+            onPreview(id);
+        } else {
+            localHandlePreview(id);
+        }
+    };
 
     const formatDate = (timestamp: number) => {
         const date = new Date(timestamp * 1000);
@@ -156,7 +166,16 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPre
                     borderColor: theme.palette.success.main
                 },
             }}
-            onClick={() => onPreview(item.id)}
+            onClick={(e) => {
+                e.stopPropagation();
+                e.stopPropagation();
+                if (item.result) {
+                    handlePreview(item.id);
+                } else {
+                    // eslint-disable-next-line no-console
+                    console.warn('⚠️ No result found for content item:', item);
+                }
+            }}
         >
             <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {item.contenttype === 'video' ? (
@@ -197,9 +216,9 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPre
                         size="small"
                         onClick={(e) => {
                             e.stopPropagation();
-                            if (item.result) {
-                                window.dispatchEvent(new CustomEvent('lecturebot:preview', { detail: { contentItem: item } }));
-                            }
+                            // eslint-disable-next-line no-console
+                            console.log('🖱️ Eye Icon Clicked:', item.id, item.contenttype, item.result);
+                            handlePreview(item.id);
                         }}
                         sx={{
                             width: 32,

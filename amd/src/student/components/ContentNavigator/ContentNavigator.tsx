@@ -291,18 +291,34 @@ const SectionAccordion: React.FC<SectionAccordionProps> = ({
                                         {item.title}
                                     </Typography>
                                     <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-                                        <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                            {item.duration}
-                                        </Typography>
+                                        {item.type === 'video' && (
+                                            <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                {item.duration}
+                                            </Typography>
+                                        )}
                                         {item.totalSlides && (
                                             <>
-                                                <Typography variant="caption" sx={{ color: '#cbd5e1' }}>•</Typography>
+                                                {item.type === 'video' && (
+                                                    <Typography variant="caption" sx={{ color: '#cbd5e1' }}>•</Typography>
+                                                )}
                                                 <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.75rem' }}>
                                                     {item.totalSlides} slides
                                                 </Typography>
                                             </>
                                         )}
                                     </Box>
+
+                                    {/* Progress Bar for Item */}
+                                    {item.progress > 0 && (
+                                        <Box sx={{ mt: 1, width: '100%', height: 3, bgcolor: 'rgba(37, 99, 235, 0.1)', borderRadius: 1.5, overflow: 'hidden' }}>
+                                            <Box sx={{
+                                                width: `${item.progress}%`,
+                                                height: '100%',
+                                                bgcolor: item.isCompleted ? '#22c55e' : '#2563eb',
+                                                borderRadius: 1.5
+                                            }} />
+                                        </Box>
+                                    )}
                                 </Box>
                             </ListItem>
                         );

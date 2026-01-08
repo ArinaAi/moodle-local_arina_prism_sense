@@ -23,21 +23,21 @@ interface RightColumnProps {
     contentItems: ContentItem[];
   };
   onPublishContent: (contentId: string) => void;
-  onPreviewContent?: (contentId: number) => void;
   onClearAll?: () => void;
   onDeleteContent?: (contentId: number) => void;
   isMobile?: boolean;
   isLoading?: boolean;
+  onPreviewContent?: (contentId: number) => void;
 }
 
 const RightColumn: React.FC<RightColumnProps> = ({
   state,
   onPublishContent,
-  onPreviewContent,
   onClearAll,
   onDeleteContent,
   isMobile = false,
-  isLoading = false
+  isLoading = false,
+  onPreviewContent
 }) => {
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ open: boolean; contentId: number | null }>({
@@ -65,11 +65,7 @@ const RightColumn: React.FC<RightColumnProps> = ({
     handleMenuClose();
   };
 
-  const handlePreview = (contentId: number) => {
-    if (onPreviewContent) {
-      onPreviewContent(contentId);
-    }
-  };
+
 
   return (
     <>
@@ -86,16 +82,15 @@ const RightColumn: React.FC<RightColumnProps> = ({
         <GeneratedContentList
           contentItems={state.contentItems}
           isLoading={isLoading}
-          onPreview={handlePreview}
           onPublish={onPublishContent}
           onMenuOpen={handleMenuOpen}
           isMobile={isMobile}
+          onPreviewContent={onPreviewContent}
         />
 
         {/* Published Content Card */}
         <PublishedContentList
           contentItems={state.contentItems}
-          onPreview={handlePreview}
           isMobile={isMobile}
         />
       </Box>

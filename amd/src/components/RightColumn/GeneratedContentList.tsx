@@ -7,19 +7,19 @@ import GeneratedContentItem from './GeneratedContentItem';
 interface GeneratedContentListProps {
     contentItems: ContentItem[];
     isLoading: boolean;
-    onPreview: (contentId: number) => void;
     onPublish: (contentId: string) => void;
     onMenuOpen: (event: React.MouseEvent<HTMLButtonElement>, contentId: number) => void;
     isMobile?: boolean; // Keep for potential future styling needs
+    onPreviewContent?: (contentId: number) => void;
 }
 
 const GeneratedContentList: React.FC<GeneratedContentListProps> = ({
     contentItems,
     isLoading,
-    onPreview,
     onPublish,
     onMenuOpen,
-    isMobile = false
+    isMobile = false,
+    onPreviewContent
 }) => {
     const theme = useTheme();
 
@@ -55,9 +55,9 @@ const GeneratedContentList: React.FC<GeneratedContentListProps> = ({
 
         return (
             <List sx={{ flex: 1, overflow: 'auto', p: 0, pr: 1, scrollbarWidth: 'none', msOverflowStyle: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
-                {generatingItems.map(item => <GeneratedContentItem key={item.id} item={item} onPreview={onPreview} onPublish={onPublish} onMenuOpen={onMenuOpen} />)}
-                {readyItems.map(item => <GeneratedContentItem key={item.id} item={item} onPreview={onPreview} onPublish={onPublish} onMenuOpen={onMenuOpen} />)}
-                {errorItems.map(item => <GeneratedContentItem key={item.id} item={item} onPreview={onPreview} onPublish={onPublish} onMenuOpen={onMenuOpen} />)}
+                {generatingItems.map(item => <GeneratedContentItem key={item.id} item={item} onPublish={onPublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} />)}
+                {readyItems.map(item => <GeneratedContentItem key={item.id} item={item} onPublish={onPublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} />)}
+                {errorItems.map(item => <GeneratedContentItem key={item.id} item={item} onPublish={onPublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} />)}
             </List>
         );
     };
