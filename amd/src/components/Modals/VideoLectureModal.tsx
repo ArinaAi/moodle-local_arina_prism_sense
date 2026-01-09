@@ -280,7 +280,7 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                                         label={
                                             <Box>
                                                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                    No Avatar (Free)
+                                                    No Avatar
                                                 </Typography>
                                                 <Typography variant="caption" color="text.secondary">
                                                     Voice-only narration
@@ -295,7 +295,7 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                                         label={
                                             <Box>
                                                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                    With Avatar (100 credits)
+                                                    With Avatar (Additional 1000 credits)
                                                 </Typography>
                                                 <Typography variant="caption" color="text.secondary">
                                                     AI presenter on title slides only

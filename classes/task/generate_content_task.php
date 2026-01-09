@@ -24,6 +24,11 @@ class generate_content_task extends \core\task\adhoc_task
 
         $data = $this->get_custom_data();
         
+        // Fix: Ensure data is an object, as get_custom_data() might return an array
+        if (is_array($data)) {
+            $data = (object)$data;
+        }
+        
         // Debugging: Log raw input data to identify missing fields
         mtrace("Task Custom Data: " . json_encode($data));
 
@@ -43,18 +48,12 @@ class generate_content_task extends \core\task\adhoc_task
                 return;
             }
 
-            // 1. Prepare API Request
-            $endpoint = $this->getApiEndpoint($contentType, $avatarVideoNeeded);
-            $params = $this->getApiParams($data, $contentType, $avatarVideoNeeded);
-            
-            // Construct URL with query parameters using http_build_query for safety
-            // FORCE RFC 3986 (%20 for spaces)
-            $apiUrl = $endpoint . '?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
-            
-            mtrace("Calling API URL: " . $apiUrl);
+            // 1. Build API URL
+            $apiUrl = $this->getApiUrl($data, $contentType, $avatarVideoNeeded);
+            mtrace("Calling API URL: $apiUrl");
 
             // 2. Execute API Call
-            $apiResponse = $this->executeApiCall($endpoint, $payload);
+            $apiResponse = $this->executeApiCall($apiUrl);
 
             // 3. Process Response
             if ($this->isApiSuccess($apiResponse)) {
@@ -73,58 +72,60 @@ class generate_content_task extends \core\task\adhoc_task
     }
 
     /**
-     * Determine the API Endpoint
+     * Construct the API URL based on content type and parameters
      */
-    private function getApiEndpoint($contentType, $avatarVideoNeeded)
+    private function getApiUrl($data, $contentType, $avatarVideoNeeded)
     {
-        if ($contentType === 'video' || $avatarVideoNeeded === 'yes') {
-            return LECTUREBOT_API_GENERATE_VIDEO;
-        }
-        return LECTUREBOT_API_GENERATE_PPTX;
-    }
+        $tenantId = $data->tenant_id;
+        $courseid = $data->course_id;
+        $sectionid = $data->section_id;
+        $regenCount = $data->regen_count;
+        $videoLength = $data->video_length;
+        $contentStrategy = $data->content_strategy;
 
-    /**
-     * Construct the API Parameters (for Query String)
-     */
-    private function getApiParams($data, $contentType, $avatarVideoNeeded)
-    {
-        $params = [
-            'organization_id' => (string)$data->tenant_id,
-            'course_id' => (string)$data->course_id,
-            'chapter_id' => (string)$data->section_id,
-            'regen_count' => (int)$data->regen_count,
-            'content_strategy' => $data->content_strategy,
-            'video_length' => (int)$data->video_length,
-        ];
+        $language = isset($data->language) ? $data->language : 'english';
+        $voiceGender = isset($data->voice_gender) ? $data->voice_gender : 'female';
+        $avatarStrategy = isset($data->avatar_strategy) ? $data->avatar_strategy : 'title_only';
+        $curriculumText = $data->curriculum_text;
 
-        // Specific fields
-        // Specific fields
+        // Check if Video Generation is requested
         if ($contentType === 'video' || $avatarVideoNeeded === 'yes') {
-            $params['language'] = isset($data->language) ? $data->language : 'english';
-            $params['voice_gender'] = isset($data->voice_gender) ? $data->voice_gender : 'female';
-            $params['avatar_strategy'] = isset($data->avatar_strategy) ? $data->avatar_strategy : 'title_only';
+             $baseUrl = LECTUREBOT_API_GENERATE_VIDEO;
+             return $baseUrl .
+                  '?course_id=' . $courseid .
+                  '&organization_id=' . $tenantId .
+                  '&chapter_id=' . $sectionid .
+                  '&regen_count=' . $regenCount .
+                  '&language=' . urlencode($language) .
+                  '&voice_gender=' . urlencode($voiceGender) .
+                  '&avatar_strategy=' . urlencode($avatarStrategy) .
+                  '&content_strategy=' . urlencode($contentStrategy);
         } else {
-            // PPTX specific
-            $params['curriculum_text'] = trim($data->curriculum_text);
+             // Fallback to existing PPTX endpoint logic
+             return LECTUREBOT_API_GENERATE_PPTX .
+                  '?curriculum_text=' . urlencode(trim($curriculumText)) .
+                  '&organization_id=' . urlencode($tenantId) .
+                  '&course_id=' . $courseid .
+                  '&chapter_id=' . $sectionid .
+                  '&regen_count=' . $regenCount .
+                  '&video_length=' . $videoLength .
+                  '&content_strategy=' . urlencode($contentStrategy);
         }
-
-        return $params;
     }
 
     /**
      * Execute the cURL call to the backend API
      */
-    private function executeApiCall($apiUrl, $data = [])
+    private function executeApiCall($apiUrl)
     {
         $ch = curl_init($apiUrl);
         if ($ch === false) {
             throw new \local_lecturebot\exception\curl_init_exception('Failed to initialize cURL');
         }
 
-        // POST request with empty body, parameters are in the URL
         curl_setopt_array($ch, [
             CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => $jsonData,
+            CURLOPT_POSTFIELDS => '',
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => 7200, // 2 hours timeout
             CURLOPT_CONNECTTIMEOUT => 30,
@@ -133,8 +134,7 @@ class generate_content_task extends \core\task\adhoc_task
             CURLOPT_TCP_KEEPINTVL => 15,
             CURLOPT_HTTPHEADER => [
                 'Accept: application/json',
-                'Content-Type: application/x-www-form-urlencoded',
-                'Content-Length: 0'
+                'Content-Type: application/x-www-form-urlencoded'
             ],
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_SSL_VERIFYPEER => true,
@@ -157,15 +157,7 @@ class generate_content_task extends \core\task\adhoc_task
             return json_decode($response, true);
         }
         
-        // Log the full response for debugging 422 errors
-        $preview = substr($response, 0, 2000);
-        error_log("LectureBot API Error [$httpCode]: " . $preview);
-        mtrace("LectureBot API Error [$httpCode]: " . $preview);
-
-        throw new \local_lecturebot\exception\api_http_exception(
-            'API returned HTTP ' . $httpCode . ' Body: ' . $preview
-        );
-
+        throw new \local_lecturebot\exception\api_http_exception('API returned HTTP ' . $httpCode);
     }
 
     /**
@@ -173,10 +165,8 @@ class generate_content_task extends \core\task\adhoc_task
      */
     private function isApiSuccess($apiResponse)
     {
-        return $apiResponse && (
-            (isset($apiResponse['success']) && $apiResponse['success'] === true) ||
-            (isset($apiResponse['Success']) && $apiResponse['Success'] === true)
-        );
+        return $apiResponse && ((isset($apiResponse['success']) && $apiResponse['success'] === true) ||
+               (isset($apiResponse['Success']) && $apiResponse['Success'] === true));
     }
 
     /**
