@@ -19,39 +19,56 @@ const TabletLayout: React.FC<LayoutProps> = ({
     onClearAllContent,
     onDeleteContent,
     isLoadingContent,
+    isSmallTablet = false,
 }) => {
     // Handler for previewing content from the list (non-eye icon click)
     const { handlePreviewContent } = useContentPreview({
         contentItems: state.contentItems
     });
+
     return (
         <Box
             sx={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
+                // Small tablets (600-900px): narrower left column
+                // Large tablets (900-1200px): equal columns
+                gridTemplateColumns: isSmallTablet ? 'minmax(200px, 0.8fr) 1fr' : '1fr 1fr',
                 gridTemplateRows: '1fr',
-                gap: 2,
-                p: 2,
+                gap: isSmallTablet ? 1.5 : 2,
+                p: isSmallTablet ? 1.5 : 2,
                 height: 'calc(100vh - 120px)',
-                minHeight: '500px',
+                minHeight: 'clamp(400px, 60vh, 600px)',
                 overflow: 'hidden',
                 alignItems: 'stretch',
             }}
         >
             {/* Left Column */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <Box sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100%',
+                minHeight: 0,
+                overflow: 'auto',
+            }}>
                 <LeftColumn
                     state={state}
                     onOpenSourcesModal={onOpenSourcesModal}
                     onOpenCurriculumModal={onOpenCurriculumModal}
                     onOpenVideoModal={onOpenVideoModal}
                     dispatch={dispatch}
+                    isMobile={isSmallTablet} // Use mobile styling on small tablets
                 />
             </Box>
 
             {/* Right Column (stacked Center + Right) */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 2 }}>
-                <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+            <Box sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100%',
+                gap: isSmallTablet ? 1.5 : 2,
+                minHeight: 0,
+            }}>
+                <Box sx={{ flex: 1.5, minHeight: 0, overflow: 'auto' }}>
                     <CenterColumn
                         state={state}
                         onApproveSlides={onApproveSlides}
@@ -59,6 +76,7 @@ const TabletLayout: React.FC<LayoutProps> = ({
                         onOpenFeedbackModal={onOpenFeedbackModal}
                         onOpenSourcesModal={onOpenSourcesModal}
                         hasAnySources={state.sources.length > 0}
+                        isMobile={isSmallTablet} // Use mobile styling on small tablets
                     />
                 </Box>
                 <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
@@ -69,6 +87,7 @@ const TabletLayout: React.FC<LayoutProps> = ({
                         onDeleteContent={onDeleteContent}
                         isLoading={isLoadingContent}
                         onPreviewContent={handlePreviewContent}
+                        isMobile={isSmallTablet} // Use mobile styling on small tablets
                     />
                 </Box>
             </Box>

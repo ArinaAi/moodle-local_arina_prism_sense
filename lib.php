@@ -252,4 +252,285 @@ function local_lecturebot_before_footer()
         echo $jsToInject;
         echo '</script>';
     }
+
+    // Modern Login Page Styling
+    if (local_lecturebot_is_login_page()) {
+        echo '<style>' . local_lecturebot_get_login_css() . '</style>';
+        echo '<script>' . local_lecturebot_get_login_js() . '</script>';
+    }
 }
+
+/**
+ * Check if current page is the login page.
+ *
+ * @return bool True if on login page
+ */
+function local_lecturebot_is_login_page()
+{
+    global $PAGE;
+    return $PAGE->pagetype === 'login-index';
+}
+
+/**
+ * Get modern login page CSS.
+ *
+ * @return string CSS code
+ */
+function local_lecturebot_get_login_css()
+{
+    return local_lecturebot_get_login_base_css()
+         . local_lecturebot_get_login_form_css()
+         . local_lecturebot_get_login_button_css();
+}
+
+/**
+ * Get base login page CSS (hide elements, background, card styling).
+ *
+ * @return string CSS code
+ */
+function local_lecturebot_get_login_base_css()
+{
+    return <<<CSS
+        /* ===== LOGIN PAGE BASE STYLES ===== */
+        
+        /* Hide Cookies Notice Button */
+        .btn-cookies,
+        button[data-action="cookiesnotice"],
+        #page-login-index button:contains("Cookies"),
+        #page-login-index .btn:contains("Cookies"),
+        #page-login-index button.btn-secondary {
+            display: none !important;
+        }
+        
+        /* Hide Question Mark Help Icon */
+        body.pagelayout-login #usernavigation,
+        body.pagelayout-login [data-region="drawer-toggle"],
+        body.pagelayout-login .btn-footer-popover,
+        body.pagelayout-login button[data-action="footer-popover"] {
+            display: none !important;
+        }
+        
+        /* Modern Background Gradient */
+        body.pagelayout-login {
+            background: linear-gradient(135deg, #f5f7fa 0%, #7b7c7dff 100%) !important;
+            min-height: 100vh;
+        }
+        
+        /* Modern Login Card */
+        #page-login-index .card,
+        #page-login-index .login-container,
+        #page-login-index #region-main > .card {
+            border-radius: 12px !important;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05),
+                        0 10px 20px rgba(0, 0, 0, 0.08) !important;
+            border: none !important;
+            padding: 48px 40px !important;
+            max-width: 420px !important;
+            margin: 40px auto !important;
+            background: #ffffff !important;
+        }
+        
+        /* Typography - Headings */
+        #page-login-index h2,
+        #page-login-index .login-heading {
+            font-size: 28px !important;
+            font-weight: 600 !important;
+            color: #1f2937 !important;
+            margin-bottom: 8px !important;
+            letter-spacing: -0.02em !important;
+        }
+        
+        /* Remove any default card background patterns */
+        #page-login-index .card-body {
+            background: transparent !important;
+        }
+        
+        /* Logo Enhancement (if present) */
+        #page-login-index .login-container .logo img,
+        #page-login-index .logo img {
+            max-height: 48px !important;
+            margin-bottom: 32px !important;
+            filter: brightness(0.95) !important;
+        }
+CSS;
+}
+
+/**
+ * Get login form CSS (labels, inputs, form groups).
+ *
+ * @return string CSS code
+ */
+function local_lecturebot_get_login_form_css()
+{
+    return <<<CSS
+        /* ===== LOGIN FORM STYLES ===== */
+        
+        /* Form Labels */
+        #page-login-index label {
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            color: #374151 !important;
+            margin-bottom: 6px !important;
+            display: block !important;
+        }
+        
+        /* Modern Input Fields */
+        #page-login-index input[type="text"],
+        #page-login-index input[type="password"],
+        #page-login-index input#username,
+        #page-login-index input#password {
+            height: 48px !important;
+            border: 1.5px solid #d1d5db !important;
+            border-radius: 8px !important;
+            padding: 0 16px !important;
+            font-size: 15px !important;
+            transition: all 0.2s ease !important;
+            background: #ffffff !important;
+            width: 100% !important;
+        }
+        
+        /* Input Focus State */
+        #page-login-index input[type="text"]:focus,
+        #page-login-index input[type="password"]:focus,
+        #page-login-index input#username:focus,
+        #page-login-index input#password:focus {
+            outline: none !important;
+            border-color: #0f6cbf !important;
+            box-shadow: 0 0 0 3px rgba(15, 108, 191, 0.1) !important;
+        }
+        
+        /* Input Hover State */
+        #page-login-index input[type="text"]:hover:not(:focus),
+        #page-login-index input[type="password"]:hover:not(:focus) {
+            border-color: #9ca3af !important;
+        }
+        
+        /* Form Group Spacing */
+        #page-login-index .form-group {
+            margin-bottom: 20px !important;
+            position: relative !important;
+        }
+        
+        /* Password Eye Icon Position */
+        #page-login-index button[data-passwordunmask] {
+            position: absolute !important;
+            right: 12px !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            width: 32px !important;
+            height: 32px !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            background: transparent !important;
+            cursor: pointer !important;
+            z-index: 10 !important;
+        }
+        
+        /* Adjust password input padding for eye icon */
+        #page-login-index input#password {
+            padding-right: 48px !important;
+        }
+CSS;
+}
+
+/**
+ * Get login button CSS (primary button, forgot password link).
+ *
+ * @return string CSS code
+ */
+function local_lecturebot_get_login_button_css()
+{
+    return <<<CSS
+        /* ===== LOGIN BUTTON STYLES ===== */
+        
+        /* Modern Login Button */
+        #page-login-index .btn-primary,
+        #page-login-index #loginbtn,
+        #page-login-index button[type="submit"] {
+            height: 48px !important;
+            background: #0f6cbf !important;
+            border: none !important;
+            border-radius: 8px !important;
+            font-size: 15px !important;
+            font-weight: 600 !important;
+            color: #ffffff !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+            width: 100% !important;
+            margin-top: 8px !important;
+        }
+        
+        /* Button Hover Effect */
+        #page-login-index .btn-primary:hover,
+        #page-login-index #loginbtn:hover {
+            background: #0d5aa7 !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 12px rgba(15, 108, 191, 0.3) !important;
+        }
+        
+        /* Button Active State */
+        #page-login-index .btn-primary:active,
+        #page-login-index #loginbtn:active {
+            transform: translateY(0) !important;
+        }
+        
+        /* Forgot Password Link */
+        #page-login-index .forgetpass a,
+        #page-login-index .login-forgot a {
+            color: #0f6cbf !important;
+            text-decoration: none !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            transition: color 0.2s ease !important;
+        }
+        
+        #page-login-index .forgetpass a:hover {
+            color: #0d5aa7 !important;
+            text-decoration: underline !important;
+        }
+CSS;
+}
+
+
+/**
+ * Get JavaScript to fix dynamic login page elements.
+ * TEMPORARY: For testing purposes only.
+ *
+ * @return string JavaScript code
+ */
+function local_lecturebot_get_login_js()
+{
+    return <<<JS
+        // Fix login page elements after DOM loads
+        (function() {
+            function fixLoginPage() {
+                // 1. Hide cookies notice button (button.btn-secondary)
+                const buttons = document.querySelectorAll('#page-login-index button.btn-secondary');
+                buttons.forEach(function(btn) {
+                    if (btn.textContent.includes('Cookies')) {
+                        btn.style.display = 'none';
+                    }
+                });
+                
+                // 2. Fix eye button positioning using the wrapper
+                const passwordWrapper = document.querySelector('.toggle-sensitive-wrapper');
+                const passwordField = document.querySelector('input#password');
+                
+                if (passwordWrapper && passwordField) {
+                    // Make wrapper use flexbox to put input and button side by side
+                    passwordWrapper.style.display = 'flex';
+                    passwordWrapper.style.alignItems = 'center';
+                    passwordWrapper.style.gap = '8px';
+                    
+                    // Make password field take remaining space
+                    passwordField.style.flex = '1';
+                    passwordField.style.width = 'auto';
+                }
+            }
+            
+            setTimeout(fixLoginPage, 100);
+        })();
+JS;
+}
+

@@ -14,4 +14,7 @@ export interface LayoutProps {
     onDeleteContent: (contentId: number) => void;
     isLoadingContent?: boolean;
     hasAnySources?: boolean;
+    // Responsive breakpoint props
+    isSmallTablet?: boolean;
+    isLargeDesktop?: boolean;
 }

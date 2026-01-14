@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Button } from '@mui/material';
+import { Box, Typography, Button, useTheme, useMediaQuery } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
@@ -10,7 +10,30 @@ interface SlideNavigationFooterProps {
     onPrev: () => void;
 }
 
+// Helper function for responsive styles (moved outside to reduce complexity)
+const getNavStyles = (isMobile: boolean) => ({
+    progressHeight: isMobile ? 3 : 4,
+    padding: isMobile ? 1.5 : 2,
+    prevPx: isMobile ? 2 : 3,
+    nextPx: isMobile ? 2 : 4,
+    touchTarget: {
+        minHeight: isMobile ? '44px' : 'auto',
+        minWidth: isMobile ? '44px' : 'auto',
+    },
+    fontSize: isMobile ? '0.8rem' : '0.875rem',
+    labelFontSize: isMobile ? '0.8rem' : '0.9rem',
+    separatorMargin: isMobile ? '0 4px' : '0 8px',
+    hoverTransform: isMobile ? 'none' : 'translateY(-2px)',
+    showIcons: !isMobile,
+});
+
 const SlideNavigationFooter: React.FC<SlideNavigationFooterProps> = ({ currentSlide, totalSlides, onNext, onPrev }) => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+    // Use external helper function
+    const styles = getNavStyles(isMobile);
+
     if (totalSlides === 0) {
         return null;
     }
@@ -23,7 +46,7 @@ const SlideNavigationFooter: React.FC<SlideNavigationFooterProps> = ({ currentSl
             zIndex: 2
         }}>
             {/* Linear Progress Bar */}
-            <Box sx={{ width: '100%', bgcolor: '#f1f5f9', height: 4 }}>
+            <Box sx={{ width: '100%', bgcolor: '#f1f5f9', height: styles.progressHeight }}>
                 <Box sx={{
                     height: '100%',
                     width: `${((currentSlide + 1) / totalSlides) * 100}%`,
@@ -35,20 +58,23 @@ const SlideNavigationFooter: React.FC<SlideNavigationFooterProps> = ({ currentSl
             </Box>
 
             <Box sx={{
-                p: 2,
+                p: styles.padding,
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                gap: 1,
             }}>
                 <Button
                     variant="outlined"
                     onClick={onPrev}
                     disabled={currentSlide === 0}
-                    startIcon={<ChevronLeftIcon />}
+                    startIcon={styles.showIcons && <ChevronLeftIcon />}
                     sx={{
                         fontWeight: 600,
                         py: 1,
-                        px: 3,
+                        px: styles.prevPx,
+                        ...styles.touchTarget,
+                        fontSize: styles.fontSize,
                         color: 'text.primary',
                         borderColor: 'rgba(0,0,0,0.12)',
                         borderWidth: 1,
@@ -58,7 +84,7 @@ const SlideNavigationFooter: React.FC<SlideNavigationFooterProps> = ({ currentSl
                             borderWidth: 1,
                             borderColor: 'text.primary',
                             backgroundColor: 'rgba(0,0,0,0.04)',
-                            transform: 'translateY(-2px)',
+                            transform: styles.hoverTransform,
                         },
                         '&.Mui-disabled': {
                             borderWidth: 1,
@@ -66,22 +92,30 @@ const SlideNavigationFooter: React.FC<SlideNavigationFooterProps> = ({ currentSl
                         }
                     }}
                 >
-                    Previous
+                    {styles.showIcons ? 'Previous' : <ChevronLeftIcon />}
                 </Button>
 
-                <Typography sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.9rem', fontVariantNumeric: 'tabular-nums' }}>
-                    {currentSlide + 1} <span style={{ color: '#cbd5e1', margin: '0 8px' }}>/</span> {totalSlides}
+                <Typography sx={{
+                    fontWeight: 600,
+                    color: 'text.secondary',
+                    fontSize: styles.labelFontSize,
+                    fontVariantNumeric: 'tabular-nums',
+                    whiteSpace: 'nowrap',
+                }}>
+                    {currentSlide + 1} <span style={{ color: '#cbd5e1', margin: styles.separatorMargin }}>/</span> {totalSlides}
                 </Typography>
 
                 <Button
                     variant="contained"
                     onClick={onNext}
                     disabled={currentSlide === totalSlides - 1}
-                    endIcon={<ChevronRightIcon />}
+                    endIcon={styles.showIcons && <ChevronRightIcon />}
                     sx={{
                         fontWeight: 600,
                         py: 1,
-                        px: 4,
+                        px: styles.nextPx,
+                        ...styles.touchTarget,
+                        fontSize: styles.fontSize,
                         bgcolor: '#2563eb',
                         color: 'white',
                         borderRadius: 2,
@@ -90,11 +124,11 @@ const SlideNavigationFooter: React.FC<SlideNavigationFooterProps> = ({ currentSl
                         '&:hover': {
                             bgcolor: '#1d4ed8',
                             boxShadow: '0 6px 16px rgba(37, 99, 235, 0.3)',
-                            transform: 'translateY(-2px)',
+                            transform: styles.hoverTransform,
                         },
                     }}
                 >
-                    Next
+                    {styles.showIcons ? 'Next' : <ChevronRightIcon />}
                 </Button>
             </Box>
         </Box>
@@ -102,3 +136,4 @@ const SlideNavigationFooter: React.FC<SlideNavigationFooterProps> = ({ currentSl
 };
 
 export default SlideNavigationFooter;
+

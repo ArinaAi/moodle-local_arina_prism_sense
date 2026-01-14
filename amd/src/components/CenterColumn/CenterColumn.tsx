@@ -80,8 +80,8 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
   };
 
   const renderUnsupportedContent = () => (
-    <Box sx={{ textAlign: 'center', p: 4 }}>
-      <Typography variant="h6" color="text.secondary" gutterBottom>
+    <Box sx={{ textAlign: 'center', p: isMobile ? 3 : 4 }}>
+      <Typography variant={isMobile ? 'subtitle1' : 'h6'} color="text.secondary" gutterBottom>
         {activeContentType.replace('-', ' ').toUpperCase()}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -176,7 +176,8 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        minHeight: isMobile ? 'auto' : '700px',
+        // Responsive minHeight using clamp
+        minHeight: isMobile ? 'auto' : 'clamp(400px, 60vh, 700px)',
         backgroundColor: 'rgba(255, 255, 255, 0.8)',
         backdropFilter: 'blur(12px)',
         boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
@@ -187,21 +188,35 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        p: 2,
+        p: isMobile ? 1.5 : 2,
         '&:last-child': {
-          pb: 2,
+          pb: isMobile ? 1.5 : 2,
         }
       }}>
-        <Box sx={{ pb: 2, borderBottom: `1px solid ${theme.palette.divider}`, mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography variant="h6" component="h2">
+        <Box sx={{
+          pb: isMobile ? 1.5 : 2,
+          borderBottom: `1px solid ${theme.palette.divider}`,
+          mb: isMobile ? 1.5 : 2,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <Typography
+            variant={isMobile ? 'subtitle1' : 'h6'}
+            component="h2"
+            sx={{ fontWeight: 600 }}
+          >
             Preview
           </Typography>
           {isPreviewingSlides && onClosePreview && (
             <IconButton
               onClick={onClosePreview}
-              size="small"
+              size={isMobile ? 'medium' : 'small'}
               sx={{
                 color: 'text.secondary',
+                // Ensure minimum touch target on mobile
+                minWidth: isMobile ? '44px' : 'auto',
+                minHeight: isMobile ? '44px' : 'auto',
                 '&:hover': {
                   backgroundColor: 'rgba(0, 0, 0, 0.04)',
                   color: 'text.primary',
@@ -213,7 +228,15 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
             </IconButton>
           )}
         </Box>
-        <Box sx={{ flex: 1 }}>{renderContent()}</Box>
+        <Box sx={{
+          flex: 1,
+          minHeight: 0,
+          overflow: 'auto',
+          overscrollBehavior: 'contain',
+          WebkitOverflowScrolling: 'touch',
+        }}>
+          {renderContent()}
+        </Box>
       </CardContent>
     </Card>
   );

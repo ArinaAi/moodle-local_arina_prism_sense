@@ -18,15 +18,29 @@ const VideoDisplay: React.FC<VideoDisplayProps> = ({
 
     return (
         <Box className="animate-scale-up" sx={{ width: '100%' }}>
-            <Box sx={{ mb: 2 }}>
-                {topic && <Typography variant="h6" color="#0f6cbf">{topic}</Typography>}
+            <Box sx={{ mb: isMobile ? 1.5 : 2 }}>
+                {topic && (
+                    <Typography
+                        variant={isMobile ? 'subtitle1' : 'h6'}
+                        color="#0f6cbf"
+                        sx={{
+                            fontWeight: 600,
+                            fontSize: isMobile ? '1rem' : '1.25rem',
+                        }}
+                    >
+                        {topic}
+                    </Typography>
+                )}
                 {isApproved && (
                     <Chip
                         label="Approved"
                         color="success"
                         size="small"
                         icon={<CheckCircle />}
-                        sx={{ mt: 1 }}
+                        sx={{
+                            mt: 1,
+                            fontSize: isMobile ? '0.7rem' : '0.75rem',
+                        }}
                     />
                 )}
             </Box>
@@ -34,8 +48,9 @@ const VideoDisplay: React.FC<VideoDisplayProps> = ({
                 sx={{
                     width: '100%',
                     aspectRatio: '16/9',
-                    minHeight: isMobile ? '250px' : '400px',
-                    maxHeight: isMobile ? '50vh' : '650px',
+                    // Use clamp for adaptive heights
+                    minHeight: isMobile ? '200px' : 'clamp(300px, 40vh, 400px)',
+                    maxHeight: isMobile ? '50vh' : 'clamp(450px, 55vh, 650px)',
                     border: '2px solid #e0e0e0',
                     borderRadius: 1,
                     overflow: 'hidden',
@@ -60,3 +75,4 @@ const VideoDisplay: React.FC<VideoDisplayProps> = ({
 };
 
 export default VideoDisplay;
+

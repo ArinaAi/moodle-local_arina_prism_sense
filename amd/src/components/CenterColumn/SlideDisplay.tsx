@@ -10,7 +10,7 @@ interface SlideDisplayProps {
     currentContentItem?: ContentItem;
     moodleContext: MoodleContext | null;
     isApproved: boolean;
-    isMobile?: boolean; // Prop drilled if needed for styling
+    isMobile?: boolean;
 }
 
 const SlideDisplay: React.FC<SlideDisplayProps> = ({
@@ -27,8 +27,18 @@ const SlideDisplay: React.FC<SlideDisplayProps> = ({
     const currentContentId = currentContentItem?.id;
 
     const renderSlideInfo = () => (
-        <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-            <Typography variant="body2" color="text.secondary">
+        <Box sx={{
+            mb: isMobile ? 1.5 : 2,
+            display: 'flex',
+            alignItems: 'center',
+            gap: isMobile ? 1 : 2,
+            flexWrap: 'wrap'
+        }}>
+            <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}
+            >
                 {totalSlides} slide{totalSlides !== 1 ? 's' : ''} generated for {currentTopic?.topic || 'this section'}
             </Typography>
             {isApproved && (
@@ -40,7 +50,10 @@ const SlideDisplay: React.FC<SlideDisplayProps> = ({
                     }
                     color="success"
                     size="small"
-                    sx={{ fontWeight: 600 }}
+                    sx={{
+                        fontWeight: 600,
+                        fontSize: isMobile ? '0.7rem' : '0.75rem',
+                    }}
                 />
             )}
         </Box>
@@ -52,7 +65,24 @@ const SlideDisplay: React.FC<SlideDisplayProps> = ({
         }
 
         return (
-            <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <Box
+                sx={{
+                    mt: isMobile ? 1.5 : 2,
+                    display: 'flex',
+                    gap: 1,
+                    flexWrap: 'nowrap',
+                    overflowX: 'auto',
+                    pb: 1, // Space for scrollbar
+                    // Hide scrollbar on desktop, show on mobile
+                    '&::-webkit-scrollbar': {
+                        height: isMobile ? 4 : 0,
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                        backgroundColor: 'rgba(0,0,0,0.2)',
+                        borderRadius: 2,
+                    },
+                }}
+            >
                 {generatedContent.results.map((topic, idx) => (
                     <Button
                         key={topic.topic}
@@ -62,6 +92,10 @@ const SlideDisplay: React.FC<SlideDisplayProps> = ({
                         sx={{
                             textTransform: 'none',
                             fontWeight: idx === currentTopicIndex ? 600 : 400,
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0,
+                            minHeight: isMobile ? '36px' : '32px',
+                            fontSize: isMobile ? '0.75rem' : '0.8125rem',
                         }}
                     >
                         Topic {idx + 1}
@@ -79,8 +113,9 @@ const SlideDisplay: React.FC<SlideDisplayProps> = ({
                 sx={{
                     width: '100%',
                     aspectRatio: '16/9',
-                    minHeight: isMobile ? '250px' : '600px',
-                    maxHeight: isMobile ? '50vh' : '850px',
+                    // Use clamp for adaptive heights
+                    minHeight: isMobile ? '200px' : 'clamp(350px, 45vh, 600px)',
+                    maxHeight: isMobile ? '50vh' : 'clamp(500px, 65vh, 850px)',
                     border: '2px solid #e0e0e0',
                     borderRadius: 1,
                     overflow: 'hidden',

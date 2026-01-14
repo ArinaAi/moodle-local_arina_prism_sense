@@ -19,6 +19,7 @@ const DesktopLayout: React.FC<LayoutProps> = ({
     onClearAllContent,
     onDeleteContent,
     isLoadingContent,
+    isLargeDesktop = false,
 }) => {
     // Handler for previewing content from the list (non-eye icon click)
     const { handlePreviewContent } = useContentPreview({
@@ -29,12 +30,15 @@ const DesktopLayout: React.FC<LayoutProps> = ({
         <Box
             sx={{
                 display: 'grid',
-                gridTemplateColumns: 'minmax(300px, 1fr) minmax(400px, 2fr) minmax(300px, 1fr)',
+                // Responsive grid: side columns shrink on smaller desktops, expand on large screens
+                gridTemplateColumns: isLargeDesktop
+                    ? 'minmax(320px, 1.2fr) minmax(500px, 2.5fr) minmax(320px, 1.2fr)'
+                    : 'clamp(260px, 20vw, 350px) 1fr clamp(260px, 20vw, 350px)',
                 gridTemplateRows: '1fr',
-                gap: 2,
-                p: 2,
+                gap: isLargeDesktop ? 3 : 2,
+                p: isLargeDesktop ? 3 : 2,
                 height: 'calc(100vh - 120px)',
-                minHeight: '600px',
+                minHeight: 'clamp(500px, 70vh, 700px)',
                 overflow: 'hidden',
                 alignItems: 'stretch',
             }}

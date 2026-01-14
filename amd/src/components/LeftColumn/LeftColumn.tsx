@@ -67,7 +67,7 @@ const LeftColumn: React.FC<LeftColumnProps> = ({
       <CardContent sx={{
         display: 'flex',
         flexDirection: 'column',
-        gap: 2,
+        gap: isMobile ? 1.5 : 2,
         height: '100%',
         p: isMobile ? 1.5 : 2,
         '&:last-child': {
@@ -75,8 +75,15 @@ const LeftColumn: React.FC<LeftColumnProps> = ({
         }
       }}>
         {/* Header */}
-        <Box sx={{ pb: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
-          <Typography variant="h6" component="h2">
+        <Box sx={{
+          pb: isMobile ? 1.5 : 2,
+          borderBottom: `1px solid ${theme.palette.divider}`
+        }}>
+          <Typography
+            variant={isMobile ? 'subtitle1' : 'h6'}
+            component="h2"
+            sx={{ fontWeight: 600 }}
+          >
             Sources
           </Typography>
         </Box>
@@ -84,16 +91,19 @@ const LeftColumn: React.FC<LeftColumnProps> = ({
         {/* Add Source Button */}
         <Button
           variant="contained"
-          size="large"
+          size={isMobile ? 'medium' : 'large'}
           startIcon={<Add />}
           onClick={onOpenSourcesModal}
           disabled={state.isGeneratingSlides}
           sx={{
-            py: 1.75,
+            py: isMobile ? 1.25 : 1.75,
+            fontSize: isMobile ? '0.875rem' : '1rem',
             fontWeight: 600,
             borderRadius: '20px',
             background: 'linear-gradient(135deg, #0f6cbf 0%, #0a5a9d 100%)',
             transition: 'all 0.3s ease',
+            // Ensure minimum touch target on mobile
+            minHeight: isMobile ? '44px' : 'auto',
             '&:hover': {
               background: 'linear-gradient(135deg, #0a5a9d 0%, #084a82 100%)',
               boxShadow: '0 6px 20px rgba(15, 108, 191, 0.4)',
@@ -112,23 +122,27 @@ const LeftColumn: React.FC<LeftColumnProps> = ({
           Manage Sources
         </Button>
 
-        {/* Info Box */}
+        {/* Sources List Area */}
         <Box
           sx={{
             display: 'flex',
             flexDirection: 'column',
-            gap: 2,
+            gap: isMobile ? 1.5 : 2,
             flex: 1,
             minHeight: 0,
+            overflow: 'auto',
+            // Better scroll performance
+            overscrollBehavior: 'contain',
+            WebkitOverflowScrolling: 'touch',
           }}
         >
           {renderSourcesContent()}
         </Box>
 
-        {sources.length > 0 && <Divider sx={{ my: 2 }} />}
+        {sources.length > 0 && <Divider sx={{ my: isMobile ? 1.5 : 2 }} />}
 
         {/* Content Type Dock with Improved Hierarchy */}
-        <Box sx={{ mt: 'auto' }}>
+        <Box sx={{ mt: 'auto', flexShrink: 0 }}>
           <ContentTypeDock
             activeType={state.activeContentType}
             onSelectType={(type: string) =>

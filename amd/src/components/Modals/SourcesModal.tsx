@@ -19,6 +19,8 @@ import {
   DialogContentText,
   DialogActions,
   TextField,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import { Close, Error as ErrorIcon, Add, Check, Delete } from '@mui/icons-material';
 import { FileText } from 'lucide-react';
@@ -92,7 +94,49 @@ const getBoxTypeFlags = (boxType: BoxState['type']) => ({
   isPending: boxType === 'pending_details',
 });
 
+// Helper functions for responsive modal styles (split to reduce complexity)
+const getModalBoxStyles = (isMobile: boolean) => ({
+  position: isMobile ? 'fixed' as const : 'absolute' as const,
+  top: isMobile ? 0 : '50%',
+  left: isMobile ? 0 : '50%',
+  right: isMobile ? 0 : 'auto',
+  bottom: isMobile ? 0 : 'auto',
+  transform: isMobile ? 'none' : 'translate(-50%, -50%)',
+  width: isMobile ? '100%' : { sm: '85%', md: '850px' },
+  maxHeight: isMobile ? '100vh' : '85vh',
+  height: isMobile ? '100%' : 'auto',
+  borderRadius: isMobile ? 0 : '16px',
+  boxShadow: isMobile ? 'none' : 24,
+});
+
+const getModalLayoutStyles = (isMobile: boolean): {
+  padding: number;
+  titleVariant: 'subtitle1' | 'h6';
+  touchTarget: { minWidth: string; minHeight: string };
+  gridGap: number;
+} => ({
+  padding: isMobile ? 2 : 3,
+  titleVariant: isMobile ? 'subtitle1' : 'h6',
+  touchTarget: {
+    minWidth: isMobile ? '44px' : 'auto',
+    minHeight: isMobile ? '44px' : 'auto',
+  },
+  gridGap: isMobile ? 2 : 3,
+});
+
+// Compose all styles
+const getModalStyles = (isMobile: boolean) => ({
+  modal: getModalBoxStyles(isMobile),
+  ...getModalLayoutStyles(isMobile),
+});
+
 const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContext }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  // Use external helper function
+  const styles = getModalStyles(isMobile);
+
   const [sections, setSections] = useState<SectionOption[]>([]);
   const [selectedSection, setSelectedSection] = useState<number | null>(null);
   const [boxes, setBoxes] = useState<[BoxState, BoxState, BoxState]>([
@@ -571,16 +615,8 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
     <Modal open={open} onClose={onClose} sx={{ zIndex: 100001 }}>
       <Box
         sx={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: { xs: '90%', sm: '85%', md: '850px' },
-          maxHeight: '85vh',
-          height: 'auto',
+          ...styles.modal,
           bgcolor: 'background.paper',
-          borderRadius: '16px',
-          boxShadow: 24,
           display: 'flex',
           flexDirection: 'column',
         }}
@@ -588,23 +624,31 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
         {/* Header */}
         <Box
           sx={{
-            p: 3,
+            p: styles.padding,
             borderBottom: '2px solid #ffffff',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
           }}
         >
-          <Typography variant="h6" component="h2">
+          <Typography variant={styles.titleVariant} component="h2" sx={{ fontWeight: 600 }}>
             Manage Sources
           </Typography>
-          <IconButton onClick={onClose}>
+          <IconButton
+            onClick={onClose}
+            sx={styles.touchTarget}
+          >
             <Close />
           </IconButton>
         </Box>
 
         {/* Content */}
-        <Box sx={{ p: 3, overflow: 'auto', flex: 1 }}>
+        <Box sx={{
+          p: styles.padding,
+          overflow: 'auto',
+          flex: 1,
+          WebkitOverflowScrolling: 'touch',
+        }}>
           {loading && (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
               <CircularProgress />
@@ -631,8 +675,8 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
               <Box
                 sx={{
                   display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
-                  gap: 3,
+                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+                  gap: styles.gridGap,
                   mb: 3,
                 }}
               >

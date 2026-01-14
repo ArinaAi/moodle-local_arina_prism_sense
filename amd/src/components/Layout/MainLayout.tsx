@@ -11,18 +11,22 @@ interface MainLayoutProps extends LayoutProps { }
 
 const MainLayout: React.FC<MainLayoutProps> = (props) => {
   const theme = useTheme();
+
+  // Responsive breakpoints
   const isMobile = useMediaQuery(theme.breakpoints.down('sm')); // < 600px
+  const isSmallTablet = useMediaQuery(theme.breakpoints.between('sm', 'md')); // 600px - 900px
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'lg')); // 600px - 1200px
+  const isLargeDesktop = useMediaQuery(theme.breakpoints.up('xl')); // >= 1536px
 
   if (isMobile) {
     return <MobileLayout {...props} />;
   }
 
   if (isTablet) {
-    return <TabletLayout {...props} />;
+    return <TabletLayout {...props} isSmallTablet={isSmallTablet} />;
   }
 
-  return <DesktopLayout {...props} />;
+  return <DesktopLayout {...props} isLargeDesktop={isLargeDesktop} />;
 };
 
 export default MainLayout;

@@ -123,7 +123,7 @@ const ContentTypeDock: React.FC<ContentTypeDockProps> = ({
           // Mobile: 1 column for better touch targets and readability
           // Tablet/Desktop: 2 columns
           gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
-          gap: 1.5, // Slightly smaller gap for mobile
+          gap: 1.5,
         }}
       >
         {contentTypes.map((type) => (
@@ -142,4 +142,3 @@ const ContentTypeDock: React.FC<ContentTypeDockProps> = ({
 };
 
 export default ContentTypeDock;
-

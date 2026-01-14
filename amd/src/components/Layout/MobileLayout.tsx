@@ -37,13 +37,26 @@ const MobileLayout: React.FC<LayoutProps> = ({
             sx={{
                 display: 'flex',
                 flexDirection: 'column',
+                // Use dynamic viewport height and account for safe areas
                 height: 'calc(100dvh - 60px)',
                 minHeight: '400px',
                 overflow: 'hidden',
                 backgroundColor: 'background.default',
+                // Safe area padding for notched devices
+                paddingBottom: 'env(safe-area-inset-bottom, 0px)',
             }}
         >
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', flexShrink: 0, bgcolor: 'background.paper', zIndex: 10 }}>
+            <Box
+                sx={{
+                    borderBottom: 1,
+                    borderColor: 'divider',
+                    flexShrink: 0,
+                    bgcolor: 'background.paper',
+                    zIndex: 10,
+                    // Safe area padding for top notch
+                    paddingTop: 'env(safe-area-inset-top, 0px)',
+                }}
+            >
                 <Tabs
                     value={activeTab}
                     onChange={handleTabChange}
@@ -53,11 +66,17 @@ const MobileLayout: React.FC<LayoutProps> = ({
                             textTransform: 'none',
                             fontWeight: 600,
                             fontSize: '0.875rem',
-                            minHeight: '48px',
+                            // Ensure minimum touch target of 44px (accessibility)
+                            minHeight: '52px',
+                            py: 1.5,
                         },
                         '& .Mui-selected': {
                             color: 'primary.main',
-                        }
+                        },
+                        '& .MuiTabs-indicator': {
+                            height: 3,
+                            borderRadius: '3px 3px 0 0',
+                        },
                     }}
                 >
                     <Tab label="Sources" value="sources" />
@@ -72,9 +91,12 @@ const MobileLayout: React.FC<LayoutProps> = ({
                 sx={{
                     flex: 1,
                     overflow: 'auto',
-                    p: 2,
+                    // Responsive padding
+                    p: { xs: 1.5, sm: 2 },
                     minHeight: 0,
+                    // Better scroll performance on iOS
                     WebkitOverflowScrolling: 'touch',
+                    overscrollBehavior: 'contain',
                 }}
             >
                 {activeTab === 'sources' && (
@@ -83,7 +105,7 @@ const MobileLayout: React.FC<LayoutProps> = ({
                         onOpenSourcesModal={onOpenSourcesModal}
                         onOpenCurriculumModal={onOpenCurriculumModal}
                         onOpenVideoModal={onOpenVideoModal}
-                        dispatch={dispatch} // Dispatch is required for LeftColumn
+                        dispatch={dispatch}
                         isMobile={true}
                     />
                 )}

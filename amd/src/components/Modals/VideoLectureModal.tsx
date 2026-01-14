@@ -13,6 +13,8 @@ import {
     FormControl,
     FormLabel,
     RadioGroup,
+    useTheme,
+    useMediaQuery,
 } from '@mui/material';
 import { Close } from '@mui/icons-material';
 import type { MoodleContext } from '../../types/moodle';
@@ -42,12 +44,55 @@ interface VideoLectureModalProps {
     moodleContext: MoodleContext;
 }
 
+// Helper functions for responsive modal styles (split to reduce complexity)
+const getVideoModalBoxStyles = (isMobile: boolean) => ({
+    position: isMobile ? 'fixed' as const : 'absolute' as const,
+    top: isMobile ? 0 : '50%',
+    left: isMobile ? 0 : '50%',
+    right: isMobile ? 0 : 'auto',
+    bottom: isMobile ? 0 : 'auto',
+    transform: isMobile ? 'none' : 'translate(-50%, -50%)',
+    width: isMobile ? '100%' : { sm: '90%', md: 650 },
+    maxHeight: isMobile ? '100vh' : '90vh',
+    borderRadius: isMobile ? 0 : 1,
+    boxShadow: isMobile ? 'none' : 24,
+});
+
+const getVideoModalLayoutStyles = (isMobile: boolean): {
+    padding: number;
+    titleVariant: 'subtitle1' | 'h6';
+    subtitleFontSize: string;
+    touchTarget: { minWidth: string; minHeight: string };
+    footerJustify: string;
+} => ({
+    padding: isMobile ? 2 : 3,
+    titleVariant: isMobile ? 'subtitle1' : 'h6',
+    subtitleFontSize: isMobile ? '0.75rem' : '0.875rem',
+    touchTarget: {
+        minWidth: isMobile ? '44px' : 'auto',
+        minHeight: isMobile ? '44px' : 'auto',
+    },
+    footerJustify: isMobile ? 'stretch' : 'flex-end',
+});
+
+// Compose all styles
+const getVideoModalStyles = (isMobile: boolean) => ({
+    modal: getVideoModalBoxStyles(isMobile),
+    ...getVideoModalLayoutStyles(isMobile),
+});
+
 const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
     open,
     onClose,
     onGenerate,
     contentItems,
 }) => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+    // Use external helper function
+    const styles = getVideoModalStyles(isMobile);
+
     const [selectedSlideId, setSelectedSlideId] = useState<number | null>(null);
     const [contentStrategy, setContentStrategy] = useState<'standard' | 'example_driven'>('standard');
     const [language, setLanguage] = useState<Language>('en');
@@ -317,15 +362,8 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
         <Modal open={open} onClose={onClose} sx={{ zIndex: 100001 }}>
             <Box
                 sx={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    width: { xs: '95%', sm: '90%', md: 650 },
-                    maxHeight: '90vh',
+                    ...styles.modal,
                     bgcolor: 'background.paper',
-                    borderRadius: 1,
-                    boxShadow: 24,
                     display: 'flex',
                     flexDirection: 'column',
                     overflow: 'hidden',
@@ -334,7 +372,7 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                 {/* Header */}
                 <Box
                     sx={{
-                        p: 3,
+                        p: styles.padding,
                         pb: 2,
                         display: 'flex',
                         justifyContent: 'space-between',
@@ -343,32 +381,51 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                     }}
                 >
                     <Box>
-                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                        <Typography variant={styles.titleVariant} sx={{ fontWeight: 600 }}>
                             Generate Video Lecture
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: styles.subtitleFontSize }}>
                             Convert your slides into an AI-powered video lecture
                         </Typography>
                     </Box>
-                    <IconButton onClick={onClose} size="small">
+                    <IconButton
+                        onClick={onClose}
+                        size="small"
+                        sx={styles.touchTarget}
+                    >
                         <Close />
                     </IconButton>
                 </Box>
 
                 {/* Content (Scrollable) */}
-                <Box sx={{ p: 3, overflowY: 'auto', flex: 1 }}>{renderContent()}</Box>
+                <Box sx={{
+                    p: styles.padding,
+                    overflowY: 'auto',
+                    flex: 1,
+                    WebkitOverflowScrolling: 'touch',
+                }}>
+                    {renderContent()}
+                </Box>
 
                 {/* Footer */}
-                <Box sx={{ p: 3, borderTop: '1px solid rgba(0,0,0,0.1)', bgcolor: 'grey.50', display: 'flex', justifyContent: 'flex-end' }}>
+                <Box sx={{
+                    p: styles.padding,
+                    borderTop: '1px solid rgba(0,0,0,0.1)',
+                    bgcolor: 'grey.50',
+                    display: 'flex',
+                    justifyContent: styles.footerJustify
+                }}>
                     <Button
                         variant="contained"
                         size="medium"
                         onClick={handleGenerate}
                         disabled={!selectedSlideId}
+                        fullWidth={isMobile}
                         sx={{
                             fontWeight: 600,
                             px: 4,
                             py: 1.25,
+                            ...styles.touchTarget,
                             transition: 'all 0.3s ease',
                             '&:hover': {
                                 background: 'linear-gradient(135deg, #0a5a9d 0%, #084a82 100%)',

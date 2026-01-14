@@ -12,6 +12,8 @@ import {
   Radio,
   Alert,
   CircularProgress,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import { Close, Send } from '@mui/icons-material';
 
@@ -21,11 +23,73 @@ interface FeedbackModalProps {
   onSubmitFeedback: (feedback: { rating: number; category: string; comments: string }) => void;
 }
 
+// Helper functions split to reduce cognitive complexity (max 15 per function)
+const getModalBoxStyles = (isMobile: boolean) => ({
+  position: isMobile ? 'fixed' as const : 'absolute' as const,
+  top: isMobile ? 0 : '50%',
+  left: isMobile ? 0 : '50%',
+  right: isMobile ? 0 : 'auto',
+  bottom: isMobile ? 0 : 'auto',
+  transform: isMobile ? 'none' : 'translate(-50%, -50%)',
+  width: isMobile ? '100%' : { sm: '500px' },
+  maxHeight: isMobile ? '100vh' : '80vh',
+  borderRadius: isMobile ? 0 : 1,
+  boxShadow: isMobile ? 'none' : 24,
+});
+
+const getTypographyStyles = (isMobile: boolean): {
+  padding: number;
+  titleVariant: 'subtitle1' | 'h6';
+  subtitleFontSize: string;
+  touchTarget: { minWidth: string; minHeight: string };
+} => ({
+  padding: isMobile ? 2 : 3,
+  titleVariant: isMobile ? 'subtitle1' : 'h6',
+  subtitleFontSize: isMobile ? '0.75rem' : '0.875rem',
+  touchTarget: {
+    minWidth: isMobile ? '44px' : 'auto',
+    minHeight: isMobile ? '44px' : 'auto',
+  },
+});
+
+const getContentStyles = (isMobile: boolean) => ({
+  ratingFontSize: isMobile ? '2rem' : '2.5rem',
+  sectionMb: isMobile ? 3 : 4,
+  ratingPadding: isMobile ? 1.5 : 2,
+  gridColumns: isMobile ? '1fr' : '1fr 1fr',
+});
+
+const getFooterStyles = (isMobile: boolean) => ({
+  flexDirection: isMobile ? 'column-reverse' as const : 'row' as const,
+  alignItems: isMobile ? 'stretch' : 'center',
+  gap: isMobile ? 1.5 : 2,
+});
+
+// Compose all styles
+const getFeedbackModalStyles = (isMobile: boolean) => ({
+  modal: getModalBoxStyles(isMobile),
+  layout: { ...getTypographyStyles(isMobile), ...getContentStyles(isMobile) },
+  footer: getFooterStyles(isMobile),
+});
+
+const categories = [
+  { value: 'content', label: 'Content Quality' },
+  { value: 'structure', label: 'Structure & Flow' },
+  { value: 'examples', label: 'Examples & Explanations' },
+  { value: 'other', label: 'Other' },
+];
+
 const FeedbackModal: React.FC<FeedbackModalProps> = ({ open, onClose, onSubmitFeedback }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   const [rating, setRating] = useState<number | null>(0);
   const [category, setCategory] = useState('content');
   const [comments, setComments] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Use external helper functions
+  const styles = getFeedbackModalStyles(isMobile);
 
   const handleSubmit = () => {
     if (!rating) {
@@ -51,26 +115,12 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ open, onClose, onSubmitFe
     }, 500);
   };
 
-  const categories = [
-    { value: 'content', label: 'Content Quality' },
-    { value: 'structure', label: 'Structure & Flow' },
-    { value: 'examples', label: 'Examples & Explanations' },
-    { value: 'other', label: 'Other' },
-  ];
-
   return (
     <Modal open={open} onClose={onClose} sx={{ zIndex: 100001 }}>
       <Box
         sx={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: { xs: '90%', sm: '500px' },
-          maxHeight: '80vh',
+          ...styles.modal,
           bgcolor: 'background.paper',
-          borderRadius: 1,
-          boxShadow: 24,
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -79,7 +129,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ open, onClose, onSubmitFe
         {/* Header */}
         <Box
           sx={{
-            p: 3,
+            p: styles.layout.padding,
             borderBottom: '1px solid #f1f5f9',
             display: 'flex',
             justifyContent: 'space-between',
@@ -90,10 +140,14 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ open, onClose, onSubmitFe
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Box>
-              <Typography variant="h6" component="h2" sx={{ fontWeight: 700, color: '#1a1a1a' }}>
+              <Typography
+                variant={styles.layout.titleVariant}
+                component="h2"
+                sx={{ fontWeight: 700, color: '#1a1a1a' }}
+              >
                 Provide Feedback
               </Typography>
-              <Typography variant="body2" sx={{ color: '#6c757d', mt: 0.5 }}>
+              <Typography variant="body2" sx={{ color: '#6c757d', mt: 0.5, fontSize: styles.layout.subtitleFontSize }}>
                 Help us regenerate better slides
               </Typography>
             </Box>
@@ -103,6 +157,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ open, onClose, onSubmitFe
             sx={{
               backgroundColor: 'rgba(0, 0, 0, 0.04)',
               borderRadius: '50%',
+              ...styles.layout.touchTarget,
               '&:hover': {
                 backgroundColor: 'rgba(0, 0, 0, 0.08)',
               },
@@ -113,16 +168,21 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ open, onClose, onSubmitFe
         </Box>
 
         {/* Content - Scrollable */}
-        <Box sx={{ p: 3, overflow: 'auto', flex: 1 }}>
+        <Box sx={{
+          p: styles.layout.padding,
+          overflow: 'auto',
+          flex: 1,
+          WebkitOverflowScrolling: 'touch',
+        }}>
           {/* Rating Section */}
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
+          <Box sx={{ textAlign: 'center', mb: styles.layout.sectionMb }}>
             <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 600, color: '#1e293b' }}>
               How was the generated content?
             </Typography>
             <Box
               sx={{
                 display: 'inline-flex',
-                p: 2,
+                p: styles.layout.ratingPadding,
                 backgroundColor: '#f8fafc',
                 borderRadius: '16px',
                 border: '1px solid #e2e8f0',
@@ -134,7 +194,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ open, onClose, onSubmitFe
                 size="large"
                 sx={{
                   '& .MuiRating-icon': {
-                    fontSize: '2.5rem',
+                    fontSize: styles.layout.ratingFontSize,
                   },
                 }}
               />
@@ -142,12 +202,12 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ open, onClose, onSubmitFe
           </Box>
 
           {/* Category Selection - Grid Layout */}
-          <Box sx={{ mb: 4 }}>
+          <Box sx={{ mb: styles.layout.sectionMb }}>
             <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700, color: '#334155', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em' }}>
               What needs improvement?
             </Typography>
             <RadioGroup value={category} onChange={(e) => setCategory(e.target.value)}>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: styles.layout.gridColumns, gap: 2 }}>
                 {categories.map((cat) => (
                   <Box
                     key={cat.value}
@@ -252,24 +312,25 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ open, onClose, onSubmitFe
         {/* Footer */}
         <Box
           sx={{
-            p: 3,
+            p: styles.layout.padding,
             borderTop: '1px solid #f1f5f9',
             display: 'flex',
+            ...styles.footer,
             justifyContent: 'flex-end',
-            alignItems: 'center',
             backgroundColor: '#ffffff',
             flexShrink: 0,
-            gap: 2,
           }}
         >
           <Button
             onClick={onClose}
             variant="text"
+            fullWidth={isMobile}
             sx={{
               color: '#64748b',
               fontWeight: 600,
               borderRadius: '8px',
               px: 3,
+              ...styles.layout.touchTarget,
               '&:hover': {
                 backgroundColor: '#f1f5f9',
                 color: '#475569',
@@ -283,10 +344,12 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ open, onClose, onSubmitFe
             variant="contained"
             startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <Send />}
             disabled={isSubmitting || !rating || !comments.trim()}
+            fullWidth={isMobile}
             sx={{
               fontWeight: 700,
               py: 1.5,
               px: 4,
+              ...styles.layout.touchTarget,
               borderRadius: '12px',
               background: 'linear-gradient(135deg, #0f6cbf 0%, #0a5a9d 100%)',
               transition: 'all 0.3s ease',

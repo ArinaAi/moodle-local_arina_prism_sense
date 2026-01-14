@@ -296,11 +296,8 @@ const SectionAccordion: React.FC<SectionAccordionProps> = ({
                                                 {item.duration}
                                             </Typography>
                                         )}
-                                        {item.totalSlides && (
+                                        {item.type !== 'video' && !!item.totalSlides && (
                                             <>
-                                                {item.type === 'video' && (
-                                                    <Typography variant="caption" sx={{ color: '#cbd5e1' }}>•</Typography>
-                                                )}
                                                 <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.75rem' }}>
                                                     {item.totalSlides} slides
                                                 </Typography>

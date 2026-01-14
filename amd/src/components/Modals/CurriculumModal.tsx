@@ -20,6 +20,8 @@ import {
   Fade,
   Chip,
   Tooltip,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import { Close, CheckCircle } from '@mui/icons-material';
 import { FileText, FolderOpen } from 'lucide-react';
@@ -41,12 +43,62 @@ interface SectionWithSources {
   hasCurriculum?: boolean;
 }
 
+// Helper functions split to reduce cognitive complexity (max 15 per function)
+const getModalBoxStyles = (isMobile: boolean) => ({
+  position: isMobile ? 'fixed' as const : 'absolute' as const,
+  top: isMobile ? 0 : '50%',
+  left: isMobile ? 0 : '50%',
+  right: isMobile ? 0 : 'auto',
+  bottom: isMobile ? 0 : 'auto',
+  transform: isMobile ? 'none' : 'translate(-50%, -50%)',
+  width: isMobile ? '100%' : { sm: '85%', md: '750px' },
+  maxHeight: isMobile ? '100vh' : '90vh',
+  borderRadius: isMobile ? 0 : '16px',
+  boxShadow: isMobile ? 'none' : '0 20px 60px rgba(0, 0, 0, 0.3)',
+  border: isMobile ? 'none' : '1px solid rgba(0, 0, 0, 0.05)',
+});
+
+const getModalLayoutStyles = (isMobile: boolean) => ({
+  header: { px: isMobile ? 2 : 3.5, py: isMobile ? 2 : 3 },
+  content: { px: isMobile ? 2 : 3.5, py: isMobile ? 2 : 3 },
+  footer: {
+    px: isMobile ? 2 : 3.5,
+    py: isMobile ? 2 : 2.5,
+    flexDirection: isMobile ? 'column-reverse' as const : 'row' as const,
+    alignItems: isMobile ? 'stretch' : 'center',
+    gap: isMobile ? 1.5 : 2,
+  },
+});
+
+const getModalMiscStyles = (isMobile: boolean): {
+  titleVariant: 'subtitle1' | 'h6';
+  touchTarget: { minWidth: string; minHeight: string };
+  buttonPy: number;
+} => ({
+  titleVariant: isMobile ? 'subtitle1' : 'h6',
+  touchTarget: {
+    minWidth: isMobile ? '44px' : 'auto',
+    minHeight: isMobile ? '44px' : 'auto',
+  },
+  buttonPy: isMobile ? 1.25 : 1,
+});
+
+// Compose all styles
+const getModalStyles = (isMobile: boolean) => ({
+  modal: getModalBoxStyles(isMobile),
+  ...getModalLayoutStyles(isMobile),
+  ...getModalMiscStyles(isMobile),
+});
+
 const CurriculumModal: React.FC<CurriculumModalProps> = ({
   open,
   onClose,
   onGenerate,
   moodleContext,
 }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   const [sectionsWithSources, setSectionsWithSources] = useState<SectionWithSources[]>([]);
   const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
   const [contentStrategy, setContentStrategy] = useState<'standard' | 'example_driven'>('standard');
@@ -55,6 +107,9 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
   const [error, setError] = useState('');
   const [showCurriculum, setShowCurriculum] = useState(false);
   const [curriculumText, setCurriculumText] = useState('');
+
+  // Use external helper function
+  const styles = getModalStyles(isMobile);
 
   // Load sections with sources when modal opens
   useEffect(() => {
@@ -556,21 +611,13 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
         disablePortal={false}
         container={() => document.body}
         sx={{
-          zIndex: 100001, // Extremely high to override all Moodle/Slide layers
+          zIndex: 100001,
         }}
       >
         <Box
           sx={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: { xs: '90%', sm: '85%', md: '750px' },
-            maxHeight: '90vh',
+            ...styles.modal,
             bgcolor: 'background.paper',
-            borderRadius: '16px',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-            border: '1px solid rgba(0, 0, 0, 0.05)',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
@@ -579,29 +626,43 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
           {/* Header */}
           <Box
             sx={{
-              px: 3.5,
-              py: 3,
+              ...styles.header,
               borderBottom: '2px solid #e9ecef',
               bgcolor: 'white',
             }}
           >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0 }}>
               <Box>
-                <Typography variant="h6" component="h2" sx={{ fontWeight: 700, mb: 0.5 }}>
+                <Typography
+                  variant={styles.titleVariant}
+                  component="h2"
+                  sx={{ fontWeight: 700, mb: 0.5 }}
+                >
                   Generate Slide Deck
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
                   Select a section with uploaded sources
                 </Typography>
               </Box>
-              <IconButton onClick={onClose} sx={{ mt: -0.5 }}>
+              <IconButton
+                onClick={onClose}
+                sx={{
+                  mt: -0.5,
+                  ...styles.touchTarget,
+                }}
+              >
                 <Close />
               </IconButton>
             </Box>
           </Box>
 
           {/* Content */}
-          <Box sx={{ px: 3.5, py: 3, overflow: 'auto', flex: 1 }}>
+          <Box sx={{
+            ...styles.content,
+            overflow: 'auto',
+            flex: 1,
+            WebkitOverflowScrolling: 'touch',
+          }}>
             {error && (
               <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setError('')}>
                 {error}
@@ -614,22 +675,21 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
           {/* Footer */}
           <Box
             sx={{
-              px: 3.5,
-              py: 2.5,
+              ...styles.footer,
               borderTop: '2px solid #e9ecef',
               display: 'flex',
               justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: 2,
             }}
           >
             <Button
               variant="outlined"
               onClick={onClose}
+              fullWidth={isMobile}
               sx={{
                 fontWeight: 600,
                 px: 3,
-                py: 1,
+                py: styles.buttonPy,
+                ...styles.touchTarget,
               }}
             >
               Cancel
@@ -638,10 +698,12 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
               variant="contained"
               onClick={handleGenerate}
               disabled={!selectedSectionId || loading}
+              fullWidth={isMobile}
               sx={{
                 fontWeight: 600,
                 px: 4,
                 py: 1.25,
+                ...styles.touchTarget,
                 transition: 'all 0.3s ease',
                 '&:hover': {
                   background: 'linear-gradient(135deg, #0a5a9d 0%, #084a82 100%)',
