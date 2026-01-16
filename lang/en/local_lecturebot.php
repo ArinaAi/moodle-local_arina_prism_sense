@@ -28,3 +28,4 @@ $string['pluginname'] = 'LectureBot';
 $string['generatelecture'] = 'Generate AI Lecture';
 $string['generating'] = 'Generating Lecture...';
 $string['task:generate_content_task'] = 'Generate LectureBot Content';
+$string['task:poll_content_status'] = 'Poll Content Generation Status';

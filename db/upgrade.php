@@ -47,6 +47,10 @@ function xmldb_local_lecturebot_upgrade($oldversion)
         local_lecturebot_upgrade_2026010500($dbman);
     }
 
+    if ($oldversion < 2026011400) {
+        local_lecturebot_upgrade_2026011400($dbman);
+    }
+
     return true;
 }
 
@@ -237,3 +241,20 @@ function local_lecturebot_upgrade_2026010700($dbman)
     upgrade_plugin_savepoint(true, 2026010700, 'local', 'lecturebot');
 }
 
+/**
+ * Upgrade to add request_id field for Kafka async tracking
+ */
+function local_lecturebot_upgrade_2026011400($dbman)
+{
+    // Define field request_id to be added to local_lecturebot_content.
+    $table = new xmldb_table('local_lecturebot_content');
+    $field = new xmldb_field('request_id', XMLDB_TYPE_CHAR, '255', null, null, null, null, 'timeapproved');
+
+    // Conditionally launch add field request_id.
+    if (!$dbman->field_exists($table, $field)) {
+        $dbman->add_field($table, $field);
+    }
+
+    // Lecturebot savepoint reached.
+    upgrade_plugin_savepoint(true, 2026011400, 'local', 'lecturebot');
+}

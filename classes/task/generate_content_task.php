@@ -7,7 +7,10 @@ require_once(__DIR__ . '/../../config_api.php');
 require_once(__DIR__ . '/../../configurator_azure.php');
 
 /**
- * Adhoc task to generate content asynchronously
+ * Adhoc task to initiate content generation asynchronously via Kafka
+ *
+ * This task now handles the INITIAL API call which returns immediately with a request_id.
+ * The actual file download is handled by the scheduled poll_content_status_task.
  *
  * @package    local_lecturebot
  * @copyright  2025
@@ -52,12 +55,31 @@ class generate_content_task extends \core\task\adhoc_task
             $apiUrl = $this->getApiUrl($data, $contentType, $avatarVideoNeeded);
             mtrace("Calling API URL: $apiUrl");
 
-            // 2. Execute API Call
+            // 2. Execute API Call (now returns immediately with request_id)
             $apiResponse = $this->executeApiCall($apiUrl);
 
-            // 3. Process Response
-            if ($this->isApiSuccess($apiResponse)) {
-                mtrace("Backend API returned success, fetching file from Azure Blob Storage");
+            // 3. Process Response - NEW: Handle async/Kafka response
+            if ($this->isAsyncResponse($apiResponse)) {
+                // Extract request_id from response
+                $requestId = $apiResponse['request_id'] ?? $apiResponse['content_request_id'] ?? null;
+                
+                if ($requestId) {
+                    mtrace("Backend accepted request. Request ID: $requestId, Status: " .
+                        ($apiResponse['status'] ?? 'unknown'));
+                    
+                    // Store request_id in database for polling
+                    $this->storeRequestId($contentId, $requestId, $data, $contentType, $avatarVideoNeeded);
+                    
+                    mtrace("Content $contentId queued for async generation. " .
+                        "Polling task will check for completion.");
+                } else {
+                    throw new \local_lecturebot\exception\api_response_exception(
+                        'API returned processing status but no request_id'
+                    );
+                }
+            } elseif ($this->isApiSuccess($apiResponse)) {
+                // Legacy: Synchronous success response (keeping for backwards compatibility)
+                mtrace("Backend API returned synchronous success, fetching file from Azure Blob Storage");
                 $this->processSuccess($content, $data, $contentType, $avatarVideoNeeded);
                 mtrace("Content $contentId ($contentType) generated successfully.");
             } else {
@@ -68,6 +90,54 @@ class generate_content_task extends \core\task\adhoc_task
         } catch (\Exception $e) {
             mtrace("Error generating content: " . $e->getMessage());
             $this->handleFailure($contentId, $e->getMessage());
+        }
+    }
+
+    /**
+     * Check if response is an async/Kafka response (processing status)
+     */
+    private function isAsyncResponse($apiResponse)
+    {
+        if (!$apiResponse) {
+            return false;
+        }
+        
+        // Check for Kafka-style response with status: "processing"
+        $status = $apiResponse['status'] ?? '';
+        return $status === 'processing' || $status === 'queued' || $status === 'pending';
+    }
+
+    /**
+     * Store request_id in database for polling by poll_content_status_task
+     */
+    private function storeRequestId($contentId, $requestId, $data, $contentType, $avatarVideoNeeded)
+    {
+        global $DB;
+        
+        $tenantId = $data->tenant_id;
+        $courseid = $data->course_id;
+        $sectionid = $data->section_id;
+        $regenCount = $data->regen_count;
+
+        $containerName = strtolower('Blob-Tutorial-Gen-' . $tenantId);
+        $folderName = "Tutorial_{$courseid}_{$sectionid}_{$regenCount}";
+        
+        $isVideo = ($contentType === 'video' || $avatarVideoNeeded === 'yes');
+
+        // Update content record with request_id and Azure blob info
+        $content = $DB->get_record('local_lecturebot_content', ['id' => $contentId]);
+        if ($content) {
+            $generationData = json_decode($content->generationdata, true) ?: [];
+            $generationData['request_id'] = $requestId;
+            $generationData['azure_container'] = $containerName;
+            $generationData['azure_folder'] = $folderName;
+            $generationData['is_video'] = $isVideo;
+            $generationData['async_initiated_at'] = time();
+            
+            $content->request_id = $requestId;
+            $content->generationdata = json_encode($generationData);
+            $content->timemodified = time();
+            $DB->update_record('local_lecturebot_content', $content);
         }
     }
 
@@ -115,6 +185,9 @@ class generate_content_task extends \core\task\adhoc_task
 
     /**
      * Execute the cURL call to the backend API
+     *
+     * NOTE: With Kafka, the API returns immediately (typically within seconds).
+     * Timeout reduced from 7200s to 60s.
      */
     private function executeApiCall($apiUrl)
     {
@@ -127,7 +200,7 @@ class generate_content_task extends \core\task\adhoc_task
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => '',
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 7200, // 2 hours timeout
+            CURLOPT_TIMEOUT => 60, // Reduced: API should respond quickly with Kafka
             CURLOPT_CONNECTTIMEOUT => 30,
             CURLOPT_TCP_KEEPALIVE => 1,
             CURLOPT_TCP_KEEPIDLE => 30,
@@ -161,7 +234,7 @@ class generate_content_task extends \core\task\adhoc_task
     }
 
     /**
-     * Check if API response indicates success
+     * Check if API response indicates success (legacy synchronous response)
      */
     private function isApiSuccess($apiResponse)
     {
@@ -170,7 +243,10 @@ class generate_content_task extends \core\task\adhoc_task
     }
 
     /**
-     * Handle successful content generation
+     * Handle successful content generation (legacy synchronous flow)
+     *
+     * This is kept for backwards compatibility. With Kafka, this code path
+     * is typically not reached - file download is handled by poll_content_status_task.
      */
     private function processSuccess($content, $data, $contentType, $avatarVideoNeeded)
     {
@@ -202,7 +278,7 @@ class generate_content_task extends \core\task\adhoc_task
             mkdir($CFG->tempdir . '/lecturebot', 0755, true);
         }
 
-        $success = $this->downloadFileFromAzure($blobName, $filepath, $containerName);
+        $success = \local_lecturebot\Utils::downloadFileFromAzure($blobName, $filepath, $containerName);
         
         if (!$success || !file_exists($filepath) || filesize($filepath) === 0) {
             throw new \local_lecturebot\exception\azure_download_exception(
@@ -265,7 +341,7 @@ class generate_content_task extends \core\task\adhoc_task
                 ]
             ];
         } else {
-            $slideCount = $this->countSlidesInPptx($filepath);
+            $slideCount = \local_lecturebot\Utils::countSlidesInPptx($filepath);
             $genDataUpdate['pptx_file'] = $localFileName;
             $genDataUpdate['pptx_path'] = $filepath;
             $genDataUpdate['slide_count'] = $slideCount;
@@ -307,110 +383,5 @@ class generate_content_task extends \core\task\adhoc_task
         );
     }
 
-    /**
-     * Download File from Azure Blob Storage directly to path (Memory Efficient)
-     */
-    private function downloadFileFromAzure($blobName, $outputPath, $containerName = null)
-        {
-        try {
-            $accountName = AZURE_STORAGE_ACCOUNT_NAME;
-            $targetContainer = $containerName ? $containerName : AZURE_BLOB_CONTAINER_NAME;
-            $blobUrl = "https://{$accountName}.blob.core.windows.net/{$targetContainer}/{$blobName}";
-            
-            $date = gmdate('D, d M Y H:i:s T');
-            $version = '2020-04-08';
-            
-            $stringToSign = "GET\n" .
-                           "\n" .
-                           "\n" .
-                           "\n" .
-                           "\n" .
-                           "\n" .
-                           "\n" .
-                           "\n" .
-                           "\n" .
-                           "\n" .
-                           "\n" .
-                           "\n" .
-                           "x-ms-date:{$date}\n" .
-                           "x-ms-version:{$version}\n" .
-                           "/{$accountName}/{$targetContainer}/{$blobName}";
-            
-            $signature = base64_encode(hash_hmac(
-                'sha256',
-                mb_convert_encoding($stringToSign, "UTF-8"),
-                base64_decode(AZURE_STORAGE_ACCOUNT_KEY),
-                true
-            ));
-            $authHeader = "SharedKey {$accountName}:{$signature}";
-            
-            $fp = fopen($outputPath, 'w+');
-            if (!$fp) {
-                throw new \local_lecturebot\exception\file_system_exception("Could not open output path: $outputPath");
-            }
 
-            $ch = curl_init($blobUrl);
-            curl_setopt_array($ch, [
-                CURLOPT_FILE => $fp, // Write directly to file handle
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_HTTPHEADER => [
-                    "x-ms-date: {$date}",
-                    "x-ms-version: {$version}",
-                    "Authorization: {$authHeader}"
-                ],
-                CURLOPT_TIMEOUT => 0,
-                CURLOPT_CONNECTTIMEOUT => 30,
-                CURLOPT_SSL_VERIFYPEER => true,
-                CURLOPT_SSL_VERIFYHOST => 2,
-            ]);
-            
-            curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            
-            if (curl_errno($ch)) {
-                $err = curl_error($ch);
-                curl_close($ch);
-                fclose($fp);
-                throw new \local_lecturebot\exception\curl_execution_exception($err);
-            }
-            curl_close($ch);
-            fclose($fp);
-            
-            if ($httpCode !== 200) {
-                // If failed, file might contain error XML, delete it
-                if (file_exists($outputPath)) {unlink($outputPath);}
-                throw new \local_lecturebot\exception\azure_download_exception("Azure returned HTTP $httpCode");
-            }
-            
-            return true;
-            
-        } catch (\Exception $e) {
-            mtrace("Error downloading from Azure: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Count slides in PPTX file
-     */
-    private function countSlidesInPptx($pptxPath)
-    {
-        $slideCount = 0;
-        try {
-            $zip = new \ZipArchive();
-            if ($zip->open($pptxPath) === true) {
-                for ($i = 0; $i < $zip->numFiles; $i++) {
-                    $filename = $zip->getNameIndex($i);
-                    if (preg_match('/ppt\/slides\/slide(\d+)\.xml/', $filename, $matches)) {
-                        $slideNumber = (int)$matches[1];
-                        $slideCount = max($slideCount, $slideNumber);
-                    }
-                }
-                $zip->close();
-            }
-        } catch (\Exception $e) {
-            mtrace("Error counting slides: " . $e->getMessage());
-        }
-        return $slideCount;
-    }
 }

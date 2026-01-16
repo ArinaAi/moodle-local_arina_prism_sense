@@ -174,5 +174,156 @@ class Utils
         </script>
         <?php
     }
+
+    /**
+     * Internal helper to perform file download via cURL
+     */
+    private static function performDownload($url, $outputPath, $headers = [])
+    {
+        $success = false;
+        try {
+            $fp = fopen($outputPath, 'w+');
+            if ($fp) {
+                $ch = curl_init($url);
+                $curlOptions = [
+                    CURLOPT_FILE => $fp,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_TIMEOUT => 600, // 10 minutes for large files
+                    CURLOPT_CONNECTTIMEOUT => 30,
+                    CURLOPT_SSL_VERIFYPEER => true,
+                    CURLOPT_SSL_VERIFYHOST => 2,
+                ];
+
+                if (!empty($headers)) {
+                    $curlOptions[CURLOPT_HTTPHEADER] = $headers;
+                }
+
+                curl_setopt_array($ch, $curlOptions);
+
+                curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $curlErrno = curl_errno($ch);
+                $curlError = curl_error($ch);
+                
+                curl_close($ch);
+                fclose($fp);
+
+                if ($curlErrno) {
+                    mtrace("  - cURL error downloading: $curlError");
+                } elseif ($httpCode !== 200) {
+                    if (file_exists($outputPath)) {
+                        unlink($outputPath);
+                    }
+                    mtrace("  - Download returned HTTP $httpCode");
+                } else {
+                    $success = true;
+                }
+            } else {
+                mtrace("  - Could not open output path: $outputPath");
+            }
+        } catch (\Exception $e) {
+            mtrace("  - Error performing download: " . $e->getMessage());
+        }
+
+        return $success;
+    }
+
+    /**
+     * Download File from Azure Blob Storage directly to path
+     */
+    public static function downloadFileFromAzure($blobName, $outputPath, $containerName)
+    {
+        try {
+            $accountName = AZURE_STORAGE_ACCOUNT_NAME;
+            $blobUrl = "https://{$accountName}.blob.core.windows.net/{$containerName}/{$blobName}";
+
+            $date = gmdate('D, d M Y H:i:s T');
+            $version = '2020-04-08';
+
+            $stringToSign = "GET\n" .
+                           "\n" .
+                           "\n" .
+                           "\n" .
+                           "\n" .
+                           "\n" .
+                           "\n" .
+                           "\n" .
+                           "\n" .
+                           "\n" .
+                           "\n" .
+                           "\n" .
+                           "x-ms-date:{$date}\n" .
+                           "x-ms-version:{$version}\n" .
+                           "/{$accountName}/{$containerName}/{$blobName}";
+
+            $signature = base64_encode(hash_hmac(
+                'sha256',
+                mb_convert_encoding($stringToSign, "UTF-8"),
+                base64_decode(AZURE_STORAGE_ACCOUNT_KEY),
+                true
+            ));
+            $authHeader = "SharedKey {$accountName}:{$signature}";
+
+            $headers = [
+                "x-ms-date: {$date}",
+                "x-ms-version: {$version}",
+                "Authorization: {$authHeader}"
+            ];
+
+            return self::performDownload($blobUrl, $outputPath, $headers);
+
+        } catch (\Exception $e) {
+            mtrace("  - Error downloading from Azure: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Download file directly from a public URL
+     */
+    public static function downloadFileFromUrl($url, $outputPath)
+    {
+        return self::performDownload($url, $outputPath);
+    }
+
+    /**
+     * Count slides in PPTX file
+     */
+    public static function countSlidesInPptx($pptxPath)
+    {
+        $slideCount = 0;
+        try {
+            $zip = new \ZipArchive();
+            if ($zip->open($pptxPath) === true) {
+                for ($i = 0; $i < $zip->numFiles; $i++) {
+                    $filename = $zip->getNameIndex($i);
+                    if (preg_match('/ppt\/slides\/slide(\d+)\.xml/', $filename, $matches)) {
+                        $slideNumber = (int)$matches[1];
+                        $slideCount = max($slideCount, $slideNumber);
+                    }
+                }
+                $zip->close();
+            } else {
+                mtrace("  - Could not open PPTX zip: $pptxPath");
+            }
+        } catch (\Exception $e) {
+            mtrace("  - Error counting slides: " . $e->getMessage());
+        }
+        return $slideCount;
+    }
+
+    /**
+     * Extract blob name from a full Azure Blob URL
+     */
+    public static function extractBlobNameFromUrl($url)
+    {
+        $parsed = parse_url($url);
+        if (!$parsed || !isset($parsed['path'])) {
+            return null;
+        }
+        $path = ltrim($parsed['path'], '/');
+        $parts = explode('/', $path, 2);
+        return isset($parts[1]) ? $parts[1] : $path;
+    }
 }
 

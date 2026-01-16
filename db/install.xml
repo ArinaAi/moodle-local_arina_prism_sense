@@ -43,6 +43,7 @@
         <FIELD NAME="approved" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Whether content is approved (0=no, 1=yes)"/>
         <FIELD NAME="approvedby" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="User ID who approved the content"/>
         <FIELD NAME="timeapproved" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Timestamp when content was approved"/>
+        <FIELD NAME="request_id" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Backend request ID for async tracking via Kafka"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
