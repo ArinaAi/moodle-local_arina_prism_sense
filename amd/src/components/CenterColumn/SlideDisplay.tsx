@@ -39,24 +39,26 @@ const SlideDisplay: React.FC<SlideDisplayProps> = ({
                 color="text.secondary"
                 sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}
             >
-                {totalSlides} slide{totalSlides === 1 ? '' : 's'} generated for {currentTopic?.topic || 'this section'}
+                {totalSlides} slide{totalSlides === 1 ? '' : 's'} generated for {currentContentItem?.sectionname || currentContentItem?.title || currentTopic?.topic || 'this section'}
             </Typography>
-            {isApproved && (
-                <Chip
-                    icon={<CheckCircle />}
-                    label={currentContentItem?.approver
-                        ? `Approved by ${currentContentItem.approver.fullname}`
-                        : 'Approved'
-                    }
-                    color="success"
-                    size="small"
-                    sx={{
-                        fontWeight: 600,
-                        fontSize: isMobile ? '0.7rem' : '0.75rem',
-                    }}
-                />
-            )}
-        </Box>
+            {
+                isApproved && (
+                    <Chip
+                        icon={<CheckCircle />}
+                        label={currentContentItem?.approver
+                            ? `Approved by ${currentContentItem.approver.fullname}`
+                            : 'Approved'
+                        }
+                        color="success"
+                        size="small"
+                        sx={{
+                            fontWeight: 600,
+                            fontSize: isMobile ? '0.7rem' : '0.75rem',
+                        }}
+                    />
+                )
+            }
+        </Box >
     );
 
     const renderTopicNavigation = () => {
@@ -114,8 +116,8 @@ const SlideDisplay: React.FC<SlideDisplayProps> = ({
                     width: '100%',
                     aspectRatio: '16/9',
                     // Use clamp for adaptive heights
-                    minHeight: isMobile ? '200px' : 'clamp(350px, 45vh, 600px)',
-                    maxHeight: isMobile ? '50vh' : 'clamp(500px, 65vh, 850px)',
+                    minHeight: isMobile ? '200px' : 'clamp(450px, 55vh, 800px)',
+                    maxHeight: isMobile ? '50vh' : 'clamp(600px, 80vh, 1200px)',
                     border: '2px solid #e0e0e0',
                     borderRadius: 1,
                     overflow: 'hidden',

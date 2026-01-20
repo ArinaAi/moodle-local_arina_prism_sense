@@ -118,6 +118,7 @@ try {
     \core\session\manager::write_close();
     
     // ===== UPLOAD PDF TO BACKEND API (if enabled) =====
+    // ===== UPLOAD PDF TO BACKEND API (if enabled) =====
     if (defined('LECTUREBOT_ENABLE_BACKEND_PDF_UPLOAD') && LECTUREBOT_ENABLE_BACKEND_PDF_UPLOAD) {
         try {
             // Get the actual file content from Moodle storage
@@ -127,25 +128,84 @@ try {
             $tenantConfig = defined('LECTUREBOT_TENANT_ID') ? LECTUREBOT_TENANT_ID : 1;
             $tenantId = is_numeric($tenantConfig) ? (int)$tenantConfig : 1;
             
-            // Get regen count (next available)
-            // Note: For upload, we use the next available count to ensure it lands in a new folder if needed
-            // or aligns with the next generation. Check if we should use current or next.
-            // Assuming next since it's a new upload.
+            // Get regen count
             $regenCount = get_azure_regen_count($courseid, $sectionid);
             
+            // ---------------------------------------------------------
+            // STEP 1: Start Batch Upload
+            // url: /start_batch_upload
+            // ---------------------------------------------------------
+            $startBatchParams = [
+                'organization_id' => $tenantId,
+                'course_id' => $courseid,
+                'chapter_id' => $sectionid,
+                'regen_count' => $regenCount,
+                'expected_uploads' => 1 // We treat each file as a batch of 1
+            ];
+            
+            $startBatchUrl = LECTUREBOT_API_START_BATCH_UPLOAD . '?' . http_build_query($startBatchParams, '', '&');
+            error_log('LectureBot: Starting batch upload: ' . $startBatchUrl);
+            
+            // Initialize cURL for start_batch_upload
+            $chBatch = curl_init($startBatchUrl);
+            curl_setopt_array($chBatch, [
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => '', // POST with query params requires empty body or just params
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 30, // Short timeout for metadata call
+                CURLOPT_CONNECTTIMEOUT => 10,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_FOLLOWLOCATION => true
+            ]);
+            
+            $batchResponse = curl_exec($chBatch);
+            $batchHttpCode = curl_getinfo($chBatch, CURLINFO_HTTP_CODE);
+            
+            if (curl_errno($chBatch)) {
+                $batchErr = curl_error($chBatch);
+                curl_close($chBatch);
+                throw new moodle_exception('Failed to start batch upload: ' . $batchErr);
+            }
+            curl_close($chBatch);
+            
+            if ($batchHttpCode !== 200) {
+                error_log('LectureBot: Start batch failed (HTTP ' . $batchHttpCode . '): ' . $batchResponse);
+                // Include response in exception to show detail to user
+                throw new moodle_exception('Start batch upload failed (HTTP ' . $batchHttpCode . '): ' .
+                    $batchResponse);
+            }
+            
+            $batchData = json_decode($batchResponse, true);
+            if (!$batchData || !isset($batchData['batch_id'])) {
+                 error_log('LectureBot: Invalid batch response: ' . $batchResponse);
+                 throw new moodle_exception('Invalid response from start_batch_upload');
+            }
+            
+            $batchId = $batchData['batch_id'];
+            error_log('LectureBot: Batch started successfully. Batch ID: ' . $batchId);
+
+            // ---------------------------------------------------------
+            // STEP 2: Upload PDF
+            // url: /uploadpdf
+            // ---------------------------------------------------------
+            
             // Prepare the API URL with all required params
-            // Params: course_id, organization_id, chapter_id, regen_count
             $queryParams = [
+                'batch_id' => $batchId,
                 'course_id' => $courseid,
                 'organization_id' => $tenantId,
                 'chapter_id' => $sectionid,
-                'regen_count' => $regenCount
+                'regen_count' => $regenCount,
+                'author' => $record->author,
+                'title' => $record->title
             ];
-            $apiUrl = LECTUREBOT_API_UPLOAD_PDF . '?' . http_build_query($queryParams, '', '&');
+            // Note: Use 'uploadpdf' endpoint now instead of 'upload' or 'upload_source'
+            // Check api/config_api.php to ensure LECTUREBOT_API_UPLOAD_PDF is set correctly
+            $uploadApiUrl = LECTUREBOT_API_UPLOAD_PDF . '?' . http_build_query($queryParams, '', '&');
             
-            error_log('LectureBot: Uploading PDF to backend API: ' . $apiUrl);
+            error_log('LectureBot: Uploading PDF to backend API: ' . $uploadApiUrl);
             
-            // Create a temporary file with the PDF content (cURL needs a file path for multipart upload)
+            // Create a temporary file with the PDF content
             $tempFilePath = $CFG->tempdir . '/lecturebot_upload_' . $itemid . '.pdf';
             file_put_contents($tempFilePath, $pdfContent);
             
@@ -153,16 +213,16 @@ try {
             $cfile = new CURLFile($tempFilePath, 'application/pdf', $storedfile->get_filename());
             
             // Initialize cURL to upload to backend
-            $ch = curl_init($apiUrl);
+            $ch = curl_init($uploadApiUrl);
             curl_setopt_array($ch, [
                 CURLOPT_POST => true,
-                CURLOPT_POSTFIELDS => ['file' => $cfile], // Backend expects 'file' not 'pdf'
+                CURLOPT_POSTFIELDS => ['file' => $cfile],
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 8250,
+                CURLOPT_TIMEOUT => 120, // Increased timeout for file upload
                 CURLOPT_CONNECTTIMEOUT => 20,
                 CURLOPT_SSL_VERIFYPEER => false,
                 CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_POSTREDIR => 3, // Preserve POST on redirects (CURL_REDIR_POST_ALL)
+                CURLOPT_POSTREDIR => 3,
             ]);
             
             $backendResponse = curl_exec($ch);
@@ -184,65 +244,32 @@ try {
             // Parse backend response
             $backendData = json_decode($backendResponse, true);
             
-            // Log parsed data for debugging
-            error_log('LectureBot: Parsed backend data: ' . print_r($backendData, true));
-            
-            // Check if backend upload was successful
-            // Accept multiple success indicators:
-            // 1. {"success": true}
-            // 2. {"Success": true}
-            // 3. HTTP 200 with {"message": "...successfully..."}
-            // 4. HTTP 200 with any response (some APIs don't return structured data)
+            // Check success
             $isSuccess = false;
-            
-            if ($httpCode === 200) {
-                if ($backendData) {
-                    // Check for explicit success field or message
-                    if ((isset($backendData['success']) && $backendData['success'] === true) ||
-                        (isset($backendData['Success']) && $backendData['Success'] === true) ||
-                        (isset($backendData['message']) &&
-                            (stripos($backendData['message'], 'success') !== false ||
-                             stripos($backendData['message'], 'uploaded') !== false))) {
-                        $isSuccess = true;
-                    }
-                } else {
-                    // HTTP 200 with empty/invalid JSON - assume success
-                    $isSuccess = true;
-                }
+            if ($httpCode === 200 || $httpCode === 201) {
+                 // For uploadpdf, a 200 OK often means it was queued
+                 $isSuccess = true;
             }
             
             if (!$isSuccess) {
-                $errorMsg = 'Backend returned unsuccessful response';
-                
-                // Add more context to error message
-                if (isset($backendData['error'])) {
-                    $errorMsg .= ': ' . $backendData['error'];
-                } elseif (isset($backendData['message'])) {
-                    $errorMsg .= ': ' . $backendData['message'];
-                } elseif (isset($backendData['detail'])) {
-                    // FastAPI validation errors
-                    $errorMsg .= ': ' . json_encode($backendData['detail']);
-                } else {
-                    $errorMsg .= ' (HTTP ' . $httpCode . ')';
-                    $errorMsg .= '. Response: ' . substr($backendResponse, 0, 200);
+                // ... (Existing error handling reused/adapted)
+                $errorMsg = 'Backend returned unsuccessful response (HTTP ' . $httpCode . ')';
+                if (isset($backendData['detail'])) {
+                    $errorMsg .= ': ' . (is_string($backendData['detail']) ?
+                        $backendData['detail'] : json_encode($backendData['detail']));
                 }
-                
                 error_log('LectureBot: Backend upload failed: ' . $errorMsg);
-                throw new moodle_exception('Backend API upload failed: ' . $errorMsg);
+                throw new moodle_exception($errorMsg);
             }
             
             error_log('LectureBot: Successfully uploaded PDF to backend API');
             
         } catch (Exception $backendError) {
-            // Backend upload failed - we should probably delete the Moodle record and file
-            // to keep things consistent
+            // Backend upload failed - Clean up Moodle record
             error_log('LectureBot: Backend upload error: ' . $backendError->getMessage());
-            
-            // Clean up Moodle storage
             $storedfile->delete();
             $DB->delete_records('local_lecturebot_sources', ['id' => $id]);
             
-            // Return error to frontend
             http_response_code(500);
             echo json_encode([
                 'status' => 'error',
