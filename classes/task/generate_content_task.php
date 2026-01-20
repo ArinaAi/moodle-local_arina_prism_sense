@@ -200,7 +200,7 @@ class generate_content_task extends \core\task\adhoc_task
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => '',
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 60, // Reduced: API should respond quickly with Kafka
+            CURLOPT_TIMEOUT => 300,
             CURLOPT_CONNECTTIMEOUT => 30,
             CURLOPT_TCP_KEEPALIVE => 1,
             CURLOPT_TCP_KEEPIDLE => 30,

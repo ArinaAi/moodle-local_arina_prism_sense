@@ -25,19 +25,6 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
         }
     };
 
-    const formatDate = (timestamp: number) => {
-        const date = new Date(timestamp * 1000);
-        const options: Intl.DateTimeFormatOptions = {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true,
-        };
-        return date.toLocaleString('en-US', options);
-    };
-
     const getSlideCount = (item: ContentItem): number => {
         if (!item.result || !item.result.results) { return 0 };
         return item.result.results.reduce((total: number, subtopic: any) => {
@@ -51,13 +38,13 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
             <ListItem
                 sx={{
                     border: `1px solid ${theme.palette.warning.light}`,
-                    borderRadius: '20px',
+                    borderRadius: '16px',
                     mb: 1.5,
-                    p: 2,
+                    p: 1.5,
                     backgroundColor: 'rgba(255, 193, 7, 0.05)',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 2,
+                    gap: 1.5,
                     position: 'relative',
                     overflow: 'hidden',
                     '&::before': {
@@ -67,8 +54,8 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                         left: '-100%',
                         width: '100%',
                         height: '100%',
-                        background: 'linear-gradient(90deg, transparent, rgba(255, 193, 7, 0.2), transparent)',
-                        animation: 'shimmer 2s infinite',
+                        background: 'linear-gradient(90deg, transparent, rgba(255, 193, 7, 0.15), transparent)',
+                        animation: 'shimmer 2.5s infinite',
                     },
                     '@keyframes shimmer': {
                         '0%': { left: '-100%' },
@@ -77,21 +64,13 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                 }}
             >
                 <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <CircularProgress size={28} thickness={4} sx={{ color: theme.palette.warning.main }} />
+                    <CircularProgress size={22} thickness={4} sx={{ color: theme.palette.warning.main }} />
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.25 }}>
                         {item.sectionname}
                     </Typography>
-                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <StatusBadge status="generating" size="small" />
-                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-                            Started {formatDate(item.timecreated)}
-                        </Typography>
-                    </Box>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}>
-                        This may take a few moments. You&apos;ll be notified when ready.
-                    </Typography>
+                    <StatusBadge status="generating" size="small" />
                 </Box>
             </ListItem>
         );
@@ -205,7 +184,7 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                         />
                     )}
                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        {item.approved ? 'Ready to publish' : 'Pending approval'} • {formatDate(item.timecreated)}
+                        {item.approved ? 'Ready to publish' : 'Pending approval'}
                     </Typography>
                 </Box>
             </Box>

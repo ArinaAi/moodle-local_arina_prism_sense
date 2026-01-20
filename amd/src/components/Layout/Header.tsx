@@ -51,7 +51,7 @@ const Header: React.FC<HeaderProps> = ({ moodleContext, children }) => {
                 minWidth: 0, // Enable text truncation
             }}>
                 <button
-                    onClick={() => window.location.href = `${moodleContext.wwwroot}/course/view.php?id=${moodleContext.courseid}`}
+                    onClick={() => globalThis.location.href = `${moodleContext.wwwroot}/course/view.php?id=${moodleContext.courseid}`}
                     style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -71,6 +71,14 @@ const Header: React.FC<HeaderProps> = ({ moodleContext, children }) => {
                         e.currentTarget.style.borderColor = '#dee2e6';
                     }}
                     onMouseOut={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f8f9fa';
+                        e.currentTarget.style.borderColor = '#e9ecef';
+                    }}
+                    onFocus={(e) => {
+                        e.currentTarget.style.backgroundColor = '#e9ecef';
+                        e.currentTarget.style.borderColor = '#dee2e6';
+                    }}
+                    onBlur={(e) => {
                         e.currentTarget.style.backgroundColor = '#f8f9fa';
                         e.currentTarget.style.borderColor = '#e9ecef';
                     }}

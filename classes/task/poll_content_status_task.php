@@ -86,10 +86,10 @@ class poll_content_status_task extends \core\task\scheduled_task
         mtrace("  - Backend status: {$status}");
 
         switch ($status) {
+            // Final completion statuses - these trigger file download
             case 'completed':
             case 'success':
-            case 'slides_completed':       // Backend returns this when PPTX is ready
-            case 'lecture_completed':      // Backend returns this when lecture content is ready
+            case 'slides_completed':       // Backend returns this when PPTX/slides are ready
             case 'content_completed':      // Alternative completion status
                 $this->handleCompleted($content, $statusResponse);
                 break;
@@ -99,15 +99,22 @@ class poll_content_status_task extends \core\task\scheduled_task
                 $this->handleFailed($content, $statusResponse);
                 break;
 
+            // Intermediate milestone statuses - save progress but keep waiting
+            case 'toc_completed':          // TOC is done, lecture generation started
+            case 'lecture_completed':      // Lecture is done, slide generation started
+                $this->updateLastChecked($content, $status);
+                mtrace("  - Milestone reached ({$status}), waiting for slides...");
+                break;
+
+            // Still actively processing
             case 'processing':
             case 'queued':
             case 'pending':
             case 'toc_generation':         // TOC generation phase
             case 'lecture_generation':     // Lecture content generation phase
             case 'slides_generation':      // Slides generation phase
-                // Still processing, just log and wait
-                $this->updateLastChecked($content);
-                mtrace("  - Still processing, will check again later.");
+                $this->updateLastChecked($content, $status);
+                mtrace("  - Still processing ({$status}), will check again later.");
                 break;
 
             default:
@@ -204,10 +211,13 @@ class poll_content_status_task extends \core\task\scheduled_task
             mkdir($CFG->tempdir . '/lecturebot', 0755, true);
         }
 
-        // Download file
-        $success = $blobUrl
-            ? \local_lecturebot\Utils::downloadFileFromUrl($blobUrl, $filepath)
-            : \local_lecturebot\Utils::downloadFileFromAzure($blobName, $filepath, $containerName);
+        // Download file - Always use authenticated Azure download since backend URLs don't have SAS tokens
+        // Extract blob name from URL if we have one, otherwise use constructed blob name
+        if ($blobUrl) {
+            $blobName = \local_lecturebot\Utils::extractBlobNameFromUrl($blobUrl);
+            mtrace("  - Extracted blob name from URL: {$blobName}");
+        }
+        $success = \local_lecturebot\Utils::downloadFileFromAzure($blobName, $filepath, $containerName);
 
         if (!$success || !file_exists($filepath) || filesize($filepath) === 0) {
             throw new \local_lecturebot\exception\azure_download_exception(
@@ -345,14 +355,20 @@ class poll_content_status_task extends \core\task\scheduled_task
     }
 
     /**
-     * Update last checked timestamp (stored in timemodified)
+     * Update last checked timestamp and processing status
      */
-    private function updateLastChecked($content)
+    private function updateLastChecked($content, $status = null)
     {
         global $DB;
 
+        $generationData = json_decode($content->generationdata, true) ?: [];
+        if ($status) {
+            $generationData['processing_status'] = $status;
+        }
+
         $DB->update_record('local_lecturebot_content', (object)[
             'id' => $content->id,
+            'generationdata' => json_encode($generationData),
             'timemodified' => time()
         ]
     );

@@ -14,7 +14,7 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import { Delete } from '@mui/icons-material';
+import { Delete, InfoOutlined } from '@mui/icons-material';
 
 import type { ContentItem } from '../../types/app';
 import GeneratedContentList from './GeneratedContentList';
@@ -70,10 +70,31 @@ const RightColumn: React.FC<RightColumnProps> = ({
     open: false,
     contentId: null,
   });
+  const [detailsDialog, setDetailsDialog] = useState<{ open: boolean; contentId: number | null }>({
+    open: false,
+    contentId: null,
+  });
   const [menuAnchor, setMenuAnchor] = useState<{ element: HTMLElement | null; contentId: number | null }>({
     element: null,
     contentId: null,
   });
+
+  // Find the content item for showing details
+  const detailsItem = detailsDialog.contentId
+    ? state.contentItems.find(item => item.id === detailsDialog.contentId)
+    : null;
+
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLButtonElement>, contentId: number) => {
     event.stopPropagation();
@@ -91,6 +112,12 @@ const RightColumn: React.FC<RightColumnProps> = ({
     handleMenuClose();
   };
 
+  const handleDetailsClick = () => {
+    if (menuAnchor.contentId) {
+      setDetailsDialog({ open: true, contentId: menuAnchor.contentId });
+    }
+    handleMenuClose();
+  };
 
 
   return (
@@ -143,6 +170,23 @@ const RightColumn: React.FC<RightColumnProps> = ({
           },
         }}
       >
+        <MenuItem
+          onClick={handleDetailsClick}
+          sx={{
+            gap: 1.5,
+            py: styles.menuItemPy,
+            px: 2,
+            minHeight: styles.menuItemMinHeight,
+            '&:hover': {
+              backgroundColor: 'rgba(0, 0, 0, 0.04)',
+            },
+          }}
+        >
+          <InfoOutlined fontSize="small" />
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            View Details
+          </Typography>
+        </MenuItem>
         <MenuItem
           onClick={handleDeleteClick}
           sx={{
@@ -256,6 +300,64 @@ const RightColumn: React.FC<RightColumnProps> = ({
             sx={{ minHeight: styles.buttonMinHeight }}
           >
             Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Details Dialog */}
+      <Dialog
+        open={detailsDialog.open}
+        onClose={() => setDetailsDialog({ open: false, contentId: null })}
+        maxWidth="xs"
+        fullWidth
+        sx={{
+          zIndex: 100010,
+          '& .MuiDialog-paper': {
+            borderRadius: styles.dialogBorderRadius,
+            p: 1,
+            m: styles.dialogMargin,
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontSize: styles.dialogTitleFontSize }}>
+          Content Details
+        </DialogTitle>
+        <DialogContent>
+          {detailsItem && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Title</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>{detailsItem.title || detailsItem.sectionname}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Content Type</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 500, textTransform: 'capitalize' }}>{detailsItem.contenttype}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Status</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 500, textTransform: 'capitalize' }}>{detailsItem.status}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Created</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>{formatDate(detailsItem.timecreated)}</Typography>
+              </Box>
+              {detailsItem.timemodified && (
+                <Box>
+                  <Typography variant="caption" color="text.secondary">Last Modified</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>{formatDate(detailsItem.timemodified)}</Typography>
+                </Box>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: styles.dialogActionsPadding }}>
+          <Button
+            onClick={() => setDetailsDialog({ open: false, contentId: null })}
+            color="primary"
+            variant="contained"
+            sx={{ minHeight: styles.buttonMinHeight }}
+          >
+            Close
           </Button>
         </DialogActions>
       </Dialog>

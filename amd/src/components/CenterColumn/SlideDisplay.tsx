@@ -39,7 +39,7 @@ const SlideDisplay: React.FC<SlideDisplayProps> = ({
                 color="text.secondary"
                 sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}
             >
-                {totalSlides} slide{totalSlides !== 1 ? 's' : ''} generated for {currentTopic?.topic || 'this section'}
+                {totalSlides} slide{totalSlides === 1 ? '' : 's'} generated for {currentTopic?.topic || 'this section'}
             </Typography>
             {isApproved && (
                 <Chip
@@ -60,7 +60,7 @@ const SlideDisplay: React.FC<SlideDisplayProps> = ({
     );
 
     const renderTopicNavigation = () => {
-        if (!generatedContent || !generatedContent.results || generatedContent.results.length <= 1) {
+        if (!generatedContent?.results || generatedContent.results.length <= 1) {
             return null;
         }
 

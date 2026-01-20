@@ -1,136 +1,285 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Typography } from '@mui/material';
-import { Check, Circle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Box, Typography, useTheme, useMediaQuery } from '@mui/material';
+import { Check, Loader2 } from 'lucide-react';
+
+type ProcessingStatus =
+    | 'queued' | 'pending' | 'processing'
+    | 'toc_generation' | 'toc_completed'
+    | 'lecture_generation' | 'lecture_completed'
+    | 'slides_generation' | 'slides_completed'
+    | null;
 
 interface ThoughtStreamProps {
-    isActive: boolean;
+    processingStatus: ProcessingStatus;
+    isVideo?: boolean;
 }
 
-const THOUGHTS = [
-    "Initializing AI context...",
-    "Analyzing source documents...",
-    "Identifying key concepts...",
-    "Structuring lecture flow...",
-    "Drafting slide content...",
-    "Synthesizing summary points...",
-    "Optimizing reading flow...",
-    "Finalizing formatting...",
+interface Step {
+    id: string;
+    label: string;
+    subMessages?: string[];
+}
+
+const SLIDE_STEPS: Step[] = [
+    { id: 'init', label: 'Initializing generation' },
+    { id: 'toc', label: 'Creating table of contents' },
+    {
+        id: 'lecture',
+        label: 'Generating lecture content',
+        subMessages: [
+            'Analyzing document structure',
+            'Creating section narratives',
+            'Building slide content',
+            'Organizing key concepts',
+            'Structuring visual elements',
+            'Refining content flow',
+        ]
+    },
+    { id: 'slides', label: 'Creating slide images' },
 ];
 
-const ThoughtStream: React.FC<ThoughtStreamProps> = ({ isActive }) => {
-    // Use index-based tracking for easier animation math
-    const [activeIndex, setActiveIndex] = useState(0);
+const VIDEO_STEPS: Step[] = [
+    { id: 'init', label: 'Initializing generation' },
+    { id: 'toc', label: 'Creating table of contents' },
+    {
+        id: 'lecture',
+        label: 'Generating video content',
+        subMessages: [
+            'Analyzing document structure',
+            'Creating video narrative',
+            'Building presentation flow',
+            'Organizing key concepts',
+            'Preparing visual elements',
+            'Refining content sequence',
+        ]
+    },
+    { id: 'render', label: 'Rendering video' },
+];
 
+// Helper functions to reduce cognitive complexity in render
+const getContainerStyles = (isMobile: boolean) => ({
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
+    py: isMobile ? 1.5 : 2,
+    minHeight: isMobile ? 80 : 100,
+    marginTop: isMobile ? 1 : 3,
+});
+
+const getCompletedLabelFontSize = (isMobile: boolean) =>
+    isMobile ? '0.7rem' : '0.75rem';
+
+const getActiveLabelFontSize = (isMobile: boolean) =>
+    isMobile ? '0.75rem' : '0.85rem';
+
+const getSubMessageFontSize = (isMobile: boolean) =>
+    isMobile ? '0.65rem' : '0.7rem';
+
+const getIconSize = (isMobile: boolean) => (isMobile ? 15 : 17);
+
+// Map backend status to step index
+const getStepIndex = (status: ProcessingStatus): number => {
+    switch (status) {
+        case null:
+        case 'queued':
+        case 'pending':
+            return 0; // init
+        case 'processing':
+        case 'toc_generation':
+            return 1; // toc
+        case 'toc_completed':
+        case 'lecture_generation':
+            return 2; // lecture
+        case 'lecture_completed':
+        case 'slides_generation':
+            return 3; // slides
+        case 'slides_completed':
+            return 4; // done
+        default:
+            return 0;
+    }
+};
+
+const ThoughtStream: React.FC<ThoughtStreamProps> = ({
+    processingStatus,
+    isVideo = false
+}) => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+    const steps = isVideo ? VIDEO_STEPS : SLIDE_STEPS;
+
+    // Track completed steps for fade-out display
+    const [completedSteps, setCompletedSteps] = useState<string[]>([]);
+    const [showInit, setShowInit] = useState(true);
+    const [subMessageIndex, setSubMessageIndex] = useState(0);
+    const initTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const subMessageTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+    const currentStepIndex = getStepIndex(processingStatus);
+
+    // Always show "Initializing" for at least 2 seconds on mount
     useEffect(() => {
-        if (!isActive) {
-            setActiveIndex(0);
-            return;
+        initTimerRef.current = setTimeout(() => {
+            setShowInit(false);
+        }, 2000);
+
+        return () => {
+            if (initTimerRef.current) {
+                clearTimeout(initTimerRef.current);
+            }
+        };
+    }, []);
+
+    // Rotate sub-messages during lecture generation
+    useEffect(() => {
+        const effectiveIndex = showInit && currentStepIndex === 0 ? 0 : currentStepIndex;
+        const activeStep = effectiveIndex < steps.length ? steps[effectiveIndex] : null;
+
+        if (activeStep?.subMessages && activeStep.subMessages.length > 0) {
+            // Reset index when entering lecture step
+            setSubMessageIndex(0);
+
+            subMessageTimerRef.current = setInterval(() => {
+                setSubMessageIndex(prev =>
+                    (prev + 1) % (activeStep.subMessages?.length || 1)
+                );
+            }, 8000); // Rotate every 8 seconds
         }
 
-        const interval = setInterval(() => {
-            setActiveIndex((prev) => {
-                if (prev < THOUGHTS.length - 1) {
-                    return prev + 1;
-                }
-                return prev;
-            });
-        }, 2500);
+        return () => {
+            if (subMessageTimerRef.current) {
+                clearInterval(subMessageTimerRef.current);
+            }
+        };
+    }, [currentStepIndex, showInit, steps]);
 
-        return () => clearInterval(interval);
-    }, [isActive]);
+    // Update completed steps when status progresses
+    useEffect(() => {
+        const newCompleted: string[] = [];
+        for (let i = 0; i < currentStepIndex && i < steps.length; i++) {
+            newCompleted.push(steps[i].id);
+        }
+        setCompletedSteps(newCompleted);
+    }, [currentStepIndex, steps]);
 
-    if (!isActive) {
-        return null;
-    }
+    // Determine what to show
+    const effectiveStepIndex = showInit && currentStepIndex === 0 ? 0 : currentStepIndex;
+    const activeStep = effectiveStepIndex < steps.length ? steps[effectiveStepIndex] : steps[steps.length - 1];
+    const isActiveSpinning = effectiveStepIndex < steps.length;
+
+    // Get current sub-message if available
+    const currentSubMessage = activeStep.subMessages && activeStep.subMessages.length > 0
+        ? activeStep.subMessages[subMessageIndex % activeStep.subMessages.length]
+        : null;
 
     return (
-        <Box
-            sx={{
-                width: '100%',
-                maxWidth: 400,
-                mx: 'auto',
-                height: 120, // Compact height for focused view
-                position: 'relative',
+        <Box sx={getContainerStyles(isMobile)}>
+            {/* Completed steps - fade into background */}
+            {completedSteps.length > 0 && (
+                <Box sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    mb: 1,
+                }}>
+                    {completedSteps.slice(-2).map((stepId, idx) => {
+                        const step = steps.find(s => s.id === stepId);
+                        if (!step) {
+                            return null;
+                        }
+                        const fadeAmount = (completedSteps.length - idx - 1) * 0.3;
+                        return (
+                            <Box
+                                key={stepId}
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 0.75,
+                                    opacity: Math.max(0.3, 0.6 - fadeAmount),
+                                    transition: 'opacity 0.5s ease',
+                                    py: 0.25,
+                                }}
+                            >
+                                <Check size={14} color="#22c55e" strokeWidth={2.5} />
+                                <Typography
+                                    variant="body2"
+                                    sx={{
+                                        color: 'text.disabled',
+                                        fontSize: getCompletedLabelFontSize(isMobile),
+                                    }}
+                                >
+                                    {step.label}
+                                </Typography>
+                            </Box>
+                        );
+                    })}
+                </Box>
+            )}
+
+            {/* Current active step - prominent */}
+            <Box sx={{
                 display: 'flex',
-                alignItems: 'center', // Vertically center content
-                justifyContent: 'center',
-                overflow: 'hidden',
-                mt: 3,
-                maskImage: 'linear-gradient(to bottom, transparent, black 20%, black 80%, transparent)',
-                WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 20%, black 80%, transparent)',
-            }}
-        >
-            {THOUGHTS.map((thought, index) => {
-                const offset = index - activeIndex;
-                const isActiveItem = index === activeIndex;
-
-                // Only render items relevant to the animation (current and recent past)
-                if (index > activeIndex || index < activeIndex - 2) {
-                    return null;
-                }
-
-                return (
-                    <Box
-                        key={thought}
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 0.5,
+            }}>
+                <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                }}>
+                    {isActiveSpinning ? (
+                        <Loader2
+                            size={getIconSize(isMobile)}
+                            color="#2563eb"
+                            style={{ animation: 'spin 1s linear infinite' }}
+                        />
+                    ) : (
+                        <Check size={getIconSize(isMobile)} color="#22c55e" strokeWidth={2.5} />
+                    )}
+                    <Typography
+                        variant="body1"
                         sx={{
-                            position: 'absolute',
-                            width: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 1.5,
-                            transition: 'all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1)',
-                            // Animation logic based on offset
-                            opacity: isActiveItem ? 1 : Math.max(0, 1 - Math.abs(offset) * 0.5), // Slower fade
-                            // Instead of scaling down ("moving back"), just move up
-                            transform: `translateY(${offset * 25}px)`, // Tighter vertical spacing
-                            filter: isActiveItem ? 'none' : `blur(${Math.abs(offset) * 1}px)`, // Reduced blur
-                            zIndex: isActiveItem ? 2 : 1,
-                            pointerEvents: 'none',
+                            color: 'text.primary',
+                            fontWeight: 500,
+                            fontSize: getActiveLabelFontSize(isMobile),
                         }}
                     >
-                        <Box
-                            sx={{
-                                color: isActiveItem ? 'primary.main' : 'text.disabled',
-                                display: 'flex',
-                                alignItems: 'center',
-                                transition: 'color 0.5s ease',
-                            }}
-                        >
-                            {isActiveItem ? (
-                                <Circle size={10} fill="currentColor" className="pulse-dot" />
-                            ) : (
-                                <Check size={14} strokeWidth={2} />
-                            )}
-                        </Box>
-                        <Typography
-                            variant="body1"
-                            sx={{
-                                color: isActiveItem ? 'text.primary' : 'text.disabled',
-                                fontWeight: 400, // Standard weight as requested
-                                fontSize: isActiveItem ? '1rem' : '0.9rem',
-                                fontFamily: '"Inter", sans-serif',
-                                textAlign: 'center',
-                                transition: 'all 0.5s ease',
-                            }}
-                        >
-                            {thought}
-                        </Typography>
-                    </Box>
-                );
-            })}
+                        {activeStep.label}{isActiveSpinning ? '...' : ''}
+                    </Typography>
+                </Box>
+
+                {/* Sub-message for long-running steps */}
+                {currentSubMessage && isActiveSpinning && (
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            color: 'text.secondary',
+                            fontSize: getSubMessageFontSize(isMobile),
+                            fontStyle: 'italic',
+                            opacity: 0.8,
+                            transition: 'opacity 0.3s ease',
+                            animation: 'fadeInOut 8s ease-in-out infinite',
+                            '@keyframes fadeInOut': {
+                                '0%, 100%': { opacity: 0.4 },
+                                '15%, 85%': { opacity: 0.9 },
+                            },
+                        }}
+                    >
+                        → {currentSubMessage}
+                    </Typography>
+                )}
+            </Box>
 
             <style>
                 {`
-          @keyframes pulse-dot {
-            0% { transform: scale(0.8); opacity: 0.5; }
-            50% { transform: scale(1.2); opacity: 1; }
-            100% { transform: scale(0.8); opacity: 0.5; }
-          }
-          .pulse-dot {
-            animation: pulse-dot 1.5s infinite ease-in-out;
-          }
-        `}
+                    @keyframes spin {
+                        from { transform: rotate(0deg); }
+                        to { transform: rotate(360deg); }
+                    }
+                `}
             </style>
         </Box>
     );

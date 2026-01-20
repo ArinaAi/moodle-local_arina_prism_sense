@@ -447,7 +447,7 @@ function check_folder_has_generated_content($accountName, $accountKey, $containe
  * Helper to query Azure Blob Storage for the highest regen_count
  * Matches folders like Tutorial_{courseid}_{sectionid}_{count}
  */
-function get_azure_regen_count($courseid, $sectionid, $tenantId)
+function get_azure_regen_count($courseid, $sectionid)
 {
     $regenCount = 0;
 

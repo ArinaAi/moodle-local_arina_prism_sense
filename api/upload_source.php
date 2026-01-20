@@ -131,7 +131,7 @@ try {
             // Note: For upload, we use the next available count to ensure it lands in a new folder if needed
             // or aligns with the next generation. Check if we should use current or next.
             // Assuming next since it's a new upload.
-            $regenCount = get_azure_regen_count($courseid, $sectionid, $tenantId);
+            $regenCount = get_azure_regen_count($courseid, $sectionid);
             
             // Prepare the API URL with all required params
             // Params: course_id, organization_id, chapter_id, regen_count

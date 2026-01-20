@@ -144,7 +144,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
     { type: 'empty', title: '', author: '' },
     { type: 'empty', title: '', author: '' },
   ]);
-  const [_isDragging, setIsDragging] = useState(false);
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [validationErrors, setValidationErrors] = useState<boolean[]>([false, false, false]);
   const [loading, setLoading] = useState(true);
@@ -208,7 +208,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
         }
       } catch (apiError) {
         // If API fails, just use sections without sources
-
+        console.warn('Failed to fetch existing sources, continuing with empty sources:', apiError);
       }
 
       const sectionList = Array.from(sectionMap.entries()).map(([id, name]) => ({
@@ -283,12 +283,14 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
   };
 
 
-  const getTextFieldError = (boxIndex: number, isPending: boolean, value: string): boolean => {
-    return validationErrors[boxIndex] && isPending && !value.trim();
+  const getTextFieldError = (boxIndex: number, value: string): boolean => {
+    const box = boxes[boxIndex];
+    return validationErrors[boxIndex] && box.type === 'pending_details' && !value.trim();
   };
 
-  const getTextFieldHelperText = (boxIndex: number, isPending: boolean, value: string, fieldName: string): string => {
-    return validationErrors[boxIndex] && isPending && !value.trim() ? `${fieldName} is required` : '';
+  const getTextFieldHelperText = (boxIndex: number, value: string, fieldName: string): string => {
+    const box = boxes[boxIndex];
+    return validationErrors[boxIndex] && box.type === 'pending_details' && !value.trim() ? `${fieldName} is required` : '';
   };
 
   const getTextFieldInputProps = (isExisting: boolean) => ({
@@ -337,17 +339,14 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(true);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(false);
   };
 
   const handleDrop = (e: React.DragEvent, boxIndex: number) => {
     e.preventDefault();
-    setIsDragging(false);
 
     if (!selectedSection) {
       return;
@@ -517,7 +516,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
     const newValidationErrors = boxes.map(
       box => box.type === 'pending_details' && (!box.title.trim() || !box.author.trim())
     );
-    const hasInvalidPending = newValidationErrors.some(error => error);
+    const hasInvalidPending = newValidationErrors.some(Boolean);
 
     if (hasInvalidPending) {
       setValidationErrors(newValidationErrors);
@@ -959,8 +958,8 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
                           value={box.title}
                           onChange={(e) => handleTitleChange(boxIndex, e.target.value)}
                           disabled={isUploading || isExisting}
-                          error={getTextFieldError(boxIndex, isPending, box.title)}
-                          helperText={getTextFieldHelperText(boxIndex, isPending, box.title, 'Title')}
+                          error={getTextFieldError(boxIndex, box.title)}
+                          helperText={getTextFieldHelperText(boxIndex, box.title, 'Title')}
                           InputProps={getTextFieldInputProps(isExisting)}
                         />
                         <TextField
@@ -971,8 +970,8 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
                           value={box.author}
                           onChange={(e) => handleAuthorChange(boxIndex, e.target.value)}
                           disabled={isUploading || isExisting}
-                          error={getTextFieldError(boxIndex, isPending, box.author)}
-                          helperText={getTextFieldHelperText(boxIndex, isPending, box.author, 'Author')}
+                          error={getTextFieldError(boxIndex, box.author)}
+                          helperText={getTextFieldHelperText(boxIndex, box.author, 'Author')}
                           InputProps={getTextFieldInputProps(isExisting)}
                         />
 

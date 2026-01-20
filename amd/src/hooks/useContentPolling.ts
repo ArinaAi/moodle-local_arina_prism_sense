@@ -20,6 +20,38 @@ const updateContentItem = (
     }
 };
 
+// Helper to process individual item updates
+const processUpdate = (
+    updatedItem: ContentItem,
+    contentItems: ContentItem[],
+    dispatch: Dispatch<AppAction>,
+    showNotification: (msg: string, severity: NotificationSeverity) => void
+): boolean => {
+    const index = contentItems.findIndex((i) => i.id === updatedItem.id);
+    if (index === -1) {
+        return false;
+    }
+
+    const currentItem = contentItems[index];
+
+    // Check if main status changed (generating -> ready/failed)
+    const statusChanged = currentItem.status === 'generating' && updatedItem.status !== 'generating';
+
+    // Check if processing_status changed (for progress updates)
+    const processingStatusChanged = currentItem.processing_status !== updatedItem.processing_status;
+
+    if (statusChanged || processingStatusChanged) {
+        contentItems[index] = updatedItem;
+        // Only call updateContentItem for completed items
+        if (statusChanged) {
+            updateContentItem(updatedItem, dispatch, showNotification);
+        }
+        return true;
+    }
+
+    return false;
+};
+
 // Helper to check for updates
 const fetchStatusUpdates = async (
     generatingIds: number[],
@@ -37,18 +69,12 @@ const fetchStatusUpdates = async (
 
         if (data.status === 'success' && data.contents) {
             const updates = data.contents as ContentItem[];
-            let hasUpdates = false;
             const newContentItems = [...state.contentItems];
+            let hasUpdates = false;
 
             updates.forEach((updatedItem) => {
-                const index = newContentItems.findIndex((i) => i.id === updatedItem.id);
-                if (index !== -1) {
-                    const currentItem = newContentItems[index];
-                    if (currentItem.status === 'generating' && updatedItem.status !== 'generating') {
-                        hasUpdates = true;
-                        newContentItems[index] = updatedItem;
-                        updateContentItem(updatedItem, dispatch, showNotification);
-                    }
+                if (processUpdate(updatedItem, newContentItems, dispatch, showNotification)) {
+                    hasUpdates = true;
                 }
             });
 
@@ -57,6 +83,7 @@ const fetchStatusUpdates = async (
             }
         }
     } catch (err) {
+        // eslint-disable-next-line no-console
         console.error('Poll failed:', err);
     }
 };

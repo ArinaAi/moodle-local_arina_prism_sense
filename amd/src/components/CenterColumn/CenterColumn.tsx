@@ -47,8 +47,10 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
   const { generatedSlides, generatedContent, activeContentType, currentContentId, moodleContext, isGeneratingSlides, contentItems, slidesApproved } = state;
 
   // Check specifically what type of content is generating
-  const hasGeneratingVideo = contentItems.some(item => item.status === 'generating' && item.contenttype === 'video');
-  const hasGeneratingSlides = contentItems.some(item => item.status === 'generating' && item.contenttype === 'slide-deck');
+  const generatingVideoItem = contentItems.find(item => item.status === 'generating' && item.contenttype === 'video');
+  const generatingSlideItem = contentItems.find(item => item.status === 'generating' && item.contenttype === 'slide-deck');
+  const hasGeneratingVideo = !!generatingVideoItem;
+  const hasGeneratingSlides = !!generatingSlideItem;
 
   // Find current content item to check approval status
   const currentContentItem = contentItems.find(item => item.id === currentContentId);
@@ -96,11 +98,11 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
   const renderStatusState = () => {
     // Generating State
     if (activeContentType === 'video' && hasGeneratingVideo) {
-      return <GeneratingState isGeneratingVideo={true} isGeneratingSlides={false} />;
+      return <GeneratingState isGeneratingVideo={true} isGeneratingSlides={false} processingStatus={generatingVideoItem?.processing_status} />;
     }
 
     if (activeContentType === 'slide-deck' && (isGeneratingSlides || hasGeneratingSlides)) {
-      return <GeneratingState isGeneratingVideo={false} isGeneratingSlides={true} />;
+      return <GeneratingState isGeneratingVideo={false} isGeneratingSlides={true} processingStatus={generatingSlideItem?.processing_status} />;
     }
 
     // Empty State

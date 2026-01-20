@@ -12,10 +12,10 @@ $PAGE->set_pagelayout('popup');
 $PAGE->set_title('Course Materials');
 $PAGE->set_heading('Course Materials');
 
-$context_json = \local_lecturebot\Utils::prepare_context($COURSE, $CFG->wwwroot);
+$context_json = \local_lecturebot\Utils::prepareContext($COURSE, $CFG->wwwroot);
 
 // Request student bundle
-$builtjsurl = \local_lecturebot\Utils::get_js_url($CFG->wwwroot, $CFG->dirroot . '/local/lecturebot', 'student.min.js');
+$builtjsurl = \local_lecturebot\Utils::getJsUrl($CFG->wwwroot, $CFG->dirroot . '/local/lecturebot', 'student.min.js');
 
 echo $OUTPUT->header();
 ?>

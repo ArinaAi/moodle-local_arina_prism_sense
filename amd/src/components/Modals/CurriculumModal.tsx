@@ -348,7 +348,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
                       <Chip
-                        label={`${section.sourceCount} PDF${section.sourceCount !== 1 ? 's' : ''}`}
+                        label={`${section.sourceCount} PDF${section.sourceCount === 1 ? '' : 's'}`}
                         size="small"
                         sx={{
                           bgcolor: 'rgba(13, 92, 162, 0.1)',

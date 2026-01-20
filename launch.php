@@ -14,11 +14,11 @@ $PAGE->set_title('Generate AI Lecture');
 $PAGE->set_heading('Generate AI Lecture');
 
 // Get course sections and context using Utils
-// Note: Utils::prepare_context includes sections and sesskey
-$context_json = \local_lecturebot\Utils::prepare_context($COURSE, $CFG->wwwroot);
+// Note: Utils::prepareContext includes sections and sesskey
+$context_json = \local_lecturebot\Utils::prepareContext($COURSE, $CFG->wwwroot);
 
 // Get versioned JS URL
-$builtjsurl = \local_lecturebot\Utils::get_js_url($CFG->wwwroot, $CFG->dirroot . '/local/lecturebot', 'teacher.min.js');
+$builtjsurl = \local_lecturebot\Utils::getJsUrl($CFG->wwwroot, $CFG->dirroot . '/local/lecturebot', 'teacher.min.js');
 
 echo $OUTPUT->header();
 ?>

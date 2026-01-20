@@ -11,7 +11,7 @@ class Utils
      * @param int $courseid Course ID
      * @return array Array of section information
      */
-    public static function get_course_sections($courseid)
+    public static function getCourseSections($courseid)
     {
         $sections = [];
         $modinfo = get_fast_modinfo($courseid);
@@ -34,9 +34,9 @@ class Utils
      * @param string $wwwroot Moodle wwwroot
      * @return string JSON encoded context
      */
-    public static function prepare_context($course, $wwwroot)
+    public static function prepareContext($course, $wwwroot)
     {
-        $sections = self::get_course_sections($course->id);
+        $sections = self::getCourseSections($course->id);
         return json_encode([
             'courseid' => $course->id,
             'coursename' => $course->fullname,
@@ -53,7 +53,7 @@ class Utils
      * @param string $plugindir Plugin directory path
      * @return string Versioned JavaScript URL
      */
-    public static function get_js_url($wwwroot, $plugindir, $filename = 'lecturebot_built.js')
+    public static function getJsUrl($wwwroot, $plugindir, $filename = 'lecturebot_built.js')
     {
         $filesToCheck = [
             '/amd/build/' . $filename,

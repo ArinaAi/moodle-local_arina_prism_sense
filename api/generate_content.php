@@ -72,7 +72,7 @@ try {
     $language = $input['language'] ?? 'english';
     $voiceGender = $input['voice_gender'] ?? 'female';
     $avatarStrategy = $input['avatar_strategy'] ?? 'title_only';
-    $avatarVideoNeeded = $input['avtar_video_needed'] ?? 'no'; // Use 'avtar' as per user request variable name
+    $avatarVideoNeeded = $input['avtar_video_needed'] ?? 'no';
     
     // Determine content type
     $contentType = ($avatarVideoNeeded === 'yes') ? 'video' : 'slide-deck';
@@ -200,7 +200,7 @@ try {
         $regenCount = $sourceRegenCount;
         error_log("LectureBot: Reusing regen_count $regenCount from source content ID $sourceContentId");
     } else {
-        $regenCount = get_azure_regen_count($courseid, $sectionid, $tenantId);
+        $regenCount = get_azure_regen_count($courseid, $sectionid);
         error_log("LectureBot: Calculated regen_count $regenCount from Azure");
     }
 

@@ -66,6 +66,7 @@ try {
             'sectionname' => $section_names[$content->sectionid] ?? "Unknown Section",
             'contenttype' => $content->contenttype,
             'status' => $content->status,
+            'processing_status' => $generationData['processing_status'] ?? null,
             'title' => $content->title,
             'errormessage' => $content->errormessage,
             'timecreated' => $content->timecreated,
