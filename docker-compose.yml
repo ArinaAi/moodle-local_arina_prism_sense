@@ -57,6 +57,7 @@ services:
       - ./config.docker.php:/var/www/html/config.php
     networks:
       - moodle-network
+    command: bash -c "apache2-foreground & while true; do php /var/www/html/admin/cli/cron.php; sleep 60; done"
 
   # phpMyAdmin Service
   phpmyadmin:

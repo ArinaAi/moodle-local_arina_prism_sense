@@ -46,6 +46,10 @@ $CFG->admin = 'admin';
 
 $CFG->directorypermissions = 0777;
 
+// Minimum delay between cron runs (in seconds)
+// Default is 180 (3 minutes). Set to 1 for faster cron execution.
+$CFG->mincrondelay = 1;
+
 // Session handling (optional - use Redis for better performance)
 // Uncomment these lines to use Redis for sessions
 // $CFG->session_handler_class = '\core\session\redis';
