@@ -1,10 +1,9 @@
 // Shared utility functions and components for content items
 
 import React from 'react';
-import { Box, Typography, Tooltip, IconButton, Chip } from '@mui/material';
+import { Typography, Tooltip, Chip } from '@mui/material';
 import { Play, Presentation } from 'lucide-react';
 import type { ContentItem } from '../../types/app';
-import StatusBadge from './StatusBadge';
 
 /**
  * Formats a Unix timestamp to a readable date string
@@ -80,7 +79,9 @@ export const ContentItemTitle: React.FC<{ title: string }> = ({ title }) => (
  * Shared component for slide count chip
  */
 export const SlideCountChip: React.FC<{ item: ContentItem }> = ({ item }) => {
-    if (item.contenttype === 'video') return null;
+    if (item.contenttype === 'video') {
+        return null;
+    }
     
     return (
         <Chip

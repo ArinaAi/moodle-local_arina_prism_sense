@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, ListItem, Chip, IconButton, Tooltip, useTheme } from '@mui/material';
+import { Box, Typography, ListItem, IconButton, Tooltip, useTheme } from '@mui/material';
 import { Visibility } from '@mui/icons-material';
 import StatusBadge from './StatusBadge';
 import type { ContentItem } from '../../types/app';
