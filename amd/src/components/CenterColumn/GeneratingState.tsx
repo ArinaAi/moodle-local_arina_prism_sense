@@ -100,19 +100,30 @@ const GeneratingState: React.FC<GeneratingStateProps> = ({
 
             {/* Skeleton Preview */}
             <Box sx={{ width: '100%', maxWidth: 'clamp(300px, 80vw, 580px)', flexShrink: 0 }}>
-                <Skeleton
-                    variant="rectangular"
-                    width="100%"
-                    height="clamp(180px, 40vh, 300px)"
+                <Box
                     sx={{
-                        borderRadius: 2,
+                        position: 'relative',
+                        width: '100%',
+                        paddingTop: '56.25%', // 16:9 aspect ratio
                         mb: 1,
-                        border: '2px solid #e0e0e0',
-                        bgcolor: '#f5f5f5',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                     }}
-                    animation="wave"
-                />
+                >
+                    <Skeleton
+                        variant="rectangular"
+                        sx={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            borderRadius: 2,
+                            border: '2px solid #e0e0e0',
+                            bgcolor: '#f5f5f5',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                        }}
+                        animation="wave"
+                    />
+                </Box>
 
                 {/* Thumbnails */}
                 <Box sx={{
@@ -120,24 +131,37 @@ const GeneratingState: React.FC<GeneratingStateProps> = ({
                     gap: 'clamp(8px, 1.25vw, 12px)',
                     justifyContent: 'center',
                     mb: 1.5,
-                    overflow: 'hidden', // Ensure thumbnails don't overflow container if too many
+                    width: '100%',
                 }}>
                     {[1, 2, 3, 4].map((i) => (
-                        <Skeleton
+                        <Box
                             key={i}
-                            variant="rectangular"
-                            width="clamp(70px, 15vw, 110px)"
-                            height="clamp(45px, 10vw, 65px)"
                             sx={{
-                                borderRadius: 1,
-                                border: '2px solid #e0e0e0',
-                                bgcolor: '#f5f5f5',
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                                flexShrink: 0,
-                                display: { xs: i > 3 ? 'none' : 'block', sm: 'block' } // Hide 4th thumbnail on very small screens
+                                position: 'relative',
+                                flex: '1 1 0',
+                                minWidth: 0,
+                                maxWidth: '110px',
+                                display: { xs: i > 3 ? 'none' : 'block', sm: 'block' }
                             }}
-                            animation="wave"
-                        />
+                        >
+                            <Box sx={{ paddingTop: '56.25%' }}>
+                                <Skeleton
+                                    variant="rectangular"
+                                    sx={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        width: '100%',
+                                        height: '100%',
+                                        borderRadius: 1,
+                                        border: '2px solid #e0e0e0',
+                                        bgcolor: '#f5f5f5',
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                                    }}
+                                    animation="wave"
+                                />
+                            </Box>
+                        </Box>
                     ))}
                 </Box>
 

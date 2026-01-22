@@ -5,7 +5,7 @@ const VideoLoadingSkeleton: React.FC = () => {
     return (
         <Box sx={{ width: '100%', height: '100%', p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
             {/* Main video area */}
-            <Skeleton variant="rectangular" width="100%" height={300} sx={{ borderRadius: 2 }} />
+            <Skeleton variant="rectangular" width="100%" height="clamp(200px, 40vh, 400px)" sx={{ borderRadius: 2 }} />
 
             {/* Title and details */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
