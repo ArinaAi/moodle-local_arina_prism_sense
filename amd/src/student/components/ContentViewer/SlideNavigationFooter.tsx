@@ -13,18 +13,18 @@ interface SlideNavigationFooterProps {
 // Helper function for responsive styles (moved outside to reduce complexity)
 // Helper function for responsive styles (moved outside to reduce complexity)
 const getNavStyles = (isMobile: boolean) => ({
-    progressHeight: 'clamp(3px, 1vw, 4px)',
-    padding: 'clamp(12px, 2vw, 16px)',
-    prevPx: 'clamp(16px, 3vw, 24px)',
-    nextPx: 'clamp(16px, 4vw, 32px)',
+    progressHeight: 'clamp(2px, 0.3vw, 3px)',
+    padding: 'clamp(4px, 0.8vw, 8px)',
+    prevPx: 'clamp(6px, 1.5vw, 12px)',
+    nextPx: 'clamp(6px, 2vw, 16px)',
     touchTarget: {
-        minHeight: 'clamp(44px, 10vw, 48px)', // Ensure accessible touch target
-        minWidth: 'clamp(44px, 10vw, 48px)',
+        minHeight: 'clamp(24px, 4vw, 32px)',
+        minWidth: 'clamp(24px, 4vw, 32px)',
     },
-    fontSize: 'clamp(0.8rem, 2vw, 0.875rem)',
-    labelFontSize: 'clamp(0.8rem, 2vw, 0.9rem)',
-    separatorMargin: '0 clamp(4px, 1vw, 8px)',
-    hoverTransform: 'translateY(-2px)',
+    fontSize: 'clamp(0.6rem, 1.2vw, 0.75rem)',
+    labelFontSize: 'clamp(0.6rem, 1.2vw, 0.75rem)',
+    separatorMargin: '0 clamp(2px, 0.3vw, 4px)',
+    hoverTransform: 'translateY(-1px)',
     showIcons: !isMobile,
 });
 
@@ -72,7 +72,7 @@ const SlideNavigationFooter: React.FC<SlideNavigationFooterProps> = ({ currentSl
                     startIcon={styles.showIcons && <ChevronLeftIcon />}
                     sx={{
                         fontWeight: 600,
-                        py: 1,
+                        py: 0.5,
                         px: styles.prevPx,
                         ...styles.touchTarget,
                         fontSize: styles.fontSize,
@@ -113,7 +113,7 @@ const SlideNavigationFooter: React.FC<SlideNavigationFooterProps> = ({ currentSl
                     endIcon={styles.showIcons && <ChevronRightIcon />}
                     sx={{
                         fontWeight: 600,
-                        py: 1,
+                        py: 0.5,
                         px: styles.nextPx,
                         ...styles.touchTarget,
                         fontSize: styles.fontSize,
