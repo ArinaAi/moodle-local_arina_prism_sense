@@ -127,6 +127,7 @@ export const App: React.FC = () => {
           sx={{
             display: 'flex',
             flexDirection: 'column',
+            alignItems: 'stretch',
             // Use 100dvh (dynamic viewport height) for better mobile support
             // dvh adjusts when mobile browser address bar shows/hides
             minHeight: '100dvh',
@@ -144,6 +145,7 @@ export const App: React.FC = () => {
           {/* Main Content - Takes remaining space after Header */}
           <Box sx={{
             flex: 1,
+            width: '100%',
             minHeight: 0, // Important: allows flex child to shrink below content size
             overflow: 'auto', // Enable scrolling here instead of blocking it at parent
           }}>
