@@ -1,65 +1,12 @@
 import React from 'react';
-import { Box, Typography, Button, useTheme, useMediaQuery } from '@mui/material';
+import { Box, Typography, Button } from '@mui/material';
 import { Settings } from 'lucide-react';
 
 interface EmptyStateProps {
     onOpenSourcesModal?: () => void;
 }
 
-// Helper functions split to reduce cognitive complexity (max 15 per function)
-const getLayoutStyles = (mobile: boolean): {
-    container: { minHeight: string; px: number };
-    iconBox: { size: number; mb: number };
-    iconSize: number;
-    title: { variant: 'subtitle1' | 'h6'; mb: number; fontSize: string };
-} => ({
-    container: {
-        minHeight: mobile ? '300px' : 'clamp(300px, 40vh, 400px)',
-        px: mobile ? 2 : 3,
-    },
-    iconBox: {
-        size: mobile ? 56 : 70,
-        mb: mobile ? 2 : 3,
-    },
-    iconSize: mobile ? 28 : 36,
-    title: {
-        variant: mobile ? 'subtitle1' : 'h6',
-        mb: mobile ? 1.5 : 2,
-        fontSize: mobile ? '1rem' : '1.25rem',
-    },
-});
-
-const getButtonStyles = (mobile: boolean): {
-    description: { mb: number; fontSize: string };
-    button: { size: 'medium' | 'large'; iconSize: number; py: number; px: number; fontSize: string; minHeight: string };
-} => ({
-    description: {
-        mb: mobile ? 2 : 3,
-        fontSize: mobile ? '0.75rem' : '0.875rem',
-    },
-    button: {
-        size: mobile ? 'medium' : 'large',
-        iconSize: mobile ? 18 : 20,
-        py: mobile ? 1 : 1.5,
-        px: mobile ? 3 : 4,
-        fontSize: mobile ? '0.875rem' : '1rem',
-        minHeight: mobile ? '44px' : 'auto',
-    },
-});
-
-// Compose all styles
-const getResponsiveStyles = (mobile: boolean) => ({
-    ...getLayoutStyles(mobile),
-    ...getButtonStyles(mobile),
-});
-
 const EmptyState: React.FC<EmptyStateProps> = ({ onOpenSourcesModal }) => {
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
-    // Use external helper function
-    const styles = getResponsiveStyles(isMobile);
-
     return (
         <Box
             sx={{
@@ -68,31 +15,31 @@ const EmptyState: React.FC<EmptyStateProps> = ({ onOpenSourcesModal }) => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 textAlign: 'center',
-                minHeight: styles.container.minHeight,
+                minHeight: 'clamp(300px, 40vh, 400px)',
                 height: '100%',
-                px: styles.container.px,
+                px: 'clamp(16px, 3vw, 24px)',
             }}
         >
             <Box
                 sx={{
-                    width: styles.iconBox.size,
-                    height: styles.iconBox.size,
+                    width: 'clamp(56px, 6vw, 70px)',
+                    height: 'clamp(56px, 6vw, 70px)',
                     borderRadius: '50%',
                     backgroundColor: 'rgba(13, 92, 162, 0.1)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    mb: styles.iconBox.mb,
+                    mb: 'clamp(16px, 2.5vw, 24px)',
                 }}
             >
-                <Settings size={styles.iconSize} color="#0D5CA2" />
+                <Settings size={28} style={{ width: 'clamp(28px, 3vw, 36px)', height: 'clamp(28px, 3vw, 36px)' }} color="#0D5CA2" />
             </Box>
             <Typography
-                variant={styles.title.variant}
+                variant="h6"
                 sx={{
                     fontWeight: 700,
-                    mb: styles.title.mb,
-                    fontSize: styles.title.fontSize,
+                    mb: 'clamp(12px, 1.5vw, 16px)',
+                    fontSize: 'clamp(1rem, 2vw, 1.25rem)',
                 }}
             >
                 Get Started with LectureBot
@@ -101,9 +48,9 @@ const EmptyState: React.FC<EmptyStateProps> = ({ onOpenSourcesModal }) => {
                 variant="body1"
                 color="text.secondary"
                 sx={{
-                    mb: styles.description.mb,
+                    mb: 'clamp(16px, 2vw, 24px)',
                     maxWidth: 400,
-                    fontSize: styles.description.fontSize,
+                    fontSize: 'clamp(0.75rem, 1.5vw, 0.875rem)',
                 }}
             >
                 Upload your PDF sources to begin generating lecture content
@@ -111,16 +58,16 @@ const EmptyState: React.FC<EmptyStateProps> = ({ onOpenSourcesModal }) => {
             {onOpenSourcesModal && (
                 <Button
                     variant="contained"
-                    size={styles.button.size}
-                    startIcon={<Settings size={styles.button.iconSize} />}
+                    size="large"
+                    startIcon={<Settings size={18} style={{ width: 'clamp(18px, 1.5vw, 20px)', height: 'clamp(18px, 1.5vw, 20px)' }} />}
                     onClick={onOpenSourcesModal}
                     sx={{
-                        py: styles.button.py,
-                        px: styles.button.px,
+                        py: 'clamp(8px, 1.25vw, 12px)',
+                        px: 'clamp(24px, 3vw, 32px)',
                         fontWeight: 600,
                         borderRadius: '20px',
-                        fontSize: styles.button.fontSize,
-                        minHeight: styles.button.minHeight,
+                        fontSize: 'clamp(0.875rem, 1.5vw, 1rem)',
+                        minHeight: 'clamp(44px, 5vw, 48px)',
                         background: 'linear-gradient(135deg, #0f6cbf 0%, #0a5a9d 100%)',
                         transition: 'all 0.3s ease',
                         '&:hover': {

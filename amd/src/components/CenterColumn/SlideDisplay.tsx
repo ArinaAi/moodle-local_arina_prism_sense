@@ -10,7 +10,6 @@ interface SlideDisplayProps {
     currentContentItem?: ContentItem;
     moodleContext: MoodleContext | null;
     isApproved: boolean;
-    isMobile?: boolean;
 }
 
 const SlideDisplay: React.FC<SlideDisplayProps> = ({
@@ -18,7 +17,6 @@ const SlideDisplay: React.FC<SlideDisplayProps> = ({
     currentContentItem,
     moodleContext,
     isApproved,
-    isMobile = false,
 }) => {
     const [currentTopicIndex, setCurrentTopicIndex] = useState(0);
 
@@ -28,16 +26,16 @@ const SlideDisplay: React.FC<SlideDisplayProps> = ({
 
     const renderSlideInfo = () => (
         <Box sx={{
-            mb: isMobile ? 1.5 : 2,
+            mb: 'clamp(12px, 1.5vw, 16px)',
             display: 'flex',
             alignItems: 'center',
-            gap: isMobile ? 1 : 2,
+            gap: 'clamp(8px, 1.5vw, 16px)',
             flexWrap: 'wrap'
         }}>
             <Typography
                 variant="body2"
                 color="text.secondary"
-                sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}
+                sx={{ fontSize: 'clamp(0.75rem, 1.25vw, 0.875rem)' }}
             >
                 {totalSlides} slide{totalSlides === 1 ? '' : 's'} generated for {currentContentItem?.sectionname || currentContentItem?.title || currentTopic?.topic || 'this section'}
             </Typography>
@@ -53,7 +51,8 @@ const SlideDisplay: React.FC<SlideDisplayProps> = ({
                         size="small"
                         sx={{
                             fontWeight: 600,
-                            fontSize: isMobile ? '0.7rem' : '0.75rem',
+                            fontSize: 'clamp(0.7rem, 1.25vw, 0.75rem)',
+                            height: 'clamp(24px, 2vw, 32px)',
                         }}
                     />
                 )
@@ -69,15 +68,16 @@ const SlideDisplay: React.FC<SlideDisplayProps> = ({
         return (
             <Box
                 sx={{
-                    mt: isMobile ? 1.5 : 2,
+                    mt: 'clamp(12px, 1.5vw, 16px)',
                     display: 'flex',
                     gap: 1,
                     flexWrap: 'nowrap',
                     overflowX: 'auto',
                     pb: 1, // Space for scrollbar
-                    // Hide scrollbar on desktop, show on mobile
+                    // Hide scrollbar on desktop
                     '&::-webkit-scrollbar': {
-                        height: isMobile ? 4 : 0,
+                        height: 4,
+                        display: { xs: 'block', md: 'none' } // conditional display
                     },
                     '&::-webkit-scrollbar-thumb': {
                         backgroundColor: 'rgba(0,0,0,0.2)',
@@ -96,8 +96,8 @@ const SlideDisplay: React.FC<SlideDisplayProps> = ({
                             fontWeight: idx === currentTopicIndex ? 600 : 400,
                             whiteSpace: 'nowrap',
                             flexShrink: 0,
-                            minHeight: isMobile ? '36px' : '32px',
-                            fontSize: isMobile ? '0.75rem' : '0.8125rem',
+                            minHeight: 'clamp(32px, 4vw, 36px)',
+                            fontSize: 'clamp(0.75rem, 1.25vw, 0.8125rem)',
                         }}
                     >
                         Topic {idx + 1}
@@ -108,28 +108,30 @@ const SlideDisplay: React.FC<SlideDisplayProps> = ({
     };
 
     return (
-        <Box className="animate-scale-up" sx={{ width: '100%' }}>
+        <Box className="animate-scale-up" sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             {currentTopic && renderSlideInfo()}
 
             <Box
                 sx={{
                     width: '100%',
-                    aspectRatio: '16/9',
-                    // Use clamp for adaptive heights
-                    minHeight: isMobile ? '200px' : 'clamp(450px, 55vh, 800px)',
-                    maxHeight: isMobile ? '50vh' : 'clamp(600px, 80vh, 1200px)',
+                    flex: 1,
+                    minHeight: 0,
                     border: '2px solid #e0e0e0',
                     borderRadius: 1,
                     overflow: 'hidden',
                     backgroundColor: '#ffffff',
                     boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                    display: 'flex',
+                    flexDirection: 'column'
                 }}
             >
                 {currentContentId && moodleContext && (
-                    <PptxViewer
-                        contentId={currentContentId}
-                        courseId={moodleContext.courseid}
-                    />
+                    <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                        <PptxViewer
+                            contentId={currentContentId}
+                            courseId={moodleContext.courseid}
+                        />
+                    </Box>
                 )}
             </Box>
 

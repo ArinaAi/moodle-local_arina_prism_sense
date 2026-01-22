@@ -12,24 +12,28 @@ interface PreviewActionsProps {
     isMobile?: boolean;
 }
 
-// Helper to get responsive styles (moved outside component to reduce complexity)
-const getResponsiveStyles = (isMobile: boolean) => ({
+// Helper to get responsive styles - now using fluid clamp() values
+const getResponsiveStyles = () => ({
     stack: {
-        direction: isMobile ? 'column' as const : 'row' as const,
-        spacing: isMobile ? 1.5 : 2,
-        mt: isMobile ? 2 : 3,
+        direction: 'row' as const,
+        spacing: 'clamp(4px, 1vw, 12px)',
+        mt: 'clamp(8px, 1.5vw, 16px)',
     },
     button: {
         fontWeight: 600,
-        fontSize: isMobile ? '0.875rem' : '1rem',
-        py: isMobile ? 1 : 1.5,
-        minHeight: isMobile ? '44px' : 'auto',
+        fontSize: 'clamp(0.65rem, 1.2vw, 0.875rem)',
+        py: 'clamp(4px, 0.8vw, 8px)',
+        px: 'clamp(8px, 1.5vw, 16px)',
+        minHeight: 'clamp(28px, 4vw, 40px)',
         transition: 'all 0.3s ease',
+        whiteSpace: 'nowrap' as const,
+        flex: '1 1 auto',
+        minWidth: 0,
     },
     outlinedHover: {
         borderWidth: 1,
         backgroundColor: 'rgba(15, 108, 191, 0.08)',
-        transform: 'translateY(-2px)',
+        transform: 'translateY(-1px)',
     },
 });
 
@@ -84,13 +88,13 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
     onRegenerate,
     onDownload,
     currentContentItem,
-    isMobile = false,
+    isMobile: _isMobile = false,
 }) => {
     const isVideo = currentContentItem?.contenttype === 'video';
     const showRegenerate = currentContentItem?.status !== 'published';
 
-    // Use external helper functions
-    const styles = getResponsiveStyles(isMobile);
+    // Use external helper functions (no longer needs isMobile)
+    const styles = getResponsiveStyles();
     const approveStyles = getApproveButtonStyles(isApproved);
     const approveLabel = getApproveLabel(isApproved, isVideo ?? false);
 
@@ -98,7 +102,7 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
         <Stack
             direction={styles.stack.direction}
             spacing={styles.stack.spacing}
-            sx={{ mt: styles.stack.mt }}
+            sx={{ mt: styles.stack.mt, flexWrap: 'wrap', gap: 'clamp(4px, 1vw, 8px)' }}
         >
             <Button
                 variant={isApproved ? 'contained' : 'outlined'}
@@ -106,7 +110,6 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
                 startIcon={<Check />}
                 onClick={onApprove}
                 disabled={isApproved}
-                fullWidth={isMobile}
                 sx={{ ...styles.button, ...approveStyles }}
             >
                 {approveLabel}
@@ -143,7 +146,6 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
                     color="primary"
                     startIcon={<Refresh />}
                     onClick={onRegenerate}
-                    fullWidth={isMobile}
                     sx={{ ...styles.button, borderWidth: 1, '&:hover': styles.outlinedHover }}
                 >
                     Regenerate
@@ -155,7 +157,6 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
                 color="primary"
                 startIcon={<Download />}
                 onClick={onDownload}
-                fullWidth={isMobile}
                 sx={{ ...styles.button, borderWidth: 1, '&:hover': styles.outlinedHover }}
             >
                 Download

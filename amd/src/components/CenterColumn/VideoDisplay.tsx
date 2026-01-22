@@ -13,19 +13,19 @@ const VideoDisplay: React.FC<VideoDisplayProps> = ({
     videoUrl,
     topic,
     isApproved,
-    isMobile = false
+    isMobile: _isMobile = false
 }) => {
 
     return (
         <Box className="animate-scale-up" sx={{ width: '100%' }}>
-            <Box sx={{ mb: isMobile ? 1.5 : 2 }}>
+            <Box sx={{ mb: 'clamp(8px, 1.5vh, 16px)' }}>
                 {topic && (
                     <Typography
-                        variant={isMobile ? 'subtitle1' : 'h6'}
+                        variant="h6"
                         color="#0f6cbf"
                         sx={{
                             fontWeight: 600,
-                            fontSize: isMobile ? '1rem' : '1.25rem',
+                            fontSize: 'clamp(0.9rem, 2vw + 0.5rem, 1.25rem)',
                         }}
                     >
                         {topic}
@@ -39,7 +39,8 @@ const VideoDisplay: React.FC<VideoDisplayProps> = ({
                         icon={<CheckCircle />}
                         sx={{
                             mt: 1,
-                            fontSize: isMobile ? '0.7rem' : '0.75rem',
+                            fontSize: 'clamp(0.65rem, 1.5vw, 0.75rem)',
+                            height: 'clamp(24px, 3vw, 32px)',
                         }}
                     />
                 )}
@@ -48,11 +49,11 @@ const VideoDisplay: React.FC<VideoDisplayProps> = ({
                 sx={{
                     width: '100%',
                     aspectRatio: '16/9',
-                    // Use clamp for adaptive heights
-                    minHeight: isMobile ? '200px' : 'clamp(300px, 40vh, 400px)',
-                    maxHeight: isMobile ? '50vh' : 'clamp(450px, 55vh, 650px)',
+                    // Fluid adaptive heights
+                    minHeight: 'clamp(180px, 35vh, 350px)',
+                    maxHeight: 'clamp(300px, 55vh, 600px)',
                     border: '2px solid #e0e0e0',
-                    borderRadius: 1,
+                    borderRadius: 'clamp(4px, 1vw, 8px)',
                     overflow: 'hidden',
                     backgroundColor: '#000',
                     boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
@@ -75,4 +76,3 @@ const VideoDisplay: React.FC<VideoDisplayProps> = ({
 };
 
 export default VideoDisplay;
-

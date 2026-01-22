@@ -82,14 +82,27 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
   };
 
   const renderUnsupportedContent = () => (
-    <Box sx={{ textAlign: 'center', p: isMobile ? 3 : 4 }}>
-      <Typography variant={isMobile ? 'subtitle1' : 'h6'} color="text.secondary" gutterBottom>
+    <Box sx={{ textAlign: 'center', p: 'clamp(16px, 3vw, 32px)' }}>
+      <Typography
+        variant="h6"
+        color="text.secondary"
+        gutterBottom
+        sx={{ fontSize: 'clamp(0.9rem, 2vw, 1.25rem)' }}
+      >
         {activeContentType.replace('-', ' ').toUpperCase()}
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ mb: 2, fontSize: 'clamp(0.75rem, 1.5vw, 0.875rem)' }}
+      >
         Content generation is available for chapters/sections with slides
       </Typography>
-      <Typography variant="caption" color="text.secondary">
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ fontSize: 'clamp(0.65rem, 1.25vw, 0.75rem)' }}
+      >
         Generate slides first to enable content creation for specific chapters
       </Typography>
     </Box>
@@ -148,13 +161,12 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
 
     // Slide View
     return (
-      <Box className="animate-scale-up" sx={{ width: '100%' }}>
+      <Box className="animate-scale-up" sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <SlideDisplay
           generatedContent={generatedContent}
           currentContentItem={currentContentItem}
           moodleContext={moodleContext}
           isApproved={isApproved}
-          isMobile={isMobile}
         />
         <PreviewActions
           isApproved={isApproved}
@@ -178,8 +190,7 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        // Responsive minHeight using clamp
-        minHeight: isMobile ? 'auto' : 'clamp(400px, 60vh, 700px)',
+        minHeight: 0,
         backgroundColor: 'rgba(255, 255, 255, 0.8)',
         backdropFilter: 'blur(12px)',
         boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
@@ -204,21 +215,21 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
           justifyContent: 'space-between'
         }}>
           <Typography
-            variant={isMobile ? 'subtitle1' : 'h6'}
+            variant="h6"
             component="h2"
-            sx={{ fontWeight: 600 }}
+            sx={{ fontWeight: 600, fontSize: 'clamp(1rem, 2vw, 1.25rem)' }}
           >
             Preview
           </Typography>
           {isPreviewingSlides && onClosePreview && (
             <IconButton
               onClick={onClosePreview}
-              size={isMobile ? 'medium' : 'small'}
+              size="small"
               sx={{
                 color: 'text.secondary',
-                // Ensure minimum touch target on mobile
-                minWidth: isMobile ? '44px' : 'auto',
-                minHeight: isMobile ? '44px' : 'auto',
+                // Fluid touch target
+                minWidth: 'clamp(36px, 5vw, 44px)',
+                minHeight: 'clamp(36px, 5vw, 44px)',
                 '&:hover': {
                   backgroundColor: 'rgba(0, 0, 0, 0.04)',
                   color: 'text.primary',

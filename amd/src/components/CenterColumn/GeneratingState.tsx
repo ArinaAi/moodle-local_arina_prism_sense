@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Skeleton, useTheme, useMediaQuery } from '@mui/material';
+import { Box, Typography, Skeleton } from '@mui/material';
 import SmoothProgressBar from './SmoothProgressBar';
 import ThoughtStream from './ThoughtStream';
 import VideoLoadingSkeleton from './VideoLoadingSkeleton';
@@ -23,22 +23,6 @@ const GeneratingState: React.FC<GeneratingStateProps> = ({
     isGeneratingSlides: _isGeneratingSlides,
     processingStatus = null
 }) => {
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
-    // Responsive styles
-    const styles = {
-        padding: isMobile ? 1 : 2,
-        gap: isMobile ? 1 : 1.5,
-        iconSize: isMobile ? 28 : 36,
-        emojiSize: isMobile ? '14px' : '18px',
-        titleFontSize: isMobile ? '0.9rem' : '1.1rem',
-        captionFontSize: isMobile ? '0.65rem' : '0.75rem',
-        skeletonHeight: isMobile ? 180 : 300,
-        thumbnailHeight: isMobile ? 45 : 65,
-        thumbnailCount: isMobile ? [1, 2, 3] : [1, 2, 3, 4],
-        maxWidth: isMobile ? '100%' : 580,
-    };
 
     // Video generation view
     if (isGeneratingVideo) {
@@ -47,7 +31,7 @@ const GeneratingState: React.FC<GeneratingStateProps> = ({
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                p: styles.padding,
+                p: 'clamp(8px, 1.5vw, 16px)',
                 maxWidth: 700,
                 mx: 'auto',
                 overflow: 'auto',
@@ -70,18 +54,18 @@ const GeneratingState: React.FC<GeneratingStateProps> = ({
                 height: '100%',
                 minHeight: 0,
                 overflow: 'auto',
-                p: styles.padding,
+                p: 'clamp(8px, 1.5vw, 16px)',
             }}
         >
             {/* Header */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: styles.gap, mb: 1.5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 'clamp(8px, 1.25vw, 12px)', mb: 1.5 }}>
                 <Box
                     sx={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        width: styles.iconSize,
-                        height: styles.iconSize,
+                        width: 'clamp(28px, 3.5vw, 36px)',
+                        height: 'clamp(28px, 3.5vw, 36px)',
                         borderRadius: '50%',
                         background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                         animation: 'pulse 2s ease-in-out infinite',
@@ -91,7 +75,7 @@ const GeneratingState: React.FC<GeneratingStateProps> = ({
                         },
                     }}
                 >
-                    <Typography sx={{ fontSize: styles.emojiSize }}>✨</Typography>
+                    <Typography sx={{ fontSize: 'clamp(14px, 1.8vw, 18px)' }}>✨</Typography>
                 </Box>
                 <Box>
                     <Typography
@@ -99,7 +83,7 @@ const GeneratingState: React.FC<GeneratingStateProps> = ({
                         sx={{
                             fontWeight: 600,
                             color: '#0f6cbf',
-                            fontSize: styles.titleFontSize,
+                            fontSize: 'clamp(0.9rem, 2vw, 1.1rem)',
                         }}
                     >
                         Creating Your Slides
@@ -107,7 +91,7 @@ const GeneratingState: React.FC<GeneratingStateProps> = ({
                     <Typography
                         variant="caption"
                         color="text.secondary"
-                        sx={{ fontSize: styles.captionFontSize }}
+                        sx={{ fontSize: 'clamp(0.65rem, 1.5vw, 0.75rem)' }}
                     >
                         AI-powered presentation generation
                     </Typography>
@@ -115,11 +99,11 @@ const GeneratingState: React.FC<GeneratingStateProps> = ({
             </Box>
 
             {/* Skeleton Preview */}
-            <Box sx={{ width: '100%', maxWidth: styles.maxWidth, flexShrink: 0 }}>
+            <Box sx={{ width: '100%', maxWidth: 'clamp(300px, 80vw, 580px)', flexShrink: 0 }}>
                 <Skeleton
                     variant="rectangular"
                     width="100%"
-                    height={styles.skeletonHeight}
+                    height="clamp(180px, 40vh, 300px)"
                     sx={{
                         borderRadius: 2,
                         mb: 1,
@@ -133,22 +117,24 @@ const GeneratingState: React.FC<GeneratingStateProps> = ({
                 {/* Thumbnails */}
                 <Box sx={{
                     display: 'flex',
-                    gap: styles.gap,
+                    gap: 'clamp(8px, 1.25vw, 12px)',
                     justifyContent: 'center',
                     mb: 1.5,
+                    overflow: 'hidden', // Ensure thumbnails don't overflow container if too many
                 }}>
-                    {styles.thumbnailCount.map((i) => (
+                    {[1, 2, 3, 4].map((i) => (
                         <Skeleton
                             key={i}
                             variant="rectangular"
-                            width={isMobile ? 70 : 110}
-                            height={styles.thumbnailHeight}
+                            width="clamp(70px, 15vw, 110px)"
+                            height="clamp(45px, 10vw, 65px)"
                             sx={{
                                 borderRadius: 1,
                                 border: '2px solid #e0e0e0',
                                 bgcolor: '#f5f5f5',
                                 boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
                                 flexShrink: 0,
+                                display: { xs: i > 3 ? 'none' : 'block', sm: 'block' } // Hide 4th thumbnail on very small screens
                             }}
                             animation="wave"
                         />
