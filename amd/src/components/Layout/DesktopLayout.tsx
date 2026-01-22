@@ -30,15 +30,19 @@ const DesktopLayout: React.FC<LayoutProps> = ({
         <Box
             sx={{
                 display: 'grid',
-                // Responsive grid: side columns shrink on smaller desktops, expand on large screens
+                // Responsive grid: give left column more room on smaller screens
+                // Left: minimum 260px (enough for dock), can grow to 320px
+                // Center: flexible, takes remaining space
+                // Right: minimum 280px, can grow to 380px on large screens
                 gridTemplateColumns: isLargeDesktop
-                    ? 'minmax(320px, 1.2fr) minmax(500px, 2.5fr) minmax(320px, 1.2fr)'
-                    : 'clamp(260px, 20vw, 350px) 1fr clamp(260px, 20vw, 350px)',
+                    ? 'minmax(320px, 1.2fr) minmax(500px, 2.5fr) minmax(340px, 1.3fr)'
+                    : 'minmax(260px, 1fr) minmax(400px, 2fr) minmax(280px, 1fr)',
                 gridTemplateRows: '1fr',
-                gap: 'clamp(16px, 1.5vw, 24px)',
-                p: 'clamp(16px, 1.5vw, 24px)',
-                // Use 100% height - parent controls actual size via flex layout
+                gap: 'clamp(12px, 1.2vw, 20px)',
+                p: 'clamp(12px, 1.2vw, 20px)',
+                // Use 100% height and width
                 height: '100%',
+                width: '100%',
                 minHeight: 0, // Allows shrinking in flex context
                 overflow: 'hidden',
                 alignItems: 'stretch',
@@ -68,7 +72,7 @@ const DesktopLayout: React.FC<LayoutProps> = ({
             </Box>
 
             {/* Right Column */}
-            <Box sx={{ height: '100%', minHeight: 0, overflow: 'auto' }}>
+            <Box sx={{ height: '100%', minHeight: 0, overflow: 'hidden' }}>
                 <RightColumn
                     state={{ contentItems: state.contentItems }}
                     onPublishContent={onPublishContent}
@@ -76,6 +80,7 @@ const DesktopLayout: React.FC<LayoutProps> = ({
                     onDeleteContent={onDeleteContent}
                     isLoading={isLoadingContent}
                     onPreviewContent={handlePreviewContent}
+                    fullHeight={true}
                 />
             </Box>
         </Box>

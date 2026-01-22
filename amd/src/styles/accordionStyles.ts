@@ -22,9 +22,14 @@ export const accordionStyles = {
         minHeight: '48px',
         boxShadow: 'none !important',
         WebkitTapHighlightColor: 'transparent',
+        overflow: 'hidden',
         '& .MuiAccordionSummary-content': {
             margin: '8px 0',
             alignItems: 'center',
+            justifyContent: 'flex-start',
+            minWidth: 0,
+            overflow: 'hidden',
+            width: '100%',
         },
     } as SxProps<Theme>,
 };
