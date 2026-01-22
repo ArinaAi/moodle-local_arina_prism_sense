@@ -24,6 +24,7 @@ import {
 } from '@mui/material';
 import { Close, Error as ErrorIcon, Add, Check, Delete } from '@mui/icons-material';
 import { FileText } from 'lucide-react';
+import { getModalBoxStyles, getModalLayoutStyles } from '../../utils/modalStyles';
 import { formatFileSize } from '../../utils/helpers';
 import type { MoodleContext } from '../../types/moodle';
 
@@ -94,41 +95,18 @@ const getBoxTypeFlags = (boxType: BoxState['type']) => ({
   isPending: boxType === 'pending_details',
 });
 
-// Helper functions for responsive modal styles (split to reduce complexity)
-const getModalBoxStyles = (isMobile: boolean) => ({
-  position: isMobile ? 'fixed' as const : 'absolute' as const,
-  top: isMobile ? 0 : '50%',
-  left: isMobile ? 0 : '50%',
-  right: isMobile ? 0 : 'auto',
-  bottom: isMobile ? 0 : 'auto',
-  transform: isMobile ? 'none' : 'translate(-50%, -50%)',
-  width: isMobile ? '100%' : { sm: '85%', md: '850px' },
-  maxHeight: isMobile ? '100vh' : '85vh',
-  height: isMobile ? '100%' : 'auto',
-  borderRadius: isMobile ? 0 : '16px',
-  boxShadow: isMobile ? 'none' : 24,
-});
-
-const getModalLayoutStyles = (isMobile: boolean): {
-  padding: number;
-  titleVariant: 'subtitle1' | 'h6';
-  touchTarget: { minWidth: string; minHeight: string };
-  gridGap: number;
-} => ({
-  padding: isMobile ? 2 : 3,
-  titleVariant: isMobile ? 'subtitle1' : 'h6',
-  touchTarget: {
-    minWidth: isMobile ? '44px' : 'auto',
-    minHeight: isMobile ? '44px' : 'auto',
-  },
-  gridGap: isMobile ? 2 : 3,
-});
-
 // Compose all styles
-const getModalStyles = (isMobile: boolean) => ({
-  modal: getModalBoxStyles(isMobile),
-  ...getModalLayoutStyles(isMobile),
-});
+const getModalStyles = (isMobile: boolean) => {
+  const baseBoxStyles = getModalBoxStyles(isMobile, { sm: '85%', md: '850px' }, '85vh');
+  const layoutStyles = getModalLayoutStyles(isMobile);
+
+  return {
+    modal: baseBoxStyles,
+    ...layoutStyles,
+    // Add specific properties for SourcesModal
+    gridGap: 'clamp(16px, 2vh, 24px)',
+  };
+};
 
 const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContext }) => {
   const theme = useTheme();
@@ -295,7 +273,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
 
   const getTextFieldInputProps = (isExisting: boolean) => ({
     sx: {
-      fontSize: '0.9rem',
+      fontSize: 'clamp(0.85rem, 0.5vw + 0.75rem, 0.9rem)',
       bgcolor: isExisting ? '#f8f9fa' : '#fff',
       '& input': {
         color: isExisting ? '#2c3e50' : 'inherit',
@@ -628,6 +606,8 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
+            // Never shrink header
+            flexShrink: 0,
           }}
         >
           <Typography variant={styles.titleVariant} component="h2" sx={{ fontWeight: 600 }}>
@@ -641,11 +621,13 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
           </IconButton>
         </Box>
 
-        {/* Content */}
+        {/* Content - scrollable area */}
         <Box sx={{
           p: styles.padding,
           overflow: 'auto',
           flex: 1,
+          // IMPORTANT: allows this flex child to shrink below its content size
+          minHeight: 0,
           WebkitOverflowScrolling: 'touch',
         }}>
           {loading && (
@@ -686,18 +668,20 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
                   const boxId = `source-upload-slot-${boxIndex + 1}`;
 
                   return (
-                    <Box key={boxId} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Box key={boxId} sx={{ display: 'flex', flexDirection: 'column', gap: 'clamp(12px, 1.5vh, 16px)' }}>
                       {/* DropZone Area */}
                       <Paper
                         variant="outlined"
                         sx={{
                           border: `2px dashed ${borderColor}`,
                           borderRadius: 2,
-                          p: 3,
+                          // Fluid padding: 16px to 24px
+                          p: 'clamp(16px, 2vh, 24px)',
                           textAlign: 'center',
                           backgroundColor: backgroundColor,
                           cursor: isEmpty ? 'pointer' : 'default',
-                          minHeight: '320px',
+                          // Fluid min-height: 180px to 320px
+                          minHeight: 'clamp(180px, 30vh, 320px)',
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'center',
@@ -749,7 +733,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
                                 color: '#0D5CA2',
                                 fontWeight: 700,
                                 mb: 0.5,
-                                fontSize: '0.85rem',
+                                fontSize: 'clamp(0.75rem, 0.5vw + 0.7rem, 0.85rem)',
                               }}
                             >
                               Click to upload
@@ -758,7 +742,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
                               variant="caption"
                               sx={{
                                 color: '#6c757d',
-                                fontSize: '0.75rem',
+                                fontSize: 'clamp(0.7rem, 0.5vw + 0.6rem, 0.75rem)',
                               }}
                             >
                               or drag and drop
@@ -781,7 +765,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
                                 color: '#1a1a1a',
                                 textAlign: 'center',
                                 px: 1,
-                                fontSize: '0.85rem',
+                                fontSize: 'clamp(0.75rem, 0.5vw + 0.7rem, 0.85rem)',
                                 wordBreak: 'break-word',
                               }}
                             >
@@ -818,7 +802,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
                                 />
                                 <Typography
                                   variant="caption"
-                                  sx={{ fontWeight: 600, color: '#0D5CA2', fontSize: '0.7rem' }}
+                                  sx={{ fontWeight: 600, color: '#0D5CA2', fontSize: 'clamp(0.65rem, 0.5vw + 0.5rem, 0.7rem)' }}
                                 >
                                   Uploading...
                                 </Typography>
@@ -873,7 +857,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
                                 color: '#1a1a1a',
                                 textAlign: 'center',
                                 px: 1,
-                                fontSize: '0.85rem',
+                                fontSize: 'clamp(0.75rem, 0.5vw + 0.7rem, 0.85rem)',
                                 wordBreak: 'break-word',
                               }}
                             >
@@ -1021,17 +1005,41 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
         {/* Footer with Section Dropdown */}
         <Box
           sx={{
-            p: 3,
+            // Fluid padding: min 12px, max 24px
+            p: 'clamp(12px, 2vh, 24px)',
             borderTop: '1px solid #e9ecef',
             display: 'flex',
+            // IMPORTANT: Never shrink footer - keeps it visible even when content is tall
+            flexShrink: 0,
+            // Stack vertically on mobile, row on desktop (breakpoint needed for layout switch)
+            flexDirection: { xs: 'column-reverse', sm: 'row' },
             justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: 2,
+            alignItems: { xs: 'stretch', sm: 'center' },
+            // Fluid gap: min 8px, max 16px
+            gap: 'clamp(8px, 1vh + 4px, 16px)',
+            // Safe area for devices with home indicator, combined with fluid padding
+            paddingBottom: 'max(clamp(12px, 2vh, 24px), env(safe-area-inset-bottom))',
           }}
         >
-          {/* Section Selector - Bottom Left */}
-          <FormControl sx={{ minWidth: 300 }} size="medium">
-            <InputLabel id="section-selector-label">Select Section</InputLabel>
+          {/* Section Selector - smaller on mobile */}
+          <FormControl
+            sx={{
+              // Full width on mobile, fixed width on larger screens
+              minWidth: { xs: '100%', sm: 200, md: 300 },
+              width: { xs: '100%', sm: 'auto' },
+            }}
+            // Use small size on mobile for compact height
+            size={isMobile ? 'small' : 'medium'}
+          >
+            <InputLabel
+              id="section-selector-label"
+              sx={{
+                // Fluid font size
+                fontSize: 'clamp(0.8rem, 0.5vw + 0.75rem, 0.875rem)',
+              }}
+            >
+              Select Section
+            </InputLabel>
             <Select
               labelId="section-selector-label"
               value={selectedSection?.toString() || ''}
@@ -1052,14 +1060,21 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
             </Select>
           </FormControl>
 
-          {/* Done Button - Bottom Right */}
+          {/* Done Button - more compact on mobile */}
           <Button
             onClick={handleDoneClick}
             variant="contained"
+            // Full width on mobile since footer is stacked
+            fullWidth={isMobile}
+            // Smaller button on mobile
+            size={isMobile ? 'medium' : 'large'}
             sx={{
               fontWeight: 600,
-              py: 1.5,
-              px: 4,
+              // Reduced vertical padding on mobile
+              py: { xs: 1, sm: 1.5 },
+              px: { xs: 3, sm: 4 },
+              // Smaller minimum height on mobile (44px is still touch-friendly)
+              minHeight: { xs: '44px', sm: 'auto' },
               background: 'linear-gradient(135deg, #0f6cbf 0%, #0a5a9d 100%)',
               transition: 'all 0.3s ease',
               '&:hover': {
@@ -1077,11 +1092,16 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
         <Dialog
           open={deleteConfirmation.open}
           onClose={closeDeleteConfirmation}
+          // Full screen on mobile for better usability
+          fullScreen={isMobile}
           sx={{ zIndex: 100005 }}
           PaperProps={{
             sx: {
-              borderRadius: '12px',
-              minWidth: '400px',
+              // Rounded corners on larger screens, square on mobile (fullScreen)
+              borderRadius: isMobile ? 0 : '12px',
+              // Responsive width instead of fixed minWidth
+              width: { xs: '100%', sm: '400px' },
+              maxWidth: { xs: '100%', sm: '400px' },
             },
           }}
         >
@@ -1093,13 +1113,23 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
               Are you sure you want to delete this PDF source? This action cannot be undone.
             </DialogContentText>
           </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
+          <DialogActions
+            sx={{
+              px: { xs: 2, sm: 3 },
+              pb: { xs: 2, sm: 3 },
+              gap: 1,
+              // Stack buttons vertically on mobile
+              flexDirection: { xs: 'column-reverse', sm: 'row' },
+            }}
+          >
             <Button
               onClick={closeDeleteConfirmation}
               variant="outlined"
+              fullWidth={isMobile}
               sx={{
                 fontWeight: 600,
                 borderWidth: 2,
+                minHeight: { xs: '48px', sm: 'auto' },
                 '&:hover': {
                   borderWidth: 2,
                 },
@@ -1111,8 +1141,10 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
               onClick={handleDeleteSource}
               variant="contained"
               color="error"
+              fullWidth={isMobile}
               sx={{
                 fontWeight: 600,
+                minHeight: { xs: '48px', sm: 'auto' },
                 background: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)',
                 '&:hover': {
                   background: 'linear-gradient(135deg, #c82333 0%, #bd2130 100%)',

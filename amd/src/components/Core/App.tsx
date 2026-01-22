@@ -127,31 +127,41 @@ export const App: React.FC = () => {
           sx={{
             display: 'flex',
             flexDirection: 'column',
-            minHeight: '80vh',
+            // Use 100dvh (dynamic viewport height) for better mobile support
+            // dvh adjusts when mobile browser address bar shows/hides
+            minHeight: '100dvh',
+            height: '100dvh',
             width: '100%',
             maxWidth: '100vw',
-            overflow: 'hidden',
-            background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)', // Subtle gradient for glassmorphism
+            // REMOVED: overflow: 'hidden' - this was blocking mobile scroll!
+            // Each child component handles its own overflow
+            background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
           }}
         >
           {/* Header */}
           <Header moodleContext={state.moodleContext} />
 
-          {/* Main Content */}
-          <MainLayout
-            state={state}
-            dispatch={dispatch}
-            onOpenSourcesModal={handleOpenSourcesModal}
-            onOpenCurriculumModal={handleOpenCurriculumModal}
-            onOpenVideoModal={handleOpenVideoLectureModal}
-            onApproveSlides={handleApproveSlides}
-            onClosePreview={handleCloseReview}
-            onOpenFeedbackModal={handleOpenFeedbackModal}
-            onPublishContent={handlePublishContent}
-            onClearAllContent={handleClearAllContent}
-            onDeleteContent={handleDeleteContent}
-            isLoadingContent={isLoadingContent}
-          />
+          {/* Main Content - Takes remaining space after Header */}
+          <Box sx={{
+            flex: 1,
+            minHeight: 0, // Important: allows flex child to shrink below content size
+            overflow: 'auto', // Enable scrolling here instead of blocking it at parent
+          }}>
+            <MainLayout
+              state={state}
+              dispatch={dispatch}
+              onOpenSourcesModal={handleOpenSourcesModal}
+              onOpenCurriculumModal={handleOpenCurriculumModal}
+              onOpenVideoModal={handleOpenVideoLectureModal}
+              onApproveSlides={handleApproveSlides}
+              onClosePreview={handleCloseReview}
+              onOpenFeedbackModal={handleOpenFeedbackModal}
+              onPublishContent={handlePublishContent}
+              onClearAllContent={handleClearAllContent}
+              onDeleteContent={handleDeleteContent}
+              isLoadingContent={isLoadingContent}
+            />
+          </Box>
 
           {/* Modals */}
           {state.showSourcesModal && (
@@ -176,7 +186,7 @@ export const App: React.FC = () => {
             onClose={() => dispatch({ type: 'SHOW_VIDEO_LECTURE_MODAL', payload: false })}
             onGenerate={handleGenerateVideoLecture}
             contentItems={state.contentItems}
-            moodleContext={state.moodleContext}
+
           />
 
           {state.showFeedbackModal && (

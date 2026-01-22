@@ -17,14 +17,16 @@ import {
     useMediaQuery,
 } from '@mui/material';
 import { Close } from '@mui/icons-material';
-import type { MoodleContext } from '../../types/moodle';
+
 import type { ContentItem } from '../../types/app';
 import SectionGroup from './video-lecture/SectionGroup';
+import { getModalBoxStyles, getModalLayoutStyles } from '../../utils/modalStyles';
 
 type Language = 'en' | 'hi' | 'mr';
 
 const OPTION_PAPER_STYLE = {
-    p: 3,
+    // Fluid padding
+    p: 'clamp(16px, 2vh, 24px)',
     borderRadius: '12px',
     bgcolor: 'white',
     border: '2px solid #e9ecef',
@@ -41,45 +43,25 @@ interface VideoLectureModalProps {
         avatarStrategy: 'none' | 'title_only'
     ) => void;
     contentItems: ContentItem[];
-    moodleContext: MoodleContext;
+
 }
 
-// Helper functions for responsive modal styles (split to reduce complexity)
-const getVideoModalBoxStyles = (isMobile: boolean) => ({
-    position: isMobile ? 'fixed' as const : 'absolute' as const,
-    top: isMobile ? 0 : '50%',
-    left: isMobile ? 0 : '50%',
-    right: isMobile ? 0 : 'auto',
-    bottom: isMobile ? 0 : 'auto',
-    transform: isMobile ? 'none' : 'translate(-50%, -50%)',
-    width: isMobile ? '100%' : { sm: '90%', md: 650 },
-    maxHeight: isMobile ? '100vh' : '90vh',
-    borderRadius: isMobile ? 0 : 1,
-    boxShadow: isMobile ? 'none' : 24,
-});
-
-const getVideoModalLayoutStyles = (isMobile: boolean): {
-    padding: number;
-    titleVariant: 'subtitle1' | 'h6';
-    subtitleFontSize: string;
-    touchTarget: { minWidth: string; minHeight: string };
-    footerJustify: string;
-} => ({
-    padding: isMobile ? 2 : 3,
-    titleVariant: isMobile ? 'subtitle1' : 'h6',
-    subtitleFontSize: isMobile ? '0.75rem' : '0.875rem',
-    touchTarget: {
-        minWidth: isMobile ? '44px' : 'auto',
-        minHeight: isMobile ? '44px' : 'auto',
-    },
-    footerJustify: isMobile ? 'stretch' : 'flex-end',
-});
-
 // Compose all styles
-const getVideoModalStyles = (isMobile: boolean) => ({
-    modal: getVideoModalBoxStyles(isMobile),
-    ...getVideoModalLayoutStyles(isMobile),
-});
+const getVideoModalStyles = (isMobile: boolean) => {
+    const baseBoxStyles = getModalBoxStyles(isMobile, 'clamp(300px, 90vw, 650px)');
+    const layoutStyles = getModalLayoutStyles(isMobile);
+
+    return {
+        //...getVideoModalLayoutStyles(isMobile), wait spread logic is tricky with return types
+        modal: {
+            ...baseBoxStyles,
+            borderRadius: isMobile ? 0 : 1,
+        },
+        ...layoutStyles,
+        subtitleFontSize: 'clamp(0.75rem, 0.5vw + 0.7rem, 0.875rem)',
+        footerJustify: isMobile ? 'stretch' : 'flex-end',
+    };
+};
 
 const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
     open,
@@ -378,6 +360,8 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                         justifyContent: 'space-between',
                         alignItems: 'center',
                         borderBottom: '1px solid rgba(0,0,0,0.1)',
+                        // Never shrink header
+                        flexShrink: 0,
                     }}
                 >
                     <Box>
@@ -402,6 +386,8 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                     p: styles.padding,
                     overflowY: 'auto',
                     flex: 1,
+                    // IMPORTANT: allows children to shrink below content size
+                    minHeight: 0,
                     WebkitOverflowScrolling: 'touch',
                 }}>
                     {renderContent()}
@@ -410,10 +396,13 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                 {/* Footer */}
                 <Box sx={{
                     p: styles.padding,
+                    pb: styles.footerPaddingBottom,
                     borderTop: '1px solid rgba(0,0,0,0.1)',
                     bgcolor: 'grey.50',
                     display: 'flex',
-                    justifyContent: styles.footerJustify
+                    justifyContent: styles.footerJustify,
+                    // Never shrink footer
+                    flexShrink: 0,
                 }}>
                     <Button
                         variant="contained"

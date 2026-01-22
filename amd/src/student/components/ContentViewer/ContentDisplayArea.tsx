@@ -21,34 +21,26 @@ interface ContentDisplayAreaProps {
 // Helper functions moved to module level to reduce cognitive complexity
 
 // Responsive layout styles
-const getLayoutStyles = (isMobile: boolean): {
-    padding: number;
-    toolbarTop: number;
-    toolbarRight: number;
-    toolbarGap: number;
-    toolbarRadius: string;
-    toolbarPadding: number;
-    iconSize: 'medium' | 'small';
-    touchTarget: { minWidth: string; minHeight: string };
-} => ({
-    padding: isMobile ? 2 : 4,
-    toolbarTop: isMobile ? 12 : 24,
-    toolbarRight: isMobile ? 12 : 24,
-    toolbarGap: isMobile ? 0.5 : 1,
-    toolbarRadius: isMobile ? '10px' : '12px',
-    toolbarPadding: isMobile ? 0.5 : 0.75,
-    iconSize: isMobile ? 'medium' : 'small',
+const getLayoutStyles = () => ({
+    padding: 'clamp(8px, 2vw, 24px)',
+    toolbarTop: 'clamp(6px, 1.5vw, 16px)',
+    toolbarRight: 'clamp(6px, 1.5vw, 16px)',
+    toolbarGap: 'clamp(2px, 0.5vw, 6px)',
+    toolbarRadius: 'clamp(6px, 1vw, 10px)',
+    toolbarPadding: 'clamp(2px, 0.5vw, 4px)',
+    iconSize: 'small' as const,
     touchTarget: {
-        minWidth: isMobile ? '40px' : 'auto',
-        minHeight: isMobile ? '40px' : 'auto',
+        minWidth: 'clamp(28px, 4vw, 36px)',
+        minHeight: 'clamp(28px, 4vw, 36px)',
+        padding: 'clamp(4px, 0.5vw, 6px)',
     },
 });
 
 // Calculate slide max height based on fullscreen state
-const getSlideMaxHeight = (isFullscreen: boolean, isMobile: boolean): string => {
+const getSlideMaxHeight = (isFullscreen: boolean) => {
     if (isFullscreen) { return '100vh'; }
-    if (isMobile) { return 'calc(100vh - 200px)'; }
-    return 'calc(100vh - 280px)';
+    // Fluid calc: use 100% to fill available space
+    return '100%';
 };
 
 // Container background styles based on content type
@@ -84,8 +76,8 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
     // Use external helper functions
-    const layoutStyles = getLayoutStyles(isMobile);
-    const slideMaxHeight = getSlideMaxHeight(isFullscreen, isMobile);
+    const layoutStyles = getLayoutStyles();
+    const slideMaxHeight = getSlideMaxHeight(isFullscreen);
     const containerBg = getContainerBg(isVideo);
     const slideCardStyles = getSlideCardStyles(zoomLevel);
 

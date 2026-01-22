@@ -5,9 +5,11 @@ import type { MoodleContext } from '../../types/moodle';
 interface HeaderProps {
     moodleContext: MoodleContext;
     children?: React.ReactNode;
+    onBack?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ moodleContext, children }) => {
+const Header: React.FC<HeaderProps> = ({ moodleContext, children, onBack }) => {
+
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
@@ -51,7 +53,13 @@ const Header: React.FC<HeaderProps> = ({ moodleContext, children }) => {
                 minWidth: 0, // Enable text truncation
             }}>
                 <button
-                    onClick={() => globalThis.location.href = `${moodleContext.wwwroot}/course/view.php?id=${moodleContext.courseid}`}
+                    onClick={() => {
+                        if (onBack) {
+                            onBack();
+                        } else {
+                            globalThis.location.href = `${moodleContext.wwwroot}/course/view.php?id=${moodleContext.courseid}`;
+                        }
+                    }}
                     style={{
                         display: 'flex',
                         alignItems: 'center',

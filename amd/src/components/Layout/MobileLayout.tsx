@@ -37,12 +37,12 @@ const MobileLayout: React.FC<LayoutProps> = ({
             sx={{
                 display: 'flex',
                 flexDirection: 'column',
-                // Use dynamic viewport height and account for safe areas
-                height: 'calc(100dvh - 60px)',
-                minHeight: '400px',
-                overflow: 'hidden',
+                // Use 100% height - parent container controls the actual size
+                // This is better than hardcoding calc(100dvh - 60px) which assumed header height
+                height: '100%',
+                minHeight: 0, // Allows shrinking in flex context
                 backgroundColor: 'background.default',
-                // Safe area padding for notched devices
+                // Safe area padding for notched devices (iPhone X etc.)
                 paddingBottom: 'env(safe-area-inset-bottom, 0px)',
             }}
         >
@@ -92,7 +92,8 @@ const MobileLayout: React.FC<LayoutProps> = ({
                     flex: 1,
                     overflow: 'auto',
                     // Responsive padding
-                    p: { xs: 1.5, sm: 2 },
+                    // Fluid padding
+                    p: 'clamp(12px, 1.5vw, 16px)',
                     minHeight: 0,
                     // Better scroll performance on iOS
                     WebkitOverflowScrolling: 'touch',

@@ -25,6 +25,7 @@ import {
 } from '@mui/material';
 import { Close, CheckCircle } from '@mui/icons-material';
 import { FileText, FolderOpen } from 'lucide-react';
+import { getModalBoxStyles, getModalLayoutStyles } from '../../utils/modalStyles';
 import type { MoodleContext } from '../../types/moodle';
 import type { CurriculumStructure } from '../../types/app';
 
@@ -43,52 +44,33 @@ interface SectionWithSources {
   hasCurriculum?: boolean;
 }
 
-// Helper functions split to reduce cognitive complexity (max 15 per function)
-const getModalBoxStyles = (isMobile: boolean) => ({
-  position: isMobile ? 'fixed' as const : 'absolute' as const,
-  top: isMobile ? 0 : '50%',
-  left: isMobile ? 0 : '50%',
-  right: isMobile ? 0 : 'auto',
-  bottom: isMobile ? 0 : 'auto',
-  transform: isMobile ? 'none' : 'translate(-50%, -50%)',
-  width: isMobile ? '100%' : { sm: '85%', md: '750px' },
-  maxHeight: isMobile ? '100vh' : '90vh',
-  borderRadius: isMobile ? 0 : '16px',
-  boxShadow: isMobile ? 'none' : '0 20px 60px rgba(0, 0, 0, 0.3)',
-  border: isMobile ? 'none' : '1px solid rgba(0, 0, 0, 0.05)',
-});
-
-const getModalLayoutStyles = (isMobile: boolean) => ({
-  header: { px: isMobile ? 2 : 3.5, py: isMobile ? 2 : 3 },
-  content: { px: isMobile ? 2 : 3.5, py: isMobile ? 2 : 3 },
-  footer: {
-    px: isMobile ? 2 : 3.5,
-    py: isMobile ? 2 : 2.5,
-    flexDirection: isMobile ? 'column-reverse' as const : 'row' as const,
-    alignItems: isMobile ? 'stretch' : 'center',
-    gap: isMobile ? 1.5 : 2,
-  },
-});
-
-const getModalMiscStyles = (isMobile: boolean): {
-  titleVariant: 'subtitle1' | 'h6';
-  touchTarget: { minWidth: string; minHeight: string };
-  buttonPy: number;
-} => ({
-  titleVariant: isMobile ? 'subtitle1' : 'h6',
-  touchTarget: {
-    minWidth: isMobile ? '44px' : 'auto',
-    minHeight: isMobile ? '44px' : 'auto',
-  },
-  buttonPy: isMobile ? 1.25 : 1,
-});
-
 // Compose all styles
-const getModalStyles = (isMobile: boolean) => ({
-  modal: getModalBoxStyles(isMobile),
-  ...getModalLayoutStyles(isMobile),
-  ...getModalMiscStyles(isMobile),
-});
+const getModalStyles = (isMobile: boolean) => {
+  const baseBoxStyles = getModalBoxStyles(isMobile, { sm: '85%', md: '750px' });
+  const layoutStyles = getModalLayoutStyles(isMobile);
+
+  return {
+    modal: {
+      ...baseBoxStyles,
+      // specific overrides for CurriculumModal
+      boxShadow: isMobile ? 'none' : '0 20px 60px rgba(0, 0, 0, 0.3)',
+      border: isMobile ? 'none' : '1px solid rgba(0, 0, 0, 0.05)',
+    },
+    ...layoutStyles,
+    // Add missing properties from original getModalLayoutStyles/Misc
+    header: { px: isMobile ? 2 : 3.5, py: isMobile ? 2 : 3 },
+    content: { px: isMobile ? 2 : 3.5, py: isMobile ? 2 : 3 },
+    footer: {
+      px: isMobile ? 2 : 3.5,
+      pb: isMobile ? 'max(16px, env(safe-area-inset-bottom))' : 2.5,
+      pt: isMobile ? 2 : 2.5,
+      flexDirection: isMobile ? 'column-reverse' as const : 'row' as const,
+      alignItems: isMobile ? 'stretch' : 'center',
+      gap: isMobile ? 1.5 : 2,
+    },
+    buttonPy: isMobile ? 1.25 : 1,
+  };
+};
 
 const CurriculumModal: React.FC<CurriculumModalProps> = ({
   open,
@@ -305,13 +287,16 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
                 },
               }}
             >
-              <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+              {/* Fluid padding using clamp: min 16px, max 24px */}
+              <CardContent sx={{ p: 'clamp(16px, 2vw + 12px, 24px)' }}>
+                {/* Fluid gap: min 12px, max 20px */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 'clamp(12px, 1.5vw + 8px, 20px)' }}>
                   {/* Icon */}
                   <Box
                     sx={{
-                      width: 48,
-                      height: 48,
+                      // Fluid size: min 40px, max 48px
+                      width: 'clamp(40px, 4vw + 24px, 48px)',
+                      height: 'clamp(40px, 4vw + 24px, 48px)',
                       borderRadius: '12px',
                       bgcolor: selectedSectionId === section.id ? '#0f6cbf' : 'rgba(15, 108, 191, 0.1)',
                       display: 'flex',
@@ -322,12 +307,14 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
                     }}
                   >
                     {selectedSectionId === section.id ? (
-                      <CheckCircle sx={{ color: 'white', fontSize: 28 }} />
+                      <CheckCircle sx={{ color: 'white', fontSize: 'clamp(24px, 2.5vw + 14px, 28px)' }} />
                     ) : (
                       <FileText
-                        size={24}
+                        size={24} // Lucide icons don't support string/clamp directly in size, handled via wrapper or prop modification if needed. But let's leave it simple or use inline style.
+                        // Actually Lucide React size prop accepts number or string. 
                         color="#0f6cbf"
                         strokeWidth={2.5}
+                        style={{ width: 'clamp(20px, 2vw + 12px, 24px)', height: 'clamp(20px, 2vw + 12px, 24px)' }}
                       />
                     )}
                   </Box>
@@ -339,9 +326,9 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
                       sx={{
                         fontWeight: 600,
                         color: selectedSectionId === section.id ? '#0f6cbf' : '#1a1a1a',
-                        mb: 1,
-                        fontSize: '1.05rem',
-                        lineHeight: 1.4,
+                        mb: 'clamp(4px, 0.5vw + 2px, 8px)',
+                        fontSize: 'clamp(0.95rem, 1vw + 0.75rem, 1.05rem)',
+                        lineHeight: 1.3,
                       }}
                     >
                       {section.name}
@@ -414,7 +401,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
       <Paper
         variant="outlined"
         sx={{
-          p: 3,
+          p: 'clamp(16px, 2vw + 12px, 24px)',
           borderRadius: '12px',
           bgcolor: 'white',
           border: '2px solid #e9ecef',
@@ -437,7 +424,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
               sx={{
                 fontWeight: 600,
                 color: '#1a1a1a',
-                mb: 1.5,
+                mb: 'clamp(8px, 1.5vw + 4px, 12px)',
                 '&.Mui-focused': {
                   color: '#1a1a1a',
                 },
@@ -519,7 +506,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
       <Paper
         variant="outlined"
         sx={{
-          p: 3,
+          p: 'clamp(16px, 2vw + 12px, 24px)',
           borderRadius: '12px',
           bgcolor: 'white',
           border: '2px solid #e9ecef',
@@ -541,7 +528,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
               sx={{
                 fontWeight: 600,
                 color: '#1a1a1a',
-                mb: 1.5,
+                mb: 'clamp(8px, 1.5vw + 4px, 12px)',
                 '&.Mui-focused': {
                   color: '#1a1a1a',
                 },
@@ -629,6 +616,8 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
               ...styles.header,
               borderBottom: '2px solid #e9ecef',
               bgcolor: 'white',
+              // Never shrink header
+              flexShrink: 0,
             }}
           >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0 }}>
@@ -661,6 +650,8 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
             ...styles.content,
             overflow: 'auto',
             flex: 1,
+            // IMPORTANT: allows children to shrink below content size
+            minHeight: 0,
             WebkitOverflowScrolling: 'touch',
           }}>
             {error && (
@@ -679,6 +670,8 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
               borderTop: '2px solid #e9ecef',
               display: 'flex',
               justifyContent: 'space-between',
+              // Never shrink footer
+              flexShrink: 0,
             }}
           >
             <Button

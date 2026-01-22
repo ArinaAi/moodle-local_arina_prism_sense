@@ -31,21 +31,24 @@ const getModalBoxStyles = (isMobile: boolean) => ({
   right: isMobile ? 0 : 'auto',
   bottom: isMobile ? 0 : 'auto',
   transform: isMobile ? 'none' : 'translate(-50%, -50%)',
-  width: isMobile ? '100%' : { sm: '500px' },
-  maxHeight: isMobile ? '100vh' : '80vh',
+  // Fluid width on desktop
+  width: isMobile ? '100%' : 'clamp(300px, 90vw, 500px)',
+  // Use 100dvh for proper mobile height
+  maxHeight: isMobile ? '100dvh' : '80vh',
+  height: isMobile ? '100dvh' : 'auto',
   borderRadius: isMobile ? 0 : 1,
   boxShadow: isMobile ? 'none' : 24,
 });
 
 const getTypographyStyles = (isMobile: boolean): {
-  padding: number;
+  padding: string | number;
   titleVariant: 'subtitle1' | 'h6';
   subtitleFontSize: string;
   touchTarget: { minWidth: string; minHeight: string };
 } => ({
-  padding: isMobile ? 2 : 3,
+  padding: 'clamp(16px, 2vh, 24px)',
   titleVariant: isMobile ? 'subtitle1' : 'h6',
-  subtitleFontSize: isMobile ? '0.75rem' : '0.875rem',
+  subtitleFontSize: 'clamp(0.75rem, 0.5vw + 0.7rem, 0.875rem)',
   touchTarget: {
     minWidth: isMobile ? '44px' : 'auto',
     minHeight: isMobile ? '44px' : 'auto',
@@ -53,16 +56,18 @@ const getTypographyStyles = (isMobile: boolean): {
 });
 
 const getContentStyles = (isMobile: boolean) => ({
-  ratingFontSize: isMobile ? '2rem' : '2.5rem',
-  sectionMb: isMobile ? 3 : 4,
-  ratingPadding: isMobile ? 1.5 : 2,
+  ratingFontSize: 'clamp(2rem, 5vw, 2.5rem)',
+  sectionMb: 'clamp(24px, 3vh, 32px)',
+  ratingPadding: 'clamp(12px, 1.5vh, 16px)',
   gridColumns: isMobile ? '1fr' : '1fr 1fr',
 });
 
 const getFooterStyles = (isMobile: boolean) => ({
   flexDirection: isMobile ? 'column-reverse' as const : 'row' as const,
   alignItems: isMobile ? 'stretch' : 'center',
-  gap: isMobile ? 1.5 : 2,
+  gap: 'clamp(12px, 1.5vh, 16px)',
+  // Add safe area padding for bottom with fluid padding
+  paddingBottom: 'max(clamp(16px, 2vh, 24px), env(safe-area-inset-bottom))',
 });
 
 // Compose all styles
@@ -172,6 +177,8 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ open, onClose, onSubmitFe
           p: styles.layout.padding,
           overflow: 'auto',
           flex: 1,
+          // IMPORTANT: allows children to shrink below content size
+          minHeight: 0,
           WebkitOverflowScrolling: 'touch',
         }}>
           {/* Rating Section */}
@@ -203,7 +210,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ open, onClose, onSubmitFe
 
           {/* Category Selection - Grid Layout */}
           <Box sx={{ mb: styles.layout.sectionMb }}>
-            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700, color: '#334155', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em' }}>
+            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 700, color: '#334155', textTransform: 'uppercase', fontSize: 'clamp(0.7rem, 0.5vw + 0.6rem, 0.75rem)', letterSpacing: '0.05em' }}>
               What needs improvement?
             </Typography>
             <RadioGroup value={category} onChange={(e) => setCategory(e.target.value)}>

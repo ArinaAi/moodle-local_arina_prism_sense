@@ -79,8 +79,8 @@ const ContentTypeButton: React.FC<ContentTypeButtonProps> = ({
                         '&:hover': getHoverStyles(disabled, isActive, type.color),
                         cursor: disabled ? 'not-allowed' : 'pointer',
                         minHeight: '70px',
-                        py: 2,
-                        px: 2,
+                        py: 'clamp(12px, 1.5vh, 16px)',
+                        px: 'clamp(12px, 1.5vh, 16px)',
                     }}
                     fullWidth
                 >
@@ -88,7 +88,7 @@ const ContentTypeButton: React.FC<ContentTypeButtonProps> = ({
                         sx={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: 1.5,
+                            gap: 'clamp(12px, 1.5vh, 16px)',
                             width: '100%',
                         }}
                     >

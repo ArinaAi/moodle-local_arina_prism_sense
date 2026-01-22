@@ -81,18 +81,18 @@ const ChatBot: React.FC = () => {
             {/* Chat Header */}
             <Box sx={{
                 bgcolor: 'white',
-                p: 2.5,
+                p: 'clamp(12px, 2vw, 20px)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 2,
+                gap: 'clamp(12px, 2vw, 16px)',
                 borderBottom: '1px solid rgba(0,0,0,0.08)'
             }}>
                 <Box sx={{ position: 'relative' }}>
                     <Avatar sx={{
                         bgcolor: 'rgba(37, 99, 235, 0.1)',
                         color: '#2563eb',
-                        width: 44,
-                        height: 44
+                        width: 'clamp(36px, 8vw, 44px)',
+                        height: 'clamp(36px, 8vw, 44px)'
                     }}>
                         <AutoAwesomeIcon fontSize="small" />
                     </Avatar>
@@ -122,10 +122,10 @@ const ChatBot: React.FC = () => {
             <Box sx={{
                 flexGrow: 1,
                 overflowY: 'auto',
-                p: 2,
+                p: 'clamp(12px, 2vw, 16px)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 2,
+                gap: 'clamp(12px, 2vw, 16px)',
                 bgcolor: '#fafbfc'
             }}>
                 {messages.length === 0 ? (
@@ -137,18 +137,18 @@ const ChatBot: React.FC = () => {
                         justifyContent: 'center',
                         flex: 1,
                         gap: 3,
-                        py: 4
+                        py: 'clamp(24px, 4vw, 32px)'
                     }}>
                         <Avatar sx={{
                             bgcolor: 'rgba(37, 99, 235, 0.1)',
                             color: '#2563eb',
-                            width: 64,
-                            height: 64
+                            width: 'clamp(48px, 10vw, 64px)',
+                            height: 'clamp(48px, 10vw, 64px)'
                         }}>
                             <AutoAwesomeIcon fontSize="large" />
                         </Avatar>
                         <Box sx={{ textAlign: 'center', maxWidth: '80%' }}>
-                            <Typography variant="h6" fontWeight={700} gutterBottom>
+                            <Typography variant="h6" fontWeight={700} gutterBottom sx={{ fontSize: 'clamp(1.1rem, 3vw, 1.25rem)' }}>
                                 Hi! I&apos;m your AI Tutor
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
@@ -167,9 +167,9 @@ const ChatBot: React.FC = () => {
                                     sx={{
                                         justifyContent: 'flex-start',
                                         height: 'auto',
-                                        py: 1.5,
-                                        px: 2,
-                                        fontSize: '0.875rem',
+                                        py: 'clamp(8px, 1.5vw, 12px)',
+                                        px: 'clamp(12px, 2vw, 16px)',
+                                        fontSize: 'clamp(0.8rem, 2vw, 0.875rem)',
                                         fontWeight: 500,
                                         bgcolor: 'white',
                                         border: '1px solid rgba(37, 99, 235, 0.2)',
@@ -217,8 +217,8 @@ const ChatBot: React.FC = () => {
                                     <Box
                                         sx={{
                                             maxWidth: '75%',
-                                            px: 2.5,
-                                            py: 1.5,
+                                            px: 'clamp(14px, 3vw, 20px)',
+                                            py: 'clamp(8px, 1.5vw, 12px)',
                                             borderRadius: 2.5,
                                             bgcolor: msg.isBot ? 'white' : '#2563eb',
                                             color: msg.isBot ? 'text.primary' : '#ffffff',
@@ -226,7 +226,7 @@ const ChatBot: React.FC = () => {
                                             boxShadow: msg.isBot ? '0 1px 3px rgba(0,0,0,0.05)' : 'none'
                                         }}
                                     >
-                                        <Typography variant="body2" sx={{ lineHeight: 1.6, color: msg.isBot ? 'inherit' : '#ffffff' }}>
+                                        <Typography variant="body2" sx={{ lineHeight: 1.6, color: msg.isBot ? 'inherit' : '#ffffff', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)' }}>
                                             {msg.text}
                                         </Typography>
                                     </Box>
@@ -283,15 +283,15 @@ const ChatBot: React.FC = () => {
             </Box>
 
             {/* Input Area */}
-            <Box sx={{ p: 2, bgcolor: 'white', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+            <Box sx={{ p: 'clamp(12px, 2vw, 16px)', bgcolor: 'white', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
                 <Box sx={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: 1,
                     border: '1.5px solid rgba(0,0,0,0.12)',
                     borderRadius: 6,
-                    px: 2,
-                    py: 0.5,
+                    px: 'clamp(12px, 2vw, 16px)',
+                    py: 'clamp(4px, 1vw, 6px)',
                     transition: 'all 0.2s',
                     '&:focus-within': {
                         borderColor: '#2563eb',
@@ -304,12 +304,12 @@ const ChatBot: React.FC = () => {
                         variant="standard"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        onKeyPress={handleKeyPress}
+                        onKeyDown={handleKeyPress}
                         InputProps={{
                             disableUnderline: true,
-                            sx: { fontSize: '0.875rem' }
+                            sx: { fontSize: 'clamp(0.875rem, 2vw, 1rem)' }
                         }}
-                        sx={{ '& input::placeholder': { fontSize: '0.875rem' } }}
+                        sx={{ '& input::placeholder': { fontSize: 'clamp(0.875rem, 2vw, 1rem)' } }}
                     />
                     <IconButton
                         size="small"
@@ -318,8 +318,8 @@ const ChatBot: React.FC = () => {
                         sx={{
                             bgcolor: input.trim() ? '#2563eb' : 'rgba(0,0,0,0.04)',
                             color: input.trim() ? 'white' : 'rgba(0,0,0,0.26)',
-                            width: 36,
-                            height: 36,
+                            width: 'clamp(32px, 8vw, 36px)',
+                            height: 'clamp(32px, 8vw, 36px)',
                             '&:hover': {
                                 bgcolor: input.trim() ? '#1d4ed8' : 'rgba(0,0,0,0.08)',
                             },

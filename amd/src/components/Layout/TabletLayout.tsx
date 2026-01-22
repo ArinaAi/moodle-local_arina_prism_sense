@@ -34,10 +34,11 @@ const TabletLayout: React.FC<LayoutProps> = ({
                 // Large tablets (900-1200px): equal columns
                 gridTemplateColumns: isSmallTablet ? 'minmax(200px, 0.8fr) 1fr' : '1fr 1fr',
                 gridTemplateRows: '1fr',
-                gap: isSmallTablet ? 1.5 : 2,
-                p: isSmallTablet ? 1.5 : 2,
-                height: 'calc(100vh - 120px)',
-                minHeight: 'clamp(400px, 60vh, 600px)',
+                gap: 'clamp(12px, 1.5vw, 16px)',
+                p: 'clamp(12px, 1.5vw, 16px)',
+                // Use 100% height - parent controls actual size via flex layout
+                height: '100%',
+                minHeight: 0, // Allows shrinking in flex context
                 overflow: 'hidden',
                 alignItems: 'stretch',
             }}
@@ -65,7 +66,7 @@ const TabletLayout: React.FC<LayoutProps> = ({
                 display: 'flex',
                 flexDirection: 'column',
                 height: '100%',
-                gap: isSmallTablet ? 1.5 : 2,
+                gap: 'clamp(12px, 1.5vw, 16px)',
                 minHeight: 0,
             }}>
                 <Box sx={{ flex: 1.5, minHeight: 0, overflow: 'auto' }}>

@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Paper, Button, useTheme, useMediaQuery } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CloseIcon from '@mui/icons-material/Close';
 import ContentNavigator from '../ContentNavigator/ContentNavigator';
 import ContentViewer from '../ContentViewer/ContentViewer';
 import ChatBot from '../ChatBot/ChatBot';
-import { ContentProvider } from '../../context/ContentContext';
+import { useContent } from '../../context/ContentContext';
 import Header from '../../../components/Layout/Header';
 import type { MoodleContext } from '../../../types/moodle';
 
@@ -13,15 +13,15 @@ interface MainLayoutProps {
     moodleContext: MoodleContext;
 }
 
-// Helper functions moved to module level to reduce cognitive complexity
-
+// ... (Helper functions remain the same) ...
 // Get button text based on chat state and screen size
 const getButtonText = (isChatOpen: boolean, isMobile: boolean): string => {
     if (isChatOpen) { return isMobile ? 'Close' : 'Close Chat'; }
     return isMobile ? 'AI' : 'Ask AI';
 };
 
-// Get content viewer left position
+// ... (Other helpers) ...
+
 const getContentViewerLeft = (isChatOpen: boolean, isTablet: boolean): string | number => {
     if (isChatOpen) { return 0; }
     if (isTablet) { return 'calc(35% + 16px)'; }
@@ -29,11 +29,11 @@ const getContentViewerLeft = (isChatOpen: boolean, isTablet: boolean): string | 
 };
 
 // Responsive button styles
-const getButtonStyles = (isMobile: boolean) => ({
-    padding: isMobile ? '8px 12px' : '6px 16px',
-    fontSize: isMobile ? '0.75rem' : '0.875rem',
-    minHeight: isMobile ? '40px' : 'auto',
-    hoverTransform: isMobile ? 'none' : 'translateY(-1px)',
+const getButtonStyles = () => ({
+    padding: 'clamp(6px, 1.5vw, 8px) clamp(12px, 2vw, 16px)',
+    fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
+    minHeight: 'clamp(36px, 8vw, 44px)', // Fluid touch target
+    hoverTransform: 'translateY(-1px)',
 });
 
 // Chat button state styles
@@ -59,6 +59,9 @@ const chatClosedStyles = (hoverTransform: string) => ({
         borderColor: 'rgba(56, 189, 248, 0.6)',
         transform: hoverTransform,
         boxShadow: '0 6px 16px rgba(14, 165, 233, 0.25)',
+    },
+    '@media (hover: none)': {
+        '&:hover': { transform: 'none' }
     }
 });
 
@@ -83,196 +86,203 @@ const getPanelAnimStyles = (isChatOpen: boolean) => ({
     },
 });
 
+// Mobile content renderer based on state
+const renderMobileContent = (isChatOpen: boolean, selectedContent: any) => {
+    if (isChatOpen) {
+        return (
+            <Paper
+                elevation={0}
+                sx={{
+                    flex: 1,
+                    bgcolor: 'white',
+                    borderRadius: 0,
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                }}
+            >
+                <ChatBot />
+            </Paper>
+        );
+    }
+    
+    if (selectedContent) {
+        return (
+            <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <ContentViewer />
+            </Box>
+        );
+    }
+    
+    return (
+        <Paper
+            elevation={0}
+            sx={{
+                flex: 1,
+                bgcolor: 'white',
+                borderRadius: 0,
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+            }}
+        >
+            <Box sx={{ overflowY: 'auto', flex: 1, WebkitOverflowScrolling: 'touch' }}>
+                <ContentNavigator />
+            </Box>
+        </Paper>
+    );
+};
+
 const MainLayout: React.FC<MainLayoutProps> = ({ moodleContext }) => {
     const [isChatOpen, setIsChatOpen] = useState(false);
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+    const { selectedContent, setSelectedContent } = useContent();
 
-    // Use external helper functions
+    // Reset chat on mobile when content selected to ensure full screen view
+    useEffect(() => {
+        if (isMobile && selectedContent) {
+            setIsChatOpen(false);
+        }
+    }, [isMobile, selectedContent]);
+
+    // Helper functions
     const buttonText = getButtonText(isChatOpen, isMobile);
     const contentViewerLeft = getContentViewerLeft(isChatOpen, isTablet);
-    const buttonStyles = getButtonStyles(isMobile);
+    const buttonStyles = getButtonStyles();
     const panelWidths = getPanelWidths(isTablet);
     const panelAnim = getPanelAnimStyles(isChatOpen);
 
+    // Mobile Navigation Handler
+    const handleMobileBack = isMobile && selectedContent ? () => setSelectedContent(null) : undefined;
+
     return (
-        <ContentProvider>
-            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', bgcolor: '#f0f4f9' }}>
-                {/* Reused Header */}
-                <Header moodleContext={moodleContext}>
-                    <Button
-                        onClick={() => setIsChatOpen(!isChatOpen)}
-                        startIcon={isChatOpen ? <CloseIcon /> : <AutoAwesomeIcon />}
-                        variant="outlined"
-                        sx={{
-                            mr: 1,
-                            textTransform: 'none',
-                            borderRadius: '20px',
-                            padding: buttonStyles.padding,
-                            fontSize: buttonStyles.fontSize,
-                            fontWeight: 600,
-                            minHeight: buttonStyles.minHeight,
-                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                            ...(isChatOpen ? chatOpenStyles : chatClosedStyles(buttonStyles.hoverTransform))
-                        }}
-                    >
-                        {buttonText}
-                    </Button>
-                </Header>
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100dvh', bgcolor: '#f0f4f9' }}>
+            {/* Header with Back Support */}
+            <Header moodleContext={moodleContext} onBack={handleMobileBack}>
+                <Button
+                    onClick={() => setIsChatOpen(!isChatOpen)}
+                    startIcon={isChatOpen ? <CloseIcon /> : <AutoAwesomeIcon />}
+                    variant="outlined"
+                    sx={{
+                        mr: 1,
+                        textTransform: 'none',
+                        borderRadius: '20px',
+                        padding: buttonStyles.padding,
+                        fontSize: buttonStyles.fontSize,
+                        fontWeight: 600,
+                        minHeight: buttonStyles.minHeight,
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        ...(isChatOpen ? chatOpenStyles : chatClosedStyles(buttonStyles.hoverTransform))
+                    }}
+                >
+                    {buttonText}
+                </Button>
+            </Header>
 
-                {/* Main Content Area */}
-                <Box sx={{ flex: 1, position: 'relative', overflow: 'hidden', p: isMobile ? 1 : 2 }}>
+            {/* Main Content Area */}
+            <Box sx={{ flex: 1, position: 'relative', overflow: 'hidden', p: isMobile ? 0 : 'clamp(8px, 2vw, 16px)' }}>
 
-                    {/* Mobile Layout - Stacked */}
-                    {isMobile ? (
-                        <Box sx={{
-                            height: '100%',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: 1,
-                        }}>
-                            {/* Content Navigator - Hidden when chat is open on mobile */}
-                            {!isChatOpen && (
-                                <Paper
-                                    elevation={0}
-                                    sx={{
-                                        height: '40%',
-                                        minHeight: '200px',
-                                        bgcolor: 'white',
-                                        borderRadius: 1,
-                                        boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                                        overflow: 'hidden',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                    }}
-                                >
-                                    <Box sx={{ overflowY: 'auto', flex: 1, WebkitOverflowScrolling: 'touch' }}>
-                                        <ContentNavigator />
-                                    </Box>
-                                </Paper>
-                            )}
+                {/* Mobile Layout - Single View */}
+                {isMobile ? (
+                    <Box sx={{
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                    }}>
+                        {renderMobileContent(isChatOpen, selectedContent)}
+                    </Box>
+                ) : (
+                    /* Desktop/Tablet Layout - Sliding panels */
+                    <Box sx={{
+                        position: 'absolute',
+                        top: 16,
+                        left: 16,
+                        right: 16,
+                        bottom: 16
+                    }}>
 
-                            {/* Content Viewer or ChatBot */}
-                            <Box sx={{
-                                flex: 1,
-                                minHeight: isChatOpen ? '100%' : '60%',
+                        {/* Content Navigator - 30% width, slides out to left */}
+                        <Paper
+                            elevation={0}
+                            sx={{
+                                position: 'absolute',
+                                left: 0,
+                                top: 0,
+                                bottom: 0,
+                                width: panelWidths.navigatorWidth,
+                                minWidth: '240px',
+                                bgcolor: 'white',
+                                borderRadius: 1,
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                                overflow: 'hidden',
                                 display: 'flex',
                                 flexDirection: 'column',
+                                ...panelAnim.navigator,
+                                transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
+                            }}
+                        >
+                            <Box sx={{ overflowY: 'auto', flex: 1 }}>
+                                <ContentNavigator />
+                            </Box>
+                        </Paper>
+
+                        {/* Preview/Content Viewer - 70% width, slides from right position to left position */}
+                        <Box
+                            sx={{
+                                position: 'absolute',
+                                left: contentViewerLeft,
+                                top: 0,
+                                bottom: 0,
+                                width: panelWidths.viewerWidth,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                transition: 'left 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                                overflow: 'hidden'
+                            }}
+                        >
+                            <Box sx={{
+                                height: '100%',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                overflowY: 'auto'
                             }}>
-                                {isChatOpen ? (
-                                    <Paper
-                                        elevation={0}
-                                        sx={{
-                                            flex: 1,
-                                            bgcolor: 'white',
-                                            borderRadius: 1,
-                                            boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                                            overflow: 'hidden',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                        }}
-                                    >
-                                        <ChatBot />
-                                    </Paper>
-                                ) : (
-                                    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                                        <ContentViewer />
-                                    </Box>
-                                )}
-                            </Box>
-                        </Box>
-                    ) : (
-                        /* Desktop/Tablet Layout - Sliding panels */
-                        <Box sx={{
-                            position: 'absolute',
-                            top: 16,
-                            left: 16,
-                            right: 16,
-                            bottom: 16
-                        }}>
-
-                            {/* Content Navigator - 30% width, slides out to left */}
-                            <Paper
-                                elevation={0}
-                                sx={{
-                                    position: 'absolute',
-                                    left: 0,
-                                    top: 0,
-                                    bottom: 0,
-                                    width: panelWidths.navigatorWidth,
-                                    minWidth: '240px',
-                                    bgcolor: 'white',
-                                    borderRadius: 1,
-                                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                                    overflow: 'hidden',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    ...panelAnim.navigator,
-                                    transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
-                                }}
-                            >
-                                <Box sx={{ overflowY: 'auto', flex: 1 }}>
-                                    <ContentNavigator />
-                                </Box>
-                            </Paper>
-
-                            {/* Preview/Content Viewer - 70% width, slides from right position to left position */}
-                            <Box
-                                sx={{
-                                    position: 'absolute',
-                                    left: contentViewerLeft,
-                                    top: 0,
-                                    bottom: 0,
-                                    width: panelWidths.viewerWidth,
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    transition: 'left 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                                    overflow: 'hidden'
-                                }}
-                            >
-                                <Box sx={{
-                                    height: '100%',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    overflowY: 'auto'
-                                }}>
-                                    <Box sx={{ width: '100%', height: '100%' }}>
-                                        <ContentViewer />
-                                    </Box>
+                                <Box sx={{ width: '100%', height: '100%' }}>
+                                    <ContentViewer />
                                 </Box>
                             </Box>
-
-                            {/* ChatBot - 30% width, slides in from right */}
-                            <Paper
-                                elevation={0}
-                                sx={{
-                                    position: 'absolute',
-                                    left: panelWidths.chatLeft,
-                                    top: 0,
-                                    bottom: 0,
-                                    width: panelWidths.navigatorWidth,
-                                    minWidth: '240px',
-                                    bgcolor: 'white',
-                                    borderRadius: 1,
-                                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                                    overflow: 'hidden',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    ...panelAnim.chat,
-                                    transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
-                                }}
-                            >
-                                <ChatBot />
-                            </Paper>
-
                         </Box>
-                    )}
 
-                </Box>
+                        {/* ChatBot - 30% width, slides in from right */}
+                        <Paper
+                            elevation={0}
+                            sx={{
+                                position: 'absolute',
+                                left: panelWidths.chatLeft,
+                                top: 0,
+                                bottom: 0,
+                                width: panelWidths.navigatorWidth,
+                                minWidth: '240px',
+                                bgcolor: 'white',
+                                borderRadius: 1,
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                                overflow: 'hidden',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                ...panelAnim.chat,
+                                transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
+                            }}
+                        >
+                            <ChatBot />
+                        </Paper>
+
+                    </Box>
+                )}
+
             </Box>
-        </ContentProvider>
+        </Box>
     );
 };
 

@@ -169,8 +169,8 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title: _title }) =>
                     onClick={togglePlay}
                     sx={{
                         position: 'absolute',
-                        width: 80,
-                        height: 80,
+                        width: 'clamp(48px, 15vw, 80px)',
+                        height: 'clamp(48px, 15vw, 80px)',
                         borderRadius: '50%',
                         bgcolor: 'rgba(37, 99, 235, 0.9)',
                         display: 'flex',
@@ -184,7 +184,7 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title: _title }) =>
                         }
                     }}
                 >
-                    <PlayArrowIcon sx={{ fontSize: 48, color: 'white', ml: 0.5 }} />
+                    <PlayArrowIcon sx={{ fontSize: 'clamp(32px, 8vw, 48px)', color: 'white', ml: 0.5 }} />
                 </Box>
             )}
 
@@ -196,7 +196,7 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title: _title }) =>
                     left: 0,
                     right: 0,
                     background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 70%, transparent 100%)',
-                    p: 2,
+                    p: 'clamp(8px, 2vw, 16px)',
                     opacity: showControls ? 1 : 0,
                     transition: 'opacity 0.3s',
                     pointerEvents: showControls ? 'auto' : 'none'
@@ -226,22 +226,22 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title: _title }) =>
                 />
 
                 {/* Control Buttons */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 'clamp(4px, 1vw, 8px)' }}>
                     {/* Play/Pause */}
-                    <IconButton onClick={togglePlay} sx={{ color: 'white' }}>
+                    <IconButton onClick={togglePlay} sx={{ color: 'white', padding: 'clamp(4px, 1vw, 8px)' }}>
                         {isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
                     </IconButton>
 
                     {/* Time Display */}
-                    <Typography variant="body2" sx={{ color: 'white', minWidth: 100 }}>
+                    <Typography variant="body2" sx={{ color: 'white', minWidth: 'clamp(80px, 10vw, 100px)', fontSize: 'clamp(0.75rem, 2vw, 0.875rem)' }}>
                         {formatTime(currentTime)} / {formatTime(duration)}
                     </Typography>
 
                     <Box sx={{ flex: 1 }} />
 
                     {/* Volume */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', width: 120 }}>
-                        <IconButton onClick={toggleMute} sx={{ color: 'white' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', width: 'clamp(80px, 15vw, 120px)' }}>
+                        <IconButton onClick={toggleMute} sx={{ color: 'white', padding: 'clamp(4px, 1vw, 8px)' }}>
                             {isMuted || volume === 0 ? <VolumeOffIcon /> : <VolumeUpIcon />}
                         </IconButton>
                         <Slider

@@ -190,15 +190,15 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        p: isMobile ? 1.5 : 2,
+        p: 'clamp(12px, 1.5vh, 16px)',
         '&:last-child': {
-          pb: isMobile ? 1.5 : 2,
+          pb: 'clamp(12px, 1.5vh, 16px)',
         }
       }}>
         <Box sx={{
-          pb: isMobile ? 1.5 : 2,
+          pb: 'clamp(12px, 1.5vh, 16px)',
           borderBottom: `1px solid ${theme.palette.divider}`,
-          mb: isMobile ? 1.5 : 2,
+          mb: 'clamp(12px, 1.5vh, 16px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between'

@@ -11,19 +11,20 @@ interface SlideNavigationFooterProps {
 }
 
 // Helper function for responsive styles (moved outside to reduce complexity)
+// Helper function for responsive styles (moved outside to reduce complexity)
 const getNavStyles = (isMobile: boolean) => ({
-    progressHeight: isMobile ? 3 : 4,
-    padding: isMobile ? 1.5 : 2,
-    prevPx: isMobile ? 2 : 3,
-    nextPx: isMobile ? 2 : 4,
+    progressHeight: 'clamp(3px, 1vw, 4px)',
+    padding: 'clamp(12px, 2vw, 16px)',
+    prevPx: 'clamp(16px, 3vw, 24px)',
+    nextPx: 'clamp(16px, 4vw, 32px)',
     touchTarget: {
-        minHeight: isMobile ? '44px' : 'auto',
-        minWidth: isMobile ? '44px' : 'auto',
+        minHeight: 'clamp(44px, 10vw, 48px)', // Ensure accessible touch target
+        minWidth: 'clamp(44px, 10vw, 48px)',
     },
-    fontSize: isMobile ? '0.8rem' : '0.875rem',
-    labelFontSize: isMobile ? '0.8rem' : '0.9rem',
-    separatorMargin: isMobile ? '0 4px' : '0 8px',
-    hoverTransform: isMobile ? 'none' : 'translateY(-2px)',
+    fontSize: 'clamp(0.8rem, 2vw, 0.875rem)',
+    labelFontSize: 'clamp(0.8rem, 2vw, 0.9rem)',
+    separatorMargin: '0 clamp(4px, 1vw, 8px)',
+    hoverTransform: 'translateY(-2px)',
     showIcons: !isMobile,
 });
 

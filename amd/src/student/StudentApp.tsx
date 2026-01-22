@@ -1,6 +1,7 @@
 import React from 'react';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import MainLayout from './components/Layout/MainLayout';
+import { ContentProvider } from './context/ContentContext';
 import { theme as sharedTheme } from '../theme/theme'; // Import shared theme but likely override for Gemini look
 
 // Extend/Override theme for Gemini Look based on screenshot
@@ -56,7 +57,9 @@ const StudentApp: React.FC = () => {
     return (
         <ThemeProvider theme={studentTheme}>
             <CssBaseline />
-            <MainLayout moodleContext={moodleContext} />
+            <ContentProvider>
+                <MainLayout moodleContext={moodleContext} />
+            </ContentProvider>
         </ThemeProvider>
     );
 };

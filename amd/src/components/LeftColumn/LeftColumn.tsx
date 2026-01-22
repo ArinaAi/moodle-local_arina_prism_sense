@@ -67,16 +67,16 @@ const LeftColumn: React.FC<LeftColumnProps> = ({
       <CardContent sx={{
         display: 'flex',
         flexDirection: 'column',
-        gap: isMobile ? 1.5 : 2,
+        gap: 'clamp(12px, 1.5vh, 16px)',
         height: '100%',
-        p: isMobile ? 1.5 : 2,
+        p: 'clamp(12px, 1.5vh, 16px)',
         '&:last-child': {
-          pb: isMobile ? 1.5 : 2,
+          pb: 'clamp(12px, 1.5vh, 16px)',
         }
       }}>
         {/* Header */}
         <Box sx={{
-          pb: isMobile ? 1.5 : 2,
+          pb: 'clamp(12px, 1.5vh, 16px)',
           borderBottom: `1px solid ${theme.palette.divider}`
         }}>
           <Typography
@@ -96,8 +96,8 @@ const LeftColumn: React.FC<LeftColumnProps> = ({
           onClick={onOpenSourcesModal}
           disabled={state.isGeneratingSlides}
           sx={{
-            py: isMobile ? 1.25 : 1.75,
-            fontSize: isMobile ? '0.875rem' : '1rem',
+            py: 'clamp(10px, 1.5vh, 14px)',
+            fontSize: 'clamp(0.875rem, 0.5vw + 0.8rem, 1rem)',
             fontWeight: 600,
             borderRadius: '20px',
             background: 'linear-gradient(135deg, #0f6cbf 0%, #0a5a9d 100%)',
@@ -127,7 +127,7 @@ const LeftColumn: React.FC<LeftColumnProps> = ({
           sx={{
             display: 'flex',
             flexDirection: 'column',
-            gap: isMobile ? 1.5 : 2,
+            gap: 'clamp(12px, 1.5vh, 16px)',
             flex: 1,
             minHeight: 0,
             overflow: 'auto',
@@ -139,7 +139,7 @@ const LeftColumn: React.FC<LeftColumnProps> = ({
           {renderSourcesContent()}
         </Box>
 
-        {sources.length > 0 && <Divider sx={{ my: isMobile ? 1.5 : 2 }} />}
+        {sources.length > 0 && <Divider sx={{ my: 'clamp(12px, 1.5vh, 16px)' }} />}
 
         {/* Content Type Dock with Improved Hierarchy */}
         <Box sx={{ mt: 'auto', flexShrink: 0 }}>

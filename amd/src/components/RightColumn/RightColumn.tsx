@@ -34,19 +34,19 @@ interface RightColumnProps {
 
 // Helper function for responsive styles (moved outside to reduce complexity)
 const getResponsiveStyles = (isMobile: boolean, isSmallScreen: boolean) => ({
-  containerGap: isMobile ? 1.5 : 2,
+  containerGap: 'clamp(12px, 1.5vh, 16px)',
   containerHeight: isMobile ? 'auto' : '100%',
   menuOrigin: {
     vertical: 'bottom' as const,
     horizontal: isMobile ? 'center' as const : 'right' as const,
   },
   menuMinWidth: isMobile ? '200px' : '180px',
-  menuItemPy: isMobile ? 2 : 1.5,
+  menuItemPy: 'clamp(12px, 1.5vh, 16px)',
   menuItemMinHeight: isMobile ? '48px' : 'auto',
   dialogBorderRadius: isSmallScreen ? 0 : '20px',
   dialogMargin: isSmallScreen ? 0 : 2,
-  dialogTitleFontSize: isMobile ? '1.1rem' : '1.25rem',
-  dialogActionsPadding: isMobile ? 2 : 1,
+  dialogTitleFontSize: 'clamp(1.1rem, 1vw + 1rem, 1.25rem)',
+  dialogActionsPadding: 'clamp(8px, 1vh + 4px, 16px)',
   buttonMinHeight: isMobile ? '44px' : 'auto',
 });
 
@@ -341,7 +341,7 @@ const RightColumn: React.FC<RightColumnProps> = ({
                 <Typography variant="caption" color="text.secondary">Created</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 500 }}>{formatDate(detailsItem.timecreated)}</Typography>
               </Box>
-              {detailsItem.timemodified && (
+              {!!detailsItem.timemodified && (
                 <Box>
                   <Typography variant="caption" color="text.secondary">Last Modified</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 500 }}>{formatDate(detailsItem.timemodified)}</Typography>

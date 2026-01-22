@@ -69,17 +69,17 @@ const ContentNavigator: React.FC = () => {
             borderRight: '1px solid rgba(0,0,0,0.04)'
         }}>
             {/* Header Area */}
-            <Box sx={{ p: 2.5, pb: 1.5 }}>
-                <Typography variant="h6" sx={{ mb: 0.5, fontWeight: 700, fontSize: '1.1rem', color: '#1e293b', letterSpacing: '-0.01em' }}>
+            <Box sx={{ p: 'clamp(12px, 2vw, 20px)', pb: 'clamp(8px, 1.5vw, 12px)' }}>
+                <Typography variant="h6" sx={{ mb: 0.5, fontWeight: 700, fontSize: 'clamp(1rem, 2.5vw, 1.1rem)', color: '#1e293b', letterSpacing: '-0.01em' }}>
                     Course Content
                 </Typography>
-                <Typography variant="body2" sx={{ color: '#64748b', fontSize: '0.8rem' }}>
+                <Typography variant="body2" sx={{ color: '#64748b', fontSize: 'clamp(0.75rem, 2vw, 0.8rem)' }}>
                     {sections.reduce((acc, section) => acc + section.items.length, 0)} items total
                 </Typography>
             </Box>
 
             {/* Filter */}
-            <Box sx={{ px: 2.5, mb: 2.5 }}>
+            <Box sx={{ px: 'clamp(12px, 2vw, 20px)', mb: 'clamp(12px, 2vw, 20px)' }}>
                 <FormControl fullWidth size="small">
                     <Select
                         value={sectionFilter}
@@ -128,8 +128,8 @@ const ContentNavigator: React.FC = () => {
             <Box sx={{
                 flex: 1,
                 overflowY: 'auto',
-                px: 2,
-                pb: 2,
+                px: 'clamp(12px, 2vw, 16px)',
+                pb: 'clamp(12px, 2vw, 16px)',
                 '::-webkit-scrollbar': { width: '4px' },
                 '::-webkit-scrollbar-thumb': { borderRadius: '4px', bgcolor: 'rgba(0,0,0,0.1)' }
             }}>

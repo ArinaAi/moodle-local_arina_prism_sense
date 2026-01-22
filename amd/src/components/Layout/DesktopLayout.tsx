@@ -35,10 +35,11 @@ const DesktopLayout: React.FC<LayoutProps> = ({
                     ? 'minmax(320px, 1.2fr) minmax(500px, 2.5fr) minmax(320px, 1.2fr)'
                     : 'clamp(260px, 20vw, 350px) 1fr clamp(260px, 20vw, 350px)',
                 gridTemplateRows: '1fr',
-                gap: isLargeDesktop ? 3 : 2,
-                p: isLargeDesktop ? 3 : 2,
-                height: 'calc(100vh - 120px)',
-                minHeight: 'clamp(500px, 70vh, 700px)',
+                gap: 'clamp(16px, 1.5vw, 24px)',
+                p: 'clamp(16px, 1.5vw, 24px)',
+                // Use 100% height - parent controls actual size via flex layout
+                height: '100%',
+                minHeight: 0, // Allows shrinking in flex context
                 overflow: 'hidden',
                 alignItems: 'stretch',
             }}
