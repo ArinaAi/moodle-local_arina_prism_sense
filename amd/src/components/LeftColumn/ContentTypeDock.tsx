@@ -1,5 +1,5 @@
 // components/docks/ContentTypeDock.tsx
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { Box } from '@mui/material';
 import { Presentation, Play, Wallet, Network, BookOpen, Briefcase } from 'lucide-react';
 import ContentTypeButton, { ContentTypeDefinition } from './ContentTypeButton';
@@ -60,6 +60,9 @@ const contentTypes: ContentTypeDefinition[] = [
   },
 ];
 
+// Threshold for switching to icon-only mode (in pixels)
+const COMPACT_THRESHOLD = 200;
+
 const ContentTypeDock: React.FC<ContentTypeDockProps> = ({
   activeType,
   onSelectType,
@@ -68,8 +71,26 @@ const ContentTypeDock: React.FC<ContentTypeDockProps> = ({
   isGeneratingSlides,
   hasSlides,
   hasSources,
-  isMobile = false,
+  isMobile: _isMobile = false,
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isCompact, setIsCompact] = useState(false);
+
+  // Use ResizeObserver to detect container width and toggle compact mode
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) { return; }
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const width = entry.contentRect.width;
+        setIsCompact(width < COMPACT_THRESHOLD);
+      }
+    });
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
 
   const isDisabled = useCallback((typeId: string) => {
     // Disable all options during generation
@@ -116,14 +137,26 @@ const ContentTypeDock: React.FC<ContentTypeDockProps> = ({
   };
 
   return (
-    <Box sx={{ width: '100%' }}>
+    <Box
+      ref={containerRef}
+      sx={{
+        width: '100%',
+        overflow: 'visible', // Allow borders/shadows to show
+        // Enable container queries for child elements
+        containerType: 'inline-size',
+        containerName: 'content-dock',
+        p: 'clamp(4px, 0.8vw, 6px)',
+      }}
+    >
       <Box
         sx={{
           display: 'grid',
-          // Mobile: 1 column for better touch targets and readability
-          // Tablet/Desktop: 2 columns
-          gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
-          gap: 'clamp(12px, 1.5vh, 16px)',
+          // Use 3 columns when compact (icon-only), 2 columns otherwise
+          gridTemplateColumns: isCompact ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
+          gap: isCompact ? '3px' : 'clamp(4px, 0.8vw, 6px)',
+          width: '100%',
+          // Add padding to prevent border/shadow clipping on all sides
+          p: 'clamp(2px, 0.5vw, 4px)',
         }}
       >
         {contentTypes.map((type) => (
@@ -134,6 +167,7 @@ const ContentTypeDock: React.FC<ContentTypeDockProps> = ({
             disabled={isDisabled(type.id)}
             tooltipTitle={getTooltipTitle(type.id)}
             onClick={handleTypeClick}
+            isCompact={isCompact}
           />
         ))}
       </Box>

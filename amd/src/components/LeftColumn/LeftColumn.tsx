@@ -62,16 +62,18 @@ const LeftColumn: React.FC<LeftColumnProps> = ({
         backdropFilter: 'blur(12px)',
         boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
         border: '1px solid rgba(255, 255, 255, 0.18)',
+        overflow: 'visible', // Allow dock button borders to show
       }}
     >
       <CardContent sx={{
         display: 'flex',
         flexDirection: 'column',
-        gap: 'clamp(12px, 1.5vh, 16px)',
+        gap: 'clamp(8px, 1vh, 12px)',
         height: '100%',
-        p: 'clamp(12px, 1.5vh, 16px)',
+        p: 'clamp(12px, 1vh, 16px)',
+        overflow: 'visible', // Allow dock borders to show
         '&:last-child': {
-          pb: 'clamp(12px, 1.5vh, 16px)',
+          pb: 'clamp(12px, 1vh, 16px)',
         }
       }}>
         {/* Header */}
@@ -96,14 +98,25 @@ const LeftColumn: React.FC<LeftColumnProps> = ({
           onClick={onOpenSourcesModal}
           disabled={state.isGeneratingSlides}
           sx={{
-            py: 'clamp(10px, 1.5vh, 14px)',
-            fontSize: 'clamp(0.875rem, 0.5vw + 0.8rem, 1rem)',
-            fontWeight: 600,
-            borderRadius: '20px',
+            py: 'clamp(8px, 1.25vh, 12px)',
+            px: 'clamp(12px, 2vw, 20px)',
+            fontSize: 'clamp(0.75rem, 1vw + 0.6rem, 1rem)',
+            fontWeight: 700,
+            borderRadius: '16px',
             background: 'linear-gradient(135deg, #0f6cbf 0%, #0a5a9d 100%)',
             transition: 'all 0.3s ease',
+            // Allow button to shrink and content to wrap if needed
+            minWidth: 0,
+            whiteSpace: 'normal',
+            lineHeight: 1.1,
             // Ensure minimum touch target on mobile
             minHeight: isMobile ? '44px' : 'auto',
+            '& .MuiButton-startIcon': {
+              marginRight: 'clamp(4px, 1vw, 8px)',
+              '& svg': {
+                fontSize: 'clamp(18px, 2.5vw, 24px)'
+              }
+            },
             '&:hover': {
               background: 'linear-gradient(135deg, #0a5a9d 0%, #084a82 100%)',
               boxShadow: '0 6px 20px rgba(15, 108, 191, 0.4)',
@@ -127,9 +140,9 @@ const LeftColumn: React.FC<LeftColumnProps> = ({
           sx={{
             display: 'flex',
             flexDirection: 'column',
-            gap: 'clamp(12px, 1.5vh, 16px)',
+            gap: 'clamp(8px, 1vh, 12px)',
             flex: 1,
-            minHeight: 0,
+            minHeight: '180px', // Guarantee space for sources
             overflow: 'auto',
             // Better scroll performance
             overscrollBehavior: 'contain',
@@ -142,7 +155,7 @@ const LeftColumn: React.FC<LeftColumnProps> = ({
         {sources.length > 0 && <Divider sx={{ my: 'clamp(12px, 1.5vh, 16px)' }} />}
 
         {/* Content Type Dock with Improved Hierarchy */}
-        <Box sx={{ mt: 'auto', flexShrink: 0 }}>
+        <Box sx={{ mt: 'auto', flexShrink: 0, overflow: 'visible' }}>
           <ContentTypeDock
             activeType={state.activeContentType}
             onSelectType={(type: string) =>
