@@ -19,7 +19,7 @@ const GeneratedContentList: React.FC<GeneratedContentListProps> = ({
     onPublish,
     onMenuOpen,
     isMobile = false,
-    onPreviewContent
+    onPreviewContent,
 }) => {
     const theme = useTheme();
 
@@ -54,7 +54,7 @@ const GeneratedContentList: React.FC<GeneratedContentListProps> = ({
         }
 
         return (
-            <List sx={{ flex: 1, overflow: 'auto', p: 0, pr: 1, scrollbarWidth: 'none', msOverflowStyle: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
+            <List sx={{ flex: 1, overflow: 'auto', p: 0, pr: 1, scrollbarWidth: 'thin' }}>
                 {generatingItems.map(item => <GeneratedContentItem key={item.id} item={item} onPublish={onPublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} />)}
                 {readyItems.map(item => <GeneratedContentItem key={item.id} item={item} onPublish={onPublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} />)}
                 {errorItems.map(item => <GeneratedContentItem key={item.id} item={item} onPublish={onPublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} />)}
@@ -65,17 +65,18 @@ const GeneratedContentList: React.FC<GeneratedContentListProps> = ({
     return (
         <Card sx={{
             flex: 1.5,
-            minHeight: isMobile ? 'auto' : '340px',
+            minHeight: 0,
             display: 'flex',
             flexDirection: 'column',
             backgroundColor: 'rgba(255, 255, 255, 0.8)',
             backdropFilter: 'blur(12px)',
             boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
             border: '1px solid rgba(255, 255, 255, 0.18)',
+            overflow: 'hidden',
         }}>
             <CardContent sx={{ display: 'flex', flexDirection: 'column', height: '100%', p: isMobile ? 1.5 : 2, pr: isMobile ? 0.5 : 1, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
-                <Box sx={{ pb: 2, borderBottom: `1px solid ${theme.palette.divider}`, mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="h6" component="h2">Generated Content</Typography>
+                <Box sx={{ pb: 'clamp(8px, 1vw, 16px)', borderBottom: `1px solid ${theme.palette.divider}`, mb: 'clamp(8px, 1vw, 16px)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="h6" component="h2" sx={{ fontSize: 'clamp(0.85rem, 1.5vw, 1.1rem)', fontWeight: 600 }}>Generated Content</Typography>
                 </Box>
                 {renderList()}
             </CardContent>

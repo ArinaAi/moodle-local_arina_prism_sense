@@ -1,10 +1,10 @@
 import React from 'react';
 import { Box, Typography, ListItem, CircularProgress, Chip, IconButton, Tooltip, useTheme } from '@mui/material';
 import { Visibility, Add, MoreVert, Error as ErrorIcon } from '@mui/icons-material';
-import { Play, Presentation } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import type { ContentItem } from '../../types/app';
 import { useContentPreview } from '../../hooks/useContentPreview';
+import { ContentTypeIcon, ContentItemTitle, SlideCountChip } from './contentItemUtils';
 
 interface GeneratedContentItemProps {
     item: ContentItem;
@@ -23,13 +23,6 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
         } else {
             localHandlePreview(id);
         }
-    };
-
-    const getSlideCount = (item: ContentItem): number => {
-        if (!item.result || !item.result.results) { return 0 };
-        return item.result.results.reduce((total: number, subtopic: any) => {
-            return total + (subtopic.slideCount || 0);
-        }, 0);
     };
 
     // Render Logic for different statuses
@@ -67,9 +60,11 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                     <CircularProgress size={22} thickness={4} sx={{ color: theme.palette.warning.main }} />
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.25 }}>
-                        {item.sectionname}
-                    </Typography>
+                    <Tooltip title={item.sectionname} arrow placement="top" enterDelay={300} enterTouchDelay={500} leaveTouchDelay={1500} PopperProps={{ sx: { zIndex: 100006 } }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.25, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {item.sectionname}
+                        </Typography>
+                    </Tooltip>
                     <StatusBadge status="generating" size="small" />
                 </Box>
             </ListItem>
@@ -81,28 +76,51 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
             <ListItem
                 sx={{
                     border: `1px solid ${theme.palette.error.light}`,
-                    borderRadius: '20px',
-                    mb: 1.5,
-                    p: 2,
+                    borderRadius: 'clamp(12px, 3vw, 20px)',
+                    mb: 'clamp(8px, 1.5vh, 12px)',
+                    p: 'clamp(10px, 2vw, 16px)',
                     backgroundColor: 'rgba(220, 53, 69, 0.05)',
                     display: 'flex',
-                    alignItems: 'center',
-                    gap: 2,
+                    alignItems: 'flex-start',
+                    gap: 'clamp(8px, 2vw, 16px)',
+                    overflow: 'hidden',
                 }}
             >
                 <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <ErrorIcon sx={{ fontSize: 28, color: theme.palette.error.main }} />
+                    <ErrorIcon sx={{ fontSize: 'clamp(20px, 3vw, 28px)', color: theme.palette.error.main }} />
                 </Box>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
-                        {item.sectionname}
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <StatusBadge status="error" size="small" />
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            {item.errormessage || 'Generation failed'}
+                <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                    <Tooltip title={item.sectionname} arrow placement="top" enterDelay={300} enterTouchDelay={500} leaveTouchDelay={1500} PopperProps={{ sx: { zIndex: 100006 } }}>
+                        <Typography variant="body2" sx={{
+                            fontWeight: 600,
+                            color: 'text.primary',
+                            mb: 0.5,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                        }}>
+                            {item.sectionname}
                         </Typography>
+                    </Tooltip>
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                        <StatusBadge status="error" size="small" />
                     </Box>
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            color: 'text.secondary',
+                            mt: 0.5,
+                            wordBreak: 'break-word',
+                            overflow: 'hidden',
+                            // Limit to 3 lines with ellipsis
+                            display: '-webkit-box',
+                            WebkitLineClamp: 3,
+                            WebkitBoxOrient: 'vertical',
+                            fontSize: 'clamp(0.65rem, 2vw, 0.75rem)',
+                        }}
+                    >
+                        {item.errormessage || 'Generation failed'}
+                    </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1 }}>
                     <Tooltip title="More options" arrow placement="top" PopperProps={{ sx: { zIndex: 100006 } }}>
@@ -132,11 +150,11 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                 border: `1px solid ${theme.palette.success.light}`,
                 borderRadius: '20px',
                 mb: 1.5,
-                p: 2,
+                p: 'clamp(12px, 1.5vw, 16px)',
                 backgroundColor: 'white',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 2,
+                gap: 'clamp(8px, 1.5vw, 16px)',
                 transition: 'all 0.3s ease',
                 cursor: 'pointer',
                 '&:hover': {
@@ -157,39 +175,21 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
             }}
         >
             <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {item.contenttype === 'video' ? (
-                    <Play size={28} color="#28a745" strokeWidth={2.5} />
-                ) : (
-                    <Presentation size={28} color="#28a745" strokeWidth={2.5} />
-                )}
+                <ContentTypeIcon contentType={item.contenttype} color="#28a745" />
             </Box>
 
             <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
-                    {item.sectionname}
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                <ContentItemTitle title={item.sectionname} />
+                <Box sx={{ display: 'flex', gap: 'clamp(4px, 1vw, 8px)', alignItems: 'center', flexWrap: 'wrap' }}>
                     <StatusBadge status={item.approved ? 'approved' : 'ready'} size="small" />
-                    {item.contenttype !== 'video' && (
-                        <Chip
-                            label={`${getSlideCount(item)} slides`}
-                            size="small"
-                            sx={{
-                                backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                                color: '#28a745',
-                                fontWeight: 500,
-                                fontSize: '0.7rem',
-                                height: '20px',
-                            }}
-                        />
-                    )}
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    <SlideCountChip item={item} />
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 'clamp(0.7rem, 1.25vw, 0.75rem)' }}>
                         {item.approved ? 'Ready to publish' : 'Pending approval'}
                     </Typography>
                 </Box>
             </Box>
 
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ display: 'flex', gap: 'clamp(4px, 1vw, 8px)' }}>
                 <Tooltip title={item.contenttype === 'video' ? "Preview video" : "Preview slides"} arrow placement="top" PopperProps={{ sx: { zIndex: 100006 } }}>
                     <IconButton
                         size="small"
@@ -200,14 +200,14 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                             handlePreview(item.id);
                         }}
                         sx={{
-                            width: 32,
-                            height: 32,
+                            width: 'clamp(28px, 3vw, 32px)',
+                            height: 'clamp(28px, 3vw, 32px)',
                             backgroundColor: 'info.main',
                             color: 'white',
                             '&:hover': { backgroundColor: 'info.dark' },
                         }}
                     >
-                        <Visibility fontSize="small" />
+                        <Visibility fontSize="small" sx={{ fontSize: 'clamp(18px, 2vw, 20px)' }} />
                     </IconButton>
                 </Tooltip>
                 <Tooltip title={item.approved ? "Publish to course page" : "Approve content first"} arrow placement="top" PopperProps={{ sx: { zIndex: 100006 } }}>
@@ -220,8 +220,8 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                                 onPublish(`content-${item.id}`);
                             }}
                             sx={{
-                                width: 32,
-                                height: 32,
+                                width: 'clamp(28px, 3vw, 32px)',
+                                height: 'clamp(28px, 3vw, 32px)',
                                 backgroundColor: item.approved ? 'success.main' : 'grey.300',
                                 color: 'white',
                                 '&:hover': {
@@ -233,7 +233,7 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                                 },
                             }}
                         >
-                            <Add fontSize="small" />
+                            <Add fontSize="small" sx={{ fontSize: 'clamp(18px, 2vw, 20px)' }} />
                         </IconButton>
                     </span>
                 </Tooltip>
@@ -242,14 +242,14 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                         size="small"
                         onClick={(e) => onMenuOpen(e, item.id)}
                         sx={{
-                            width: 32,
-                            height: 32,
+                            width: 'clamp(28px, 3vw, 32px)',
+                            height: 'clamp(28px, 3vw, 32px)',
                             backgroundColor: 'grey.300',
                             color: 'grey.700',
                             '&:hover': { backgroundColor: 'grey.400' },
                         }}
                     >
-                        <MoreVert fontSize="small" />
+                        <MoreVert fontSize="small" sx={{ fontSize: 'clamp(18px, 2vw, 20px)' }} />
                     </IconButton>
                 </Tooltip>
             </Box>

@@ -32,14 +32,16 @@ const PublishedContentList: React.FC<PublishedContentListProps> = ({ contentItem
             backdropFilter: 'blur(12px)',
             boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
             border: '1px solid rgba(255, 255, 255, 0.18)',
+            minHeight: 0,
+            overflow: 'hidden',
         }}>
             <CardContent sx={{ display: 'flex', flexDirection: 'column', height: '100%', p: isMobile ? 1.5 : 2, pr: isMobile ? 0.5 : 1, '&:last-child': { pb: isMobile ? 1.5 : 2 } }}>
-                <Box sx={{ pb: 2, borderBottom: `1px solid ${theme.palette.divider}`, mb: 2 }}>
-                    <Typography variant="h6" component="h2">Published Content</Typography>
+                <Box sx={{ pb: 'clamp(8px, 1vw, 16px)', borderBottom: `1px solid ${theme.palette.divider}`, mb: 'clamp(8px, 1vw, 16px)' }}>
+                    <Typography variant="h6" component="h2" sx={{ fontSize: 'clamp(0.85rem, 1.5vw, 1.1rem)', fontWeight: 600 }}>Published Content</Typography>
                 </Box>
 
                 {publishedItems.length === 0 ? renderEmptyState() : (
-                    <List sx={{ flex: 1, overflow: 'auto', p: 0, pr: 1, scrollbarWidth: 'none', msOverflowStyle: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
+                    <List sx={{ flex: 1, overflow: 'auto', p: 0, pr: 1, scrollbarWidth: 'thin' }}>
                         {publishedItems.map(item => (
                             <PublishedContentItem key={item.id} item={item} />
                         ))}

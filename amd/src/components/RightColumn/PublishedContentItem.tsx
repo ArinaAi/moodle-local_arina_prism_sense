@@ -1,10 +1,10 @@
 import React from 'react';
 import { Box, Typography, ListItem, Chip, IconButton, Tooltip, useTheme } from '@mui/material';
 import { Visibility } from '@mui/icons-material';
-import { Presentation, Play } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import type { ContentItem } from '../../types/app';
 import { useContentPreview } from '../../hooks/useContentPreview';
+import { formatDate, ContentTypeIcon, ContentItemTitle, SlideCountChip } from './contentItemUtils';
 
 interface PublishedContentItemProps {
     item: ContentItem;
@@ -14,37 +14,17 @@ const PublishedContentItem: React.FC<PublishedContentItemProps> = ({ item }) => 
     const theme = useTheme();
     const { handlePreviewContent } = useContentPreview({ contentItems: [item] });
 
-    const formatDate = (timestamp: number) => {
-        const date = new Date(timestamp * 1000);
-        const options: Intl.DateTimeFormatOptions = {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true,
-        };
-        return date.toLocaleString('en-US', options);
-    };
-
-    const getSlideCount = (item: ContentItem): number => {
-        if (!item.result || !item.result.results) { return 0 };
-        return item.result.results.reduce((total: number, subtopic: any) => {
-            return total + (subtopic.slideCount || 0);
-        }, 0);
-    };
-
     return (
         <ListItem
             sx={{
                 border: `1px solid ${theme.palette.success.light}`,
                 borderRadius: '20px',
                 mb: 1.5,
-                p: 2,
+                p: 'clamp(12px, 1.5vw, 16px)',
                 backgroundColor: 'white',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 2,
+                gap: 'clamp(8px, 1.5vw, 16px)',
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 '&:hover': {
@@ -61,43 +41,15 @@ const PublishedContentItem: React.FC<PublishedContentItemProps> = ({ item }) => 
             }}
         >
             <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {item.contenttype === 'video' ? (
-                    <Play size={28} color="#28a745" strokeWidth={2.5} />
-                ) : (
-                    <Presentation size={28} color="#28a745" strokeWidth={2.5} />
-                )}
+                <ContentTypeIcon contentType={item.contenttype} color="#28a745" />
             </Box>
 
             <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography
-                    variant="body2"
-                    sx={{
-                        fontWeight: 600,
-                        color: 'text.primary',
-                        mb: 0.5,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                    }}
-                >
-                    {item.sectionname}
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                <ContentItemTitle title={item.sectionname} />
+                <Box sx={{ display: 'flex', gap: 'clamp(4px, 1vw, 8px)', alignItems: 'center', flexWrap: 'wrap' }}>
                     <StatusBadge status="published" size="small" />
-                    {item.contenttype !== 'video' && (
-                        <Chip
-                            label={`${getSlideCount(item)} slides`}
-                            size="small"
-                            sx={{
-                                backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                                color: '#28a745',
-                                fontWeight: 500,
-                                fontSize: '0.7rem',
-                                height: '20px',
-                            }}
-                        />
-                    )}
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    <SlideCountChip item={item} />
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 'clamp(0.7rem, 1.25vw, 0.75rem)' }}>
                         {item.timepublished ? formatDate(item.timepublished) : 'Published'}
                     </Typography>
                 </Box>
@@ -113,14 +65,14 @@ const PublishedContentItem: React.FC<PublishedContentItemProps> = ({ item }) => 
                         }
                     }}
                     sx={{
-                        width: 32,
-                        height: 32,
+                        width: 'clamp(28px, 3vw, 32px)',
+                        height: 'clamp(28px, 3vw, 32px)',
                         backgroundColor: 'info.main',
                         color: 'white',
                         '&:hover': { backgroundColor: 'info.dark' },
                     }}
                 >
-                    <Visibility fontSize="small" />
+                    <Visibility fontSize="small" sx={{ fontSize: 'clamp(18px, 2vw, 20px)' }} />
                 </IconButton>
             </Tooltip>
         </ListItem>

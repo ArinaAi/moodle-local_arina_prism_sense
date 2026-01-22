@@ -30,12 +30,13 @@ interface RightColumnProps {
   isMobile?: boolean;
   isLoading?: boolean;
   onPreviewContent?: (contentId: number) => void;
+  fullHeight?: boolean;
 }
 
 // Helper function for responsive styles (moved outside to reduce complexity)
-const getResponsiveStyles = (isMobile: boolean, isSmallScreen: boolean) => ({
+const getResponsiveStyles = (isMobile: boolean, isSmallScreen: boolean, fullHeight: boolean) => ({
   containerGap: 'clamp(12px, 1.5vh, 16px)',
-  containerHeight: isMobile ? 'auto' : '100%',
+  containerHeight: fullHeight || !isMobile ? '100%' : 'auto',
   menuOrigin: {
     vertical: 'bottom' as const,
     horizontal: isMobile ? 'center' as const : 'right' as const,
@@ -57,13 +58,14 @@ const RightColumn: React.FC<RightColumnProps> = ({
   onDeleteContent,
   isMobile = false,
   isLoading = false,
-  onPreviewContent
+  onPreviewContent,
+  fullHeight = false,
 }) => {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Use external helper function
-  const styles = getResponsiveStyles(isMobile, isSmallScreen);
+  const styles = getResponsiveStyles(isMobile, isSmallScreen, fullHeight);
 
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ open: boolean; contentId: number | null }>({
@@ -129,9 +131,8 @@ const RightColumn: React.FC<RightColumnProps> = ({
           gap: styles.containerGap,
           height: styles.containerHeight,
           maxWidth: '100%',
-          overflow: 'auto',
-          overscrollBehavior: 'contain',
-          WebkitOverflowScrolling: 'touch',
+          // Don't allow the entire column to scroll - let individual lists scroll
+          overflow: 'hidden',
         }}
       >
         {/* Generated Content Card */}
