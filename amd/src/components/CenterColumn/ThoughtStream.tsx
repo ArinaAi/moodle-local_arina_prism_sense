@@ -7,6 +7,7 @@ type ProcessingStatus =
     | 'toc_generation' | 'toc_completed'
     | 'lecture_generation' | 'lecture_completed'
     | 'slides_generation' | 'slides_completed'
+    | 'audio_completed' | 'video_completed'
     | null;
 
 interface ThoughtStreamProps {
@@ -93,8 +94,10 @@ const getStepIndex = (status: ProcessingStatus): number => {
             return 2; // lecture
         case 'lecture_completed':
         case 'slides_generation':
-            return 3; // slides
+        case 'audio_completed':
+            return 3; // slides or video render
         case 'slides_completed':
+        case 'video_completed':
             return 4; // done
         default:
             return 0;

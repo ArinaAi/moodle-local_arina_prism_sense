@@ -143,7 +143,7 @@ export interface ContentItem {
     email: string;
   } | null;
   video_length?: string;
-  processing_status?: 'queued' | 'pending' | 'processing' | 'toc_generation' | 'toc_completed' | 'lecture_generation' | 'lecture_completed' | 'slides_generation' | 'slides_completed' | null;
+  processing_status?: 'queued' | 'pending' | 'processing' | 'toc_generation' | 'toc_completed' | 'lecture_generation' | 'lecture_completed' | 'slides_generation' | 'slides_completed' | 'audio_completed' | 'video_completed' | null;
   generationdata?: string;
 }
 

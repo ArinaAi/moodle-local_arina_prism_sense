@@ -6,6 +6,7 @@ type ProcessingStatus =
     | 'toc_generation' | 'toc_completed'
     | 'lecture_generation' | 'lecture_completed'
     | 'slides_generation' | 'slides_completed'
+    | 'audio_completed' | 'video_completed'
     | null;
 
 interface SmoothProgressBarProps {
@@ -28,8 +29,10 @@ const getTargetProgress = (status: ProcessingStatus): number => {
             return 35; // Lecture starts here, will creep to 80
         case 'lecture_completed':
         case 'slides_generation':
+        case 'audio_completed':
             return 85;
         case 'slides_completed':
+        case 'video_completed':
             return 98;
         default:
             return 10;

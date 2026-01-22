@@ -136,6 +136,7 @@ try {
             'timeapproved' => $content->timeapproved,
             'approver' => $approver,
             'video_length' => $generationData['video_length'] ?? null,
+            'processing_status' => $generationData['processing_status'] ?? null,
             'isCompleted' => $isCompleted
         ];
     }

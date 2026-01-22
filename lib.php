@@ -684,7 +684,7 @@ function local_lecturebot_get_login_js()
                     const welcomeSection = document.createElement('div');
                     welcomeSection.className = 'lecturebot-welcome-section';
                     welcomeSection.innerHTML = `
-                        <h1 class="lecturebot-welcome-title">Welcome Back</h1>
+                        <h1 class="lecturebot-welcome-title">Start Learning</h1>
                         <p class="lecturebot-welcome-subtitle">Sign in to continue your learning journey</p>
                     `;
                     

@@ -135,7 +135,7 @@ const Header: React.FC<HeaderProps> = ({ moodleContext, children }) => {
                 {children}
                 <Box
                     component="img"
-                    src={`${moodleContext.wwwroot}/local/lecturebot/pix/arina-logo.png`}
+                    src={`${moodleContext.wwwroot}/local/lecturebot/pix/arina-logo.png?v=1`}
                     alt="Arina AI"
                     sx={{
                         height: { xs: 36, sm: 48, md: 60 },

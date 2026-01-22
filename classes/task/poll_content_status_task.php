@@ -91,6 +91,7 @@ class poll_content_status_task extends \core\task\scheduled_task
             case 'success':
             case 'slides_completed':       // Backend returns this when PPTX/slides are ready
             case 'content_completed':      // Alternative completion status
+            case 'video_completed':        // Video generation completed
                 $this->handleCompleted($content, $statusResponse);
                 break;
 
@@ -102,8 +103,9 @@ class poll_content_status_task extends \core\task\scheduled_task
             // Intermediate milestone statuses - save progress but keep waiting
             case 'toc_completed':          // TOC is done, lecture generation started
             case 'lecture_completed':      // Lecture is done, slide generation started
+            case 'audio_completed':        // Audio generation completed (for video)
                 $this->updateLastChecked($content, $status);
-                mtrace("  - Milestone reached ({$status}), waiting for slides...");
+                mtrace("  - Milestone reached ({$status}), waiting for completion...");
                 break;
 
             // Still actively processing
