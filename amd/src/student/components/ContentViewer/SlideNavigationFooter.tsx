@@ -2,12 +2,16 @@ import React from 'react';
 import { Box, Typography, Button, useTheme, useMediaQuery } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import SlideThumbnails from './SlideThumbnails';
+import { SlideImage } from './useContentSlides';
 
 interface SlideNavigationFooterProps {
     currentSlide: number;
     totalSlides: number;
     onNext: () => void;
     onPrev: () => void;
+    slides?: SlideImage[];
+    onSlideClick?: (index: number) => void;
 }
 
 // Helper function for responsive styles (moved outside to reduce complexity)
@@ -28,7 +32,14 @@ const getNavStyles = (isMobile: boolean) => ({
     showIcons: !isMobile,
 });
 
-const SlideNavigationFooter: React.FC<SlideNavigationFooterProps> = ({ currentSlide, totalSlides, onNext, onPrev }) => {
+const SlideNavigationFooter: React.FC<SlideNavigationFooterProps> = ({ 
+    currentSlide, 
+    totalSlides, 
+    onNext, 
+    onPrev,
+    slides = [],
+    onSlideClick
+}) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -132,6 +143,15 @@ const SlideNavigationFooter: React.FC<SlideNavigationFooterProps> = ({ currentSl
                     {styles.showIcons ? 'Next' : <ChevronRightIcon />}
                 </Button>
             </Box>
+
+            {/* Thumbnail strip */}
+            {slides.length > 0 && onSlideClick && (
+                <SlideThumbnails
+                    slides={slides}
+                    currentSlide={currentSlide}
+                    onSlideClick={onSlideClick}
+                />
+            )}
         </Box>
     );
 };

@@ -15,7 +15,7 @@ const PptxViewer: React.FC<PptxViewerProps> = ({ contentId, courseId: _courseId,
   const selectedContent = useMemo(() => ({ id: contentId }), [contentId]);
 
   // Reuse the hook from student components
-  const { slides, currentSlide, isLoading, error, handleNext, handlePrev } = useContentSlides(selectedContent, false);
+  const { slides, currentSlide, isLoading, error, handleNext, handlePrev, goToSlide } = useContentSlides(selectedContent, false);
 
   return (
     <Paper
@@ -38,6 +38,11 @@ const PptxViewer: React.FC<PptxViewerProps> = ({ contentId, courseId: _courseId,
         error={error}
         currentSlideData={slides[currentSlide]}
         hasSlides={slides.length > 0}
+        slides={slides}
+        currentSlide={currentSlide}
+        onNext={handleNext}
+        onPrev={handlePrev}
+        onSlideClick={goToSlide}
       />
 
       <SlideNavigationFooter
@@ -45,6 +50,8 @@ const PptxViewer: React.FC<PptxViewerProps> = ({ contentId, courseId: _courseId,
         totalSlides={slides.length}
         onNext={handleNext}
         onPrev={handlePrev}
+        slides={slides}
+        onSlideClick={goToSlide}
       />
     </Paper>
   );

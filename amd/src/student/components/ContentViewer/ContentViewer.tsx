@@ -12,7 +12,7 @@ const ContentViewer: React.FC = () => {
     const { selectedContent, setSelectedContent, markAsComplete } = useContent();
     const isVideo = selectedContent?.type === 'video';
 
-    const { slides, currentSlide, isLoading, error, handleNext, handlePrev } = useContentSlides(selectedContent, isVideo);
+    const { slides, currentSlide, isLoading, error, handleNext, handlePrev, goToSlide } = useContentSlides(selectedContent, isVideo);
 
     if (!selectedContent) {
         return <EmptyContentState />;
@@ -51,6 +51,11 @@ const ContentViewer: React.FC = () => {
                 error={error}
                 currentSlideData={slides[currentSlide]}
                 hasSlides={slides.length > 0}
+                slides={slides}
+                currentSlide={currentSlide}
+                onNext={handleNext}
+                onPrev={handlePrev}
+                onSlideClick={goToSlide}
             />
 
             {!isVideo && (
@@ -59,6 +64,8 @@ const ContentViewer: React.FC = () => {
                     totalSlides={slides.length}
                     onNext={handleNext}
                     onPrev={handlePrev}
+                    slides={slides}
+                    onSlideClick={goToSlide}
                 />
             )}
         </Paper>

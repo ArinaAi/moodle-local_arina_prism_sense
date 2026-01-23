@@ -61,6 +61,12 @@ export const useContentSlides = (selectedContent: any, isVideo: boolean) => {
         }
     };
 
+    const goToSlide = (index: number) => {
+        if (index >= 0 && index < slides.length) {
+            setCurrentSlide(index);
+        }
+    };
+
     return {
         slides,
         currentSlide,
@@ -68,5 +74,6 @@ export const useContentSlides = (selectedContent: any, isVideo: boolean) => {
         error,
         handleNext,
         handlePrev,
+        goToSlide,
     };
 };

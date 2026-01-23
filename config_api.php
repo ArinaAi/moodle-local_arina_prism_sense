@@ -9,8 +9,29 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-// API Base URL - Change this for different environments
-define('LECTUREBOT_API_BASE_URL', 'https://bots.arina.ai/tutorial_generation');
+// Load environment variables from .env file
+$envFile = __DIR__ . '/.env';
+if (file_exists($envFile)) {
+    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        // Skip comments
+        if (strpos(trim($line), '#') === 0) {
+            continue;
+        }
+        if (strpos($line, '=') !== false) {
+            list($name, $value) = explode('=', $line, 2);
+            $name = trim($name);
+            $value = trim($value);
+            if (!empty($name) && !isset($_ENV[$name])) {
+                putenv("$name=$value");
+                $_ENV[$name] = $value;
+            }
+        }
+    }
+}
+
+// API Base URL - Change this in .env file for different environments
+define('LECTUREBOT_API_BASE_URL', getenv('LECTUREBOT_API_BASE_URL') ?: 'https://bots.arina.ai/tutorial_generation');
 
 // API Endpoints
 define('LECTUREBOT_API_GENERATE_PPTX', LECTUREBOT_API_BASE_URL . '/generate_pptx');
