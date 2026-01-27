@@ -44,7 +44,7 @@ function local_lecturebot_get_button_js($wwwroot)
             function initLectureBotAdmin() {
                 // Remove existing button if any
                 const existingBtn = document.querySelector(".lecturebot-course-button");
-                if (existingBtn) existingBtn.remove();
+                if (existingBtn) {existingBtn.remove()};
 
                 // Find injection target
                 const targetElement = document.querySelector(".page-header-actions") ||
@@ -293,82 +293,34 @@ function local_lecturebot_get_login_base_css()
     return <<<CSS
         /* ===== LOGIN PAGE BASE STYLES ===== */
         
-        /* Hide Cookies Notice Button */
-        .btn-cookies,
-        button[data-action="cookiesnotice"],
-        #page-login-index button:contains("Cookies"),
-        #page-login-index .btn:contains("Cookies"),
-        #page-login-index button.btn-secondary {
-            display: none !important;
-        }
-        
-        /* Hide Question Mark Help Icon */
+        /* Hide Moodle UI Elements on Login Page */
         body.pagelayout-login #usernavigation,
         body.pagelayout-login [data-region="drawer-toggle"],
         body.pagelayout-login .btn-footer-popover,
-        body.pagelayout-login button[data-action="footer-popover"] {
+        body.pagelayout-login button[data-action="footer-popover"],
+        body.pagelayout-login #page-footer,
+        body.pagelayout-login footer.footer-popover,
+        body.pagelayout-login .footer-popover,
+        body.pagelayout-login .footer-content-popover,
+        body.pagelayout-login .footer-section,
+        body.pagelayout-login .logininfo,
+        body.pagelayout-login .tool_dataprivacy,
+        body.pagelayout-login .tool_policy,
+        body.pagelayout-login #theme_switch_link,
+        body.pagelayout-login .tool_usertours-resettourcontainer {
             display: none !important;
         }
         
-        /* Modern Background with subtle pattern */
-        body.pagelayout-login {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%) !important;
-            min-height: 100vh;
-            position: relative;
-            overflow-x: hidden;
-        }
-        
-        /* Decorative floating circles */
-        body.pagelayout-login::before,
-        body.pagelayout-login::after {
-            content: '';
-            position: fixed;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.08);
-            animation: float 20s ease-in-out infinite;
-            pointer-events: none;
-        }
-        
-        body.pagelayout-login::before {
-            width: 400px;
-            height: 400px;
-            top: -100px;
-            right: -100px;
-            animation-delay: 0s;
-        }
-        
-        body.pagelayout-login::after {
-            width: 300px;
-            height: 300px;
-            bottom: -50px;
-            left: -50px;
-            animation-delay: -10s;
-        }
-        
-        @keyframes float {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            25% { transform: translate(20px, -30px) rotate(5deg); }
-            50% { transform: translate(-10px, 20px) rotate(-5deg); }
-            75% { transform: translate(15px, 10px) rotate(3deg); }
-        }
-        
-        /* Modern Login Card with glassmorphism */
-        #page-login-index .card,
-        #page-login-index .login-container,
-        #page-login-index #region-main > .card {
-            border-radius: 20px !important;
+        /* Modern Login Container - Fluid Responsive */
+        #page-login-index .login-container {
+            border-radius: clamp(12px, 4vw, 20px) !important;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12),
-                        0 2px 8px rgba(0, 0, 0, 0.08) !important;
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
-            padding: 48px 40px 40px !important;
-            max-width: 420px !important;
-            margin: 40px auto !important;
-            background: rgba(255, 255, 255, 0.95) !important;
-            backdrop-filter: blur(10px) !important;
-            -webkit-backdrop-filter: blur(10px) !important;
+                        0 2px 8px rgba(0, 0, 0, 0.08) !important;   
+            padding: clamp(20px, 5vh, 48px) clamp(16px, 5vw, 40px) clamp(20px, 4vh, 40px) !important;
+            max-width: min(420px, calc(100vw - 32px)) !important;
+            margin: clamp(16px, 3vh, 40px) auto !important;
             animation: slideUp 0.6s ease-out;
             position: relative;
-            z-index: 10;
         }
         
         @keyframes slideUp {
@@ -382,34 +334,26 @@ function local_lecturebot_get_login_base_css()
             }
         }
         
-        /* Typography - Headings (hidden, we'll use custom) */
-        #page-login-index h2,
-        #page-login-index .login-heading {
-            display: none !important;
-        }
-        
-        /* Remove any default card background patterns */
-        #page-login-index .card-body {
-            background: transparent !important;
-        }
-        
-        /* Logo Enhancement */
-        #page-login-index .login-container .logo img,
-        #page-login-index .logo img {
-            max-height: 56px !important;
-            margin-bottom: 16px !important;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)) !important;
+        /* Logo Enhancement - Fluid Responsive (scales with viewport height) */
+        #page-login-index #loginlogo img,
+        #page-login-index .login-logo img {
+            max-height: clamp(64px, 16vw, 125px) !important;
+            width: auto !important;
+            margin-bottom: clamp(6px, min(2vw, 1.5vh), 16px) !important;
             transition: transform 0.3s ease !important;
         }
         
-        #page-login-index .logo img:hover {
-            transform: scale(1.05) !important;
-        }
-        
-        /* Custom Welcome Section Styles */
+        /* Logo container */
+        #page-login-index #loginlogo,
+        #page-login-index .login-logo {
+            text-align: center !important;
+            margin-bottom: 0 !important;
+        }  
+    
+        /* Custom Welcome Section Styles - Fluid Responsive */
         .lecturebot-welcome-section {
             text-align: center;
-            margin-bottom: 28px;
+            margin-bottom: clamp(16px, 3vh, 28px);
             animation: fadeIn 0.8s ease-out 0.3s both;
         }
         
@@ -419,78 +363,165 @@ function local_lecturebot_get_login_base_css()
         }
         
         .lecturebot-welcome-title {
-            font-size: 26px;
+            font-size: clamp(18px, 4vw, 26px);
             font-weight: 700;
             color: #1a1a2e;
-            margin: 0 0 8px 0;
+            margin: 0 0 clamp(6px, 1vh, 8px) 0;
             letter-spacing: -0.5px;
+            line-height: 1.2;
         }
         
         .lecturebot-welcome-subtitle {
-            font-size: 15px;
+            font-size: clamp(12px, 2.5vw, 15px);
             color: #6b7280;
             margin: 0;
             font-weight: 400;
+            line-height: 1.4;
         }
         
-        /* Divider line */
+        /* Divider line - Fluid Responsive */
         .lecturebot-divider {
             height: 1px;
             background: linear-gradient(90deg, transparent, #e5e7eb, transparent);
-            margin: 24px 0;
+            margin: clamp(16px, 3vh, 24px) 0;
         }
         
-        /* Footer Styles */
+        /* Footer Styles - Fluid Responsive */
         .lecturebot-login-footer {
             text-align: center;
-            margin-top: 32px;
-            padding-top: 24px;
+            margin-top: clamp(20px, 4vh, 32px);
+            padding-top: clamp(16px, 3vh, 24px);
             border-top: 1px solid #f0f0f0;
             animation: fadeIn 0.8s ease-out 0.5s both;
         }
         
         .lecturebot-footer-text {
-            font-size: 12px;
+            font-size: clamp(11px, 2vw, 12px);
             color: #9ca3af;
-            margin: 0 0 4px 0;
+            margin: 0 0 clamp(3px, 0.5vh, 4px) 0;
         }
         
         .lecturebot-footer-brand {
-            font-size: 13px;
+            font-size: clamp(12px, 2.2vw, 13px);
             color: #6b7280;
             font-weight: 500;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: clamp(4px, 1vw, 6px);
         }
         
         .lecturebot-footer-brand svg {
-            width: 14px;
-            height: 14px;
+            width: clamp(12px, 2.5vw, 14px);
+            height: clamp(12px, 2.5vw, 14px);
         }
         
-        /* Feature highlights */
+        /* Feature highlights - Fluid Responsive */
         .lecturebot-features {
             display: flex;
             justify-content: center;
-            gap: 20px;
-            margin-top: 16px;
+            flex-wrap: wrap;
+            gap: clamp(12px, 3vw, 20px);
+            margin-top: clamp(12px, 2vh, 16px);
             animation: fadeIn 0.8s ease-out 0.6s both;
         }
         
         .lecturebot-feature {
             display: flex;
             align-items: center;
-            gap: 6px;
-            font-size: 12px;
+            gap: clamp(4px, 1vw, 6px);
+            font-size: clamp(11px, 2vw, 12px);
             color: #6b7280;
         }
         
         .lecturebot-feature svg {
-            width: 14px;
-            height: 14px;
+            width: clamp(12px, 2.5vw, 14px);
+            height: clamp(12px, 2.5vw, 14px);
             color: #10b981;
+        }
+        
+        /* ===== HEIGHT-BASED RESPONSIVE ADJUSTMENTS ===== */
+        
+        /* For screens shorter than 700px (like MacBook Pro 13" at 640px) */
+        @media (max-height: 700px) {
+            /* Hide decorative footer features to save space */
+            .lecturebot-features {
+                display: none !important;
+            }
+            
+            /* Reduce welcome section spacing */
+            .lecturebot-welcome-section {
+                margin-bottom: 12px !important;
+            }
+            
+            .lecturebot-welcome-title {
+                font-size: 20px !important;
+                margin-bottom: 4px !important;
+            }
+            
+            .lecturebot-welcome-subtitle {
+                font-size: 13px !important;
+            }
+            
+            /* Reduce container padding more aggressively */
+            #page-login-index .login-container {
+                padding: 16px 20px 16px !important;
+                margin: 12px auto !important;
+            }
+            
+            /* Reduce form spacing */
+            #page-login-index .login-form-username,
+            #page-login-index .login-form-password,
+            #page-login-index .login-form-submit,
+            #page-login-index .login-form-forgotpassword {
+                margin-bottom: 12px !important;
+            }
+            
+            /* Reduce footer spacing */
+            .lecturebot-login-footer {
+                margin-top: 16px !important;
+                padding-top: 12px !important;
+            }
+        }
+        
+        /* For very short screens (landscape mobile or small laptops) */
+        @media (max-height: 600px) {
+            /* Hide welcome section entirely */
+            .lecturebot-welcome-section {
+                display: none !important;
+            }
+            
+            /* Hide footer branding, keep only essential form */
+            .lecturebot-login-footer {
+                display: none !important;
+            }
+            
+            /* Minimal container padding */
+            #page-login-index .login-container {
+                padding: 12px 16px !important;
+                margin: 8px auto !important;
+            }
+            
+            /* Compact form spacing */
+            #page-login-index .login-form-username,
+            #page-login-index .login-form-password,
+            #page-login-index .login-form-submit,
+            #page-login-index .login-form-forgotpassword {
+                margin-bottom: 10px !important;
+            }
+            
+            /* Smaller inputs */
+            #page-login-index input[type="text"],
+            #page-login-index input[type="password"] {
+                height: 40px !important;
+                padding: 0 12px !important;
+            }
+            
+            /* Smaller button */
+            #page-login-index #loginbtn {
+                height: 40px !important;
+                margin-top: 4px !important;
+            }
         }
 CSS;
 }
@@ -505,25 +536,23 @@ function local_lecturebot_get_login_form_css()
     return <<<CSS
         /* ===== LOGIN FORM STYLES ===== */
         
-        /* Form Labels */
+        /* Form Labels - Fluid Responsive */
         #page-login-index label {
-            font-size: 14px !important;
+            font-size: clamp(13px, 2.5vw, 14px) !important;
             font-weight: 500 !important;
             color: #374151 !important;
-            margin-bottom: 6px !important;
+            margin-bottom: clamp(4px, 1vh, 6px) !important;
             display: block !important;
         }
         
-        /* Modern Input Fields */
+        /* Modern Input Fields - Fluid Responsive */
         #page-login-index input[type="text"],
-        #page-login-index input[type="password"],
-        #page-login-index input#username,
-        #page-login-index input#password {
-            height: 48px !important;
+        #page-login-index input[type="password"] {
+            height: clamp(44px, 8vh, 48px) !important;
             border: 1.5px solid #d1d5db !important;
-            border-radius: 8px !important;
-            padding: 0 16px !important;
-            font-size: 15px !important;
+            border-radius: clamp(6px, 1.5vw, 8px) !important;
+            padding: 0 clamp(12px, 3vw, 16px) !important;
+            font-size: clamp(14px, 2.8vw, 15px) !important;
             transition: all 0.2s ease !important;
             background: #ffffff !important;
             width: 100% !important;
@@ -531,9 +560,7 @@ function local_lecturebot_get_login_form_css()
         
         /* Input Focus State */
         #page-login-index input[type="text"]:focus,
-        #page-login-index input[type="password"]:focus,
-        #page-login-index input#username:focus,
-        #page-login-index input#password:focus {
+        #page-login-index input[type="password"]:focus {
             outline: none !important;
             border-color: #0f6cbf !important;
             box-shadow: 0 0 0 3px rgba(15, 108, 191, 0.1) !important;
@@ -545,9 +572,12 @@ function local_lecturebot_get_login_form_css()
             border-color: #9ca3af !important;
         }
         
-        /* Form Group Spacing */
-        #page-login-index .form-group {
-            margin-bottom: 20px !important;
+        /* Form Field Container Spacing - Fluid Responsive */
+        #page-login-index .login-form-username,
+        #page-login-index .login-form-password,
+        #page-login-index .login-form-submit,
+        #page-login-index .login-form-forgotpassword {
+            margin-bottom: clamp(16px, 3vh, 20px) !important;
         }
         
         /* Password wrapper - use relative positioning for absolute button */
@@ -563,15 +593,14 @@ function local_lecturebot_get_login_form_css()
             padding-right: 50px !important;
         }
         
-        /* Password Eye Icon - positioned inside the input */
-        #page-login-index .toggle-sensitive-wrapper button,
-        #page-login-index button[data-passwordunmask] {
+        /* Password Eye Icon - positioned inside the input - Fluid Responsive */
+        #page-login-index .toggle-sensitive-btn {
             position: absolute !important;
-            right: 10px !important;
+            right: clamp(8px, 2vw, 10px) !important;
             top: 50% !important;
             transform: translateY(-50%) !important;
-            width: 36px !important;
-            height: 36px !important;
+            width: clamp(32px, 6vw, 36px) !important;
+            height: clamp(32px, 6vw, 36px) !important;
             padding: 0 !important;
             margin: 0 !important;
             border: none !important;
@@ -582,12 +611,11 @@ function local_lecturebot_get_login_form_css()
             align-items: center !important;
             justify-content: center !important;
             color: #6b7280 !important;
-            border-radius: 4px !important;
+            border-radius: clamp(3px, 1vw, 4px) !important;
             transition: background 0.2s, color 0.2s !important;
         }
         
-        #page-login-index .toggle-sensitive-wrapper button:hover,
-        #page-login-index button[data-passwordunmask]:hover {
+        #page-login-index .toggle-sensitive-btn:hover {
             background: rgba(0, 0, 0, 0.05) !important;
             color: #374151 !important;
         }
@@ -604,25 +632,22 @@ function local_lecturebot_get_login_button_css()
     return <<<CSS
         /* ===== LOGIN BUTTON STYLES ===== */
         
-        /* Modern Login Button */
-        #page-login-index .btn-primary,
-        #page-login-index #loginbtn,
-        #page-login-index button[type="submit"] {
-            height: 48px !important;
+        /* Modern Login Button - Fluid Responsive */
+        #page-login-index #loginbtn {
+            height: clamp(44px, 8vh, 48px) !important;
             background: #0f6cbf !important;
             border: none !important;
-            border-radius: 8px !important;
-            font-size: 15px !important;
+            border-radius: clamp(6px, 1.5vw, 8px) !important;
+            font-size: clamp(14px, 2.8vw, 15px) !important;
             font-weight: 600 !important;
             color: #ffffff !important;
             cursor: pointer !important;
             transition: all 0.2s ease !important;
             width: 100% !important;
-            margin-top: 8px !important;
+            margin-top: clamp(6px, 1vh, 8px) !important;
         }
         
         /* Button Hover Effect */
-        #page-login-index .btn-primary:hover,
         #page-login-index #loginbtn:hover {
             background: #0d5aa7 !important;
             transform: translateY(-1px) !important;
@@ -630,22 +655,20 @@ function local_lecturebot_get_login_button_css()
         }
         
         /* Button Active State */
-        #page-login-index .btn-primary:active,
         #page-login-index #loginbtn:active {
             transform: translateY(0) !important;
         }
         
-        /* Forgot Password Link */
-        #page-login-index .forgetpass a,
-        #page-login-index .login-forgot a {
+        /* Forgot Password Link - Fluid Responsive */
+        #page-login-index .login-form-forgotpassword a {
             color: #0f6cbf !important;
             text-decoration: none !important;
-            font-size: 14px !important;
+            font-size: clamp(13px, 2.5vw, 14px) !important;
             font-weight: 500 !important;
             transition: color 0.2s ease !important;
         }
         
-        #page-login-index .forgetpass a:hover {
+        #page-login-index .login-form-forgotpassword a:hover {
             color: #0d5aa7 !important;
             text-decoration: underline !important;
         }
@@ -673,10 +696,7 @@ function local_lecturebot_get_login_js()
                     }
                 });
                 
-                // 2. The password eye button positioning is now handled by CSS
-                // No JS modification needed for .toggle-sensitive-wrapper
-                
-                // 3. Add Welcome Section - use Moodle's actual selectors
+                // 2. Add Welcome Section - use Moodle's actual selectors
                 const loginLogo = document.getElementById('loginlogo') || document.querySelector('.login-logo');
                 const loginForm = document.querySelector('.loginform');
                 
@@ -697,7 +717,7 @@ function local_lecturebot_get_login_js()
                     }
                 }
                 
-                // 4. Add Footer with branding
+                // 3. Add Footer with branding
                 const forgetPass = document.querySelector('.login-form-forgotpassword, .forgetpass');
                 if (forgetPass && !document.querySelector('.lecturebot-login-footer')) {
                     const footer = document.createElement('div');
