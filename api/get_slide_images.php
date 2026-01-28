@@ -43,21 +43,11 @@ try {
     // Release session lock to prevent blocking during long image extraction/upload
     \core\session\manager::write_close();
 
-    // Get the PPTX file path from generation data
+    // Get the generation data
     $generationData = json_decode($content->generationdata, true);
-    if (!isset($generationData['pptx_path']) || !file_exists($generationData['pptx_path'])) {
-        echo json_encode([
-            'status' => 'error',
-            'error' => 'PPTX file not found',
-            'images' => []
-        ]);
-        exit;
-    }
-
-    $filepath = $generationData['pptx_path'];
     
-    // Extract images from PPTX with version tracking
-    $images = extractImagesFromPptx($filepath, $contentid);
+    // Extract images from Azure
+    $images = extractImagesFromPptx('', $contentid);
     
     echo json_encode([
         'status' => 'success',

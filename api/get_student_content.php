@@ -17,10 +17,20 @@ try {
     // Get parameters
     $courseid = required_param('courseid', PARAM_INT);
     
-    // Require login
-    require_login($courseid);
+    // Get the course object
+    $course = get_course($courseid);
+    
+    // Require basic login first (without course context to avoid role-switch issues)
+    require_login(null, false);
+    
+    // Now check course access using can_access_course which handles role-switching properly
     $context = context_course::instance($courseid);
-    require_capability('moodle/course:view', $context);
+    
+    // can_access_course checks if the user can access this course
+    // It considers: enrollment, guest access, admin access, etc.
+    if (!can_access_course($course)) {
+        throw new moodle_exception('noaccess', 'local_lecturebot');
+    }
     
     $userid = $USER->id;
     
@@ -125,10 +135,19 @@ try {
         'hasContent' => $hasContent
     ]);
     
+} catch (moodle_exception $e) {
+    http_response_code(500);
+    echo json_encode([
+        'status' => 'error',
+        'error' => $e->getMessage(),
+        'errorcode' => $e->errorcode ?? 'unknown',
+        'debuginfo' => debugging() ? $e->getTraceAsString() : null
+    ]);
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([
         'status' => 'error',
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
+        'debuginfo' => debugging() ? $e->getTraceAsString() : null
     ]);
 }
