@@ -121,15 +121,7 @@ const TabletLayout: React.FC<LayoutProps> = ({
                     />
                 </Box>
 
-                {/* Bottom Left: Published Content */}
-                <Box sx={{ minHeight: 0, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
-                    <PublishedContentList
-                        contentItems={state.contentItems}
-                        isMobile={isSmallTablet}
-                    />
-                </Box>
-
-                {/* Bottom Right: Generated Content */}
+                {/* Bottom Left: Generated Content */}
                 <Box sx={{ minHeight: 0, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
                     <GeneratedContentList
                         contentItems={state.contentItems}
@@ -138,6 +130,14 @@ const TabletLayout: React.FC<LayoutProps> = ({
                         onMenuOpen={handleMenuOpen}
                         isMobile={isSmallTablet}
                         onPreviewContent={handlePreviewContent}
+                    />
+                </Box>
+
+                {/* Bottom Right: Published Content */}
+                <Box sx={{ minHeight: 0, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+                    <PublishedContentList
+                        contentItems={state.contentItems}
+                        isMobile={isSmallTablet}
                     />
                 </Box>
             </Box>
