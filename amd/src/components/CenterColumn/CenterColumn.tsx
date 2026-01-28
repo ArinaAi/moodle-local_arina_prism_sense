@@ -12,7 +12,7 @@ import type { MoodleContext } from '../../types/moodle';
 import GeneratingState from './GeneratingState';
 import EmptyState from './EmptyState';
 import ReadyState from './ReadyState';
-import VideoDisplay from './VideoDisplay';
+import VideoViewer from '../../student/components/VideoViewer/VideoViewer';
 import SlideDisplay from './SlideDisplay';
 import PreviewActions from './PreviewActions';
 
@@ -140,12 +140,22 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
     const videoUrl = generatedContent?.results[0]?.videoUrl;
     if (activeContentType === 'video' && videoUrl) {
       return (
-        <Box className="animate-scale-up" sx={{ width: '100%' }}>
-          <VideoDisplay
+        <Box className="animate-scale-up" sx={{ width: '100%', maxWidth: '100%', overflow: 'hidden', boxSizing: 'border-box' }}>
+          <Box sx={{ mb: 2 }}>
+            <Typography
+              variant="h6"
+              color="#0f6cbf"
+              sx={{
+                fontWeight: 600,
+                fontSize: 'clamp(0.9rem, 2vw + 0.5rem, 1.25rem)',
+              }}
+            >
+              {generatedContent.results[0].topic || 'Video Lecture'}
+            </Typography>
+          </Box>
+          <VideoViewer
             videoUrl={videoUrl}
-            topic={generatedContent.results[0].topic}
-            isApproved={isApproved}
-            isMobile={isMobile}
+            title={generatedContent.results[0].topic || 'Video Lecture'}
           />
           <PreviewActions
             isApproved={isApproved}
