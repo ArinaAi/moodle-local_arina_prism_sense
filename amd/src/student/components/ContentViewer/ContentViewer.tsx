@@ -1,10 +1,11 @@
 import React from 'react';
-import { Paper } from '@mui/material';
+import { Paper, Box } from '@mui/material';
 import { useContent } from '../../context/ContentContext';
 import EmptyContentState from './EmptyContentState';
 import SlideNavigationFooter from './SlideNavigationFooter';
 import ContentViewerHeader from './ContentViewerHeader';
 import ContentDisplayArea from './ContentDisplayArea';
+import VideoViewer from '../VideoViewer/VideoViewer';
 import { useContentSlides } from './useContentSlides';
 
 const ContentViewer: React.FC = () => {
@@ -43,30 +44,51 @@ const ContentViewer: React.FC = () => {
                 onMarkAsComplete={markAsComplete}
             />
 
-            <ContentDisplayArea
-                isVideo={isVideo}
-                videoUrl={videoUrl}
-                title={selectedContent.title}
-                isLoading={isLoading}
-                error={error}
-                currentSlideData={slides[currentSlide]}
-                hasSlides={slides.length > 0}
-                slides={slides}
-                currentSlide={currentSlide}
-                onNext={handleNext}
-                onPrev={handlePrev}
-                onSlideClick={goToSlide}
-            />
+            {isVideo ? (
+                <Box sx={{
+                    flexGrow: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minHeight: 0,
+                    maxWidth: '100%',
+                    overflow: 'hidden',
+                }}>
+                    <VideoViewer
+                        videoUrl={videoUrl}
+                        title={selectedContent.title}
+                    />
+                </Box>
+            ) : (
+                <Box sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    flex: 1,
+                    minHeight: 0,
+                    overflow: 'hidden',
+                }}>
+                    <ContentDisplayArea
+                        isVideo={false}
+                        isLoading={isLoading}
+                        error={error}
+                        currentSlideData={slides[currentSlide]}
+                        hasSlides={slides.length > 0}
+                        slides={slides}
+                        currentSlide={currentSlide}
+                        onNext={handleNext}
+                        onPrev={handlePrev}
+                        onSlideClick={goToSlide}
+                    />
 
-            {!isVideo && (
-                <SlideNavigationFooter
-                    currentSlide={currentSlide}
-                    totalSlides={slides.length}
-                    onNext={handleNext}
-                    onPrev={handlePrev}
-                    slides={slides}
-                    onSlideClick={goToSlide}
-                />
+                    <SlideNavigationFooter
+                        currentSlide={currentSlide}
+                        totalSlides={slides.length}
+                        onNext={handleNext}
+                        onPrev={handlePrev}
+                        slides={slides}
+                        onSlideClick={goToSlide}
+                    />
+                </Box>
             )}
         </Paper>
     );

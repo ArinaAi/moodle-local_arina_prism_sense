@@ -1,18 +1,16 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Box, Typography, CircularProgress, IconButton, useTheme, useMediaQuery } from '@mui/material';
+import { createPortal } from 'react-dom';
+import { Box, Typography, CircularProgress, IconButton } from '@mui/material';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import CloseIcon from '@mui/icons-material/Close';
-import VideoViewer from '../VideoViewer/VideoViewer';
 import { SlideImage } from './useContentSlides';
 import SlideThumbnails from './SlideThumbnails';
 
 interface ContentDisplayAreaProps {
     isVideo: boolean;
-    videoUrl: string;
-    title: string;
     isLoading: boolean;
     error: string | null;
     currentSlideData: SlideImage | undefined;
@@ -43,13 +41,6 @@ const getLayoutStyles = () => ({
     },
 });
 
-// Calculate slide max height based on fullscreen state
-const getSlideMaxHeight = (isFullscreen: boolean) => {
-    if (isFullscreen) { return '100vh'; }
-    // Fluid calc: use 100% to fill available space
-    return '100%';
-};
-
 // Container background styles based on content type
 const getContainerBg = (isVideo: boolean) => ({
     bgcolor: isVideo ? '#000' : '#f0f4f8',
@@ -75,6 +66,8 @@ const getContainerStyles = (isFullscreen: boolean, containerBg: ReturnType<typeo
     bottom: isFullscreen ? 0 : undefined,
     width: isFullscreen ? '100vw' : undefined,
     height: isFullscreen ? '100vh' : undefined,
+    maxWidth: isFullscreen ? '100vw' : undefined,
+    maxHeight: isFullscreen ? '100vh' : undefined,
     display: 'flex',
     flexDirection: 'column' as const,
     overflow: 'hidden',
@@ -82,7 +75,7 @@ const getContainerStyles = (isFullscreen: boolean, containerBg: ReturnType<typeo
     bgcolor: isFullscreen ? '#000' : containerBg.bgcolor,
     background: isFullscreen ? '#000' : containerBg.background,
     m: 0,
-    zIndex: isFullscreen ? 9999 : undefined,
+    zIndex: isFullscreen ? 999999 : undefined,
 });
 
 // Keyboard action map for fullscreen mode
@@ -108,8 +101,6 @@ const getSwipeDirection = (startX: number, endX: number, threshold = 50): 'left'
 
 const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
     isVideo,
-    videoUrl,
-    title,
     isLoading,
     error,
     currentSlideData,
@@ -120,9 +111,6 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
     onPrev,
     onSlideClick
 }) => {
-    const theme = useTheme();
-    const _isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
     const containerRef = useRef<HTMLDivElement>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [zoomLevel, setZoomLevel] = useState(1);
@@ -134,14 +122,15 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
 
     // Use external helper functions
     const layoutStyles = getLayoutStyles();
-    const slideMaxHeight = getSlideMaxHeight(isFullscreen);
     const containerBg = getContainerBg(isVideo);
     const slideCardStyles = getSlideCardStyles(zoomLevel);
 
     // Fullscreen Change Listener
     useEffect(() => {
         const handleFullscreenChange = () => {
-            setIsFullscreen(!!document.fullscreenElement);
+            // Simply check if our container is the fullscreen element
+            const isNowFullscreen = document.fullscreenElement === containerRef.current;
+            setIsFullscreen(isNowFullscreen);
         };
 
         document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -201,49 +190,72 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
     };
 
     const enterFullscreen = async () => {
-        try {
-            const element = containerRef.current;
-            if (!element) { return; }
+        // On mobile/tablet or iOS, use CSS-based fullscreen with portal
+        // as Fullscreen API is often restricted or unavailable
+        const isMobileOrTablet = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        
+        if (isMobileOrTablet || isIOS) {
+            // Use CSS-based fullscreen with portal for mobile devices
+            setIsFullscreen(true);
             
-            // Vendor-prefixed fullscreen methods for cross-browser support
-            interface FullscreenElement extends HTMLDivElement {
-                webkitRequestFullscreen?: () => Promise<void>;
-                webkitEnterFullscreen?: () => Promise<void>;
-                msRequestFullscreen?: () => Promise<void>;
-            }
-            const el = element as FullscreenElement;
-            
-            // Try standard fullscreen first
-            if (el.requestFullscreen) {
-                await el.requestFullscreen();
-            } else if (el.webkitRequestFullscreen) {
-                // Safari/iOS
-                await el.webkitRequestFullscreen();
-            } else if (el.webkitEnterFullscreen) {
-                // Older iOS
-                await el.webkitEnterFullscreen();
-            } else if (el.msRequestFullscreen) {
-                await el.msRequestFullscreen();
-            }
-            
-            // Try to lock orientation to landscape on mobile
+            // Try to lock orientation on mobile (optional)
             try {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const screen = window.screen as any;
                 if (screen.orientation && screen.orientation.lock) {
-                    await screen.orientation.lock('landscape');
+                    await screen.orientation.lock('landscape').catch(() => {
+                        // Landscape lock failed, continue anyway
+                    });
                 }
             } catch {
-                // Orientation lock not supported or denied - that's OK
+                // Orientation lock not supported - that's OK
+            }
+            return;
+        }
+        
+        // For desktop, try native Fullscreen API
+        const element = containerRef.current;
+        if (!element) {
+            // Fallback to CSS-based fullscreen
+            setIsFullscreen(true);
+            return;
+        }
+        
+        // Vendor-prefixed fullscreen methods for cross-browser support
+        interface FullscreenElement extends HTMLDivElement {
+            webkitRequestFullscreen?: () => Promise<void>;
+            webkitEnterFullscreen?: () => Promise<void>;
+            msRequestFullscreen?: () => Promise<void>;
+        }
+        const el = element as FullscreenElement;
+        
+        try {
+            if (el.requestFullscreen) {
+                await el.requestFullscreen();
+            } else if (el.webkitRequestFullscreen) {
+                // Safari
+                await el.webkitRequestFullscreen();
+            } else if (el.msRequestFullscreen) {
+                // IE11
+                await el.msRequestFullscreen();
+            } else {
+                // Fallback to CSS-based fullscreen
+                setIsFullscreen(true);
             }
         } catch (err) {
             console.error('Error entering fullscreen:', err);
-            // Fallback: use CSS-based fullscreen for iOS
+            // Fallback: use CSS-based fullscreen
             setIsFullscreen(true);
         }
     };
 
     const exitFullscreen = async () => {
+        // First, exit CSS-based fullscreen
+        setIsFullscreen(false);
+        setShowThumbnails(false);
+        
+        // Then try to exit native fullscreen API if active
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const doc = document as any;
@@ -271,16 +283,6 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
         } catch (err) {
             console.error('Error exiting fullscreen:', err);
         }
-        setIsFullscreen(false);
-        setShowThumbnails(false);
-    };
-
-    const toggleFullscreen = async () => {
-        if (isFullscreen || document.fullscreenElement) {
-            await exitFullscreen();
-        } else {
-            await enterFullscreen();
-        }
     };
 
     const handleZoomIn = () => {
@@ -295,43 +297,30 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
 
     const containerStyles = getContainerStyles(isFullscreen, containerBg);
 
-    return (
+    // Render fullscreen content - the main content area
+    const renderContent = () => (
         <Box
-            ref={containerRef}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
             sx={containerStyles}>
 
-            {isVideo ? (
-                /* Video Preview */
-                <Box sx={{
-                    flexGrow: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '100%',
-                    height: '100%'
-                }}>
-                    <VideoViewer
-                        videoUrl={videoUrl || ""}
-                        title={title}
-                    />
-                </Box>
-            ) : (
-                /* Slide Preview Area */
-                <Box sx={{
-                    position: 'relative',
-                    flexGrow: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexDirection: 'column',
-                    p: layoutStyles.padding,
-                    overflow: 'auto',
-                    perspective: '1000px',
-                    WebkitOverflowScrolling: 'touch',
-                }}>
+            {/* Slide Preview Area */}
+            <Box sx={{
+                position: 'relative',
+                // Conditional height: fullscreen uses full viewport, normal mode is clamped
+                height: isFullscreen ? '100%' : 'clamp(200px, 50vh, 90vh)',
+                maxHeight: isFullscreen ? '100%' : 'calc(100% - 250px)', // Leave room for footer in normal mode
+                minHeight: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'column',
+                p: layoutStyles.padding,
+                overflow: 'auto',
+                perspective: '1000px',
+                WebkitOverflowScrolling: 'touch',
+            }}>
                     {/* Status / Loading */}
                     {isLoading && <CircularProgress size={40} thickness={4} sx={{ color: '#2563eb' }} />}
                     {error && (
@@ -347,12 +336,16 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
                             position: 'relative',
                             maxWidth: '100%',
                             maxHeight: '100%',
+                            minHeight: 0, // Allow shrinking
                             borderRadius: 1,
                             overflow: 'visible',
                             boxShadow: '0 20px 50px -12px rgba(0, 0, 0, 0.15)',
                             transition: 'transform 0.3s ease',
                             transformOrigin: 'center center',
                             zIndex: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                             ...slideCardStyles,
                         }}>
                             <img
@@ -361,7 +354,9 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
                                 style={{
                                     display: 'block',
                                     maxWidth: '100%',
-                                    maxHeight: slideMaxHeight,
+                                    maxHeight: '100%',
+                                    width: 'auto',
+                                    height: 'auto',
                                     objectFit: 'contain',
                                 }}
                             />
@@ -402,7 +397,7 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
                                     color: '#444746',
                                     ...layoutStyles.touchTarget,
                                 }}
-                                onClick={toggleFullscreen}
+                                onClick={enterFullscreen}
                                 title="Fullscreen"
                             >
                                 <FullscreenIcon fontSize={layoutStyles.iconSize} />
@@ -522,10 +517,21 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
                             )}
                         </>
                     )}
-                </Box>
-            )
-            }
-        </Box >
+            </Box>
+        </Box>
+    );
+
+    // When in fullscreen mode, render using a portal to document.body
+    // This ensures it overlays everything, including parent containers
+    if (isFullscreen) {
+        return createPortal(renderContent(), document.body);
+    }
+
+    // Normal mode - render inline with a ref on the wrapper for fullscreen API
+    return (
+        <Box ref={containerRef}>
+            {renderContent()}
+        </Box>
     );
 };
 
