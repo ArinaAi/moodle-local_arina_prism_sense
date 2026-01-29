@@ -31,7 +31,7 @@ if (file_exists($envFile)) {
 }
 
 // API Base URL - Change this in .env file for different environments
-define('LECTUREBOT_API_BASE_URL', getenv('LECTUREBOT_API_BASE_URL') ?: 'https://bots.arina.ai/tutorial_generation');
+define('LECTUREBOT_API_BASE_URL', getenv('LECTUREBOT_API_BASE_URL'));
 
 // API Endpoints
 define('LECTUREBOT_API_GENERATE_PPTX', LECTUREBOT_API_BASE_URL . '/generate_pptx');
