@@ -27,7 +27,7 @@ interface ContentDisplayAreaProps {
 
 // Responsive layout styles
 const getLayoutStyles = () => ({
-    padding: 'clamp(8px, 2vw, 24px)',
+    padding: 'clamp(4px, 1vw, 12px)',
     toolbarTop: 'clamp(6px, 1.5vw, 16px)',
     toolbarRight: 'clamp(6px, 1.5vw, 16px)',
     toolbarGap: 'clamp(2px, 0.5vw, 6px)',

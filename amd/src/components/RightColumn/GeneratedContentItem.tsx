@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography, ListItem, CircularProgress, IconButton, Tooltip, useTheme } from '@mui/material';
-import { Visibility, Add, MoreVert, Error as ErrorIcon } from '@mui/icons-material';
+import { Add, MoreVert, Error as ErrorIcon } from '@mui/icons-material';
 import StatusBadge from './StatusBadge';
 import type { ContentItem } from '../../types/app';
 import { useContentPreview } from '../../hooks/useContentPreview';
@@ -154,7 +154,7 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                 backgroundColor: 'white',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 'clamp(8px, 1.5vw, 16px)',
+                gap: 'clamp(8px, 1.5vw, 12px)',
                 transition: 'all 0.3s ease',
                 cursor: 'pointer',
                 '&:hover': {
@@ -164,7 +164,6 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                 },
             }}
             onClick={(e) => {
-                e.stopPropagation();
                 e.stopPropagation();
                 if (item.result) {
                     handlePreview(item.id);
@@ -189,32 +188,11 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                 </Box>
             </Box>
 
-            <Box sx={{ display: 'flex', gap: 'clamp(4px, 1vw, 8px)' }}>
-                <Tooltip title={item.contenttype === 'video' ? "Preview video" : "Preview slides"} arrow placement="top" PopperProps={{ sx: { zIndex: 100006 } }}>
-                    <IconButton
-                        size="small"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            // eslint-disable-next-line no-console
-                            console.log('🖱️ Eye Icon Clicked:', item.id, item.contenttype, item.result);
-                            handlePreview(item.id);
-                        }}
-                        sx={{
-                            width: 'clamp(28px, 3vw, 32px)',
-                            height: 'clamp(28px, 3vw, 32px)',
-                            backgroundColor: 'info.main',
-                            color: 'white',
-                            '&:hover': { backgroundColor: 'info.dark' },
-                        }}
-                    >
-                        <Visibility fontSize="small" sx={{ fontSize: 'clamp(18px, 2vw, 20px)' }} />
-                    </IconButton>
-                </Tooltip>
-                <Tooltip title={item.approved ? "Publish to course page" : "Approve content first"} arrow placement="top" PopperProps={{ sx: { zIndex: 100006 } }}>
-                    <span>
+            <Box sx={{ display: 'flex', gap: 'clamp(4px, 1vw, 8px)', flexShrink: 0 }}>
+                {item.approved && (
+                    <Tooltip title="Publish to course page" arrow placement="top" PopperProps={{ sx: { zIndex: 100006 } }}>
                         <IconButton
                             size="small"
-                            disabled={!item.approved}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onPublish(`content-${item.id}`);
@@ -222,21 +200,18 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                             sx={{
                                 width: 'clamp(28px, 3vw, 32px)',
                                 height: 'clamp(28px, 3vw, 32px)',
-                                backgroundColor: item.approved ? 'success.main' : 'grey.300',
+                                backgroundColor: 'success.main',
                                 color: 'white',
                                 '&:hover': {
-                                    backgroundColor: item.approved ? 'success.dark' : 'grey.400',
-                                },
-                                '&.Mui-disabled': {
-                                    backgroundColor: 'grey.300',
-                                    color: 'grey.500',
+                                    backgroundColor: 'success.dark',
                                 },
                             }}
                         >
                             <Add fontSize="small" sx={{ fontSize: 'clamp(18px, 2vw, 20px)' }} />
                         </IconButton>
-                    </span>
-                </Tooltip>
+                    </Tooltip>
+                )}
+                
                 <Tooltip title="More options" arrow placement="top" PopperProps={{ sx: { zIndex: 100006 } }}>
                     <IconButton
                         size="small"
