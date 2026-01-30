@@ -42,6 +42,7 @@ define('LECTUREBOT_API_STATUS', LECTUREBOT_API_BASE_URL . '/status');
 define('LECTUREBOT_API_CHECK_STATUS', LECTUREBOT_API_BASE_URL . '/check_status');
 define('LECTUREBOT_API_START_BATCH_UPLOAD', LECTUREBOT_API_BASE_URL . '/start_batch_upload');
 define('LECTUREBOT_API_CHECK_BATCH_STATUS', LECTUREBOT_API_BASE_URL . '/check_batch_status');
+define('LECTUREBOT_API_DELETE_DOCUMENT', LECTUREBOT_API_BASE_URL . '/delete_document');
 
 // Default video length (in minutes)
 define('LECTUREBOT_DEFAULT_VIDEO_LENGTH', 2);

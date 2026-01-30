@@ -38,6 +38,45 @@ try {
         throw new moodle_exception('Source not found');
     }
     
+    // Delete document from Weaviate vector store
+    require_once(__DIR__ . '/../config_api.php');
+    $weaviateDeleteResult = null;
+    
+    try {
+        $deleteUrl = LECTUREBOT_API_DELETE_DOCUMENT . '?' . http_build_query([
+            'course_id' => $courseid,
+            'chapter_id' => $source->sectionid,
+            'document_name' => $source->filename
+        ], '', '&');
+        error_log('LectureBot delete URL: ' . $deleteUrl);
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $deleteUrl,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 60,
+            CURLOPT_CONNECTTIMEOUT => 60,
+            CURLOPT_HTTPGET => true,
+            CURLOPT_SSL_VERIFYPEER => true,
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+        
+        if ($curlError) {
+            debugging('Weaviate delete API curl error: ' . $curlError, DEBUG_DEVELOPER);
+        } elseif ($httpCode !== 200) {
+            debugging('Weaviate delete API returned HTTP ' . $httpCode . ': ' . $response, DEBUG_DEVELOPER);
+        } else {
+            $weaviateDeleteResult = json_decode($response, true);
+            debugging('Weaviate delete successful: ' . $response, DEBUG_DEVELOPER);
+        }
+    } catch (Exception $weaviateEx) {
+        // Log but don't block local deletion
+        debugging('Weaviate delete API exception: ' . $weaviateEx->getMessage(), DEBUG_DEVELOPER);
+    }
+    
     // Delete file from Moodle file storage
     $fs = get_file_storage();
     $files = $fs->get_area_files(
