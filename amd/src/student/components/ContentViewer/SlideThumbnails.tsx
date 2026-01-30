@@ -48,9 +48,10 @@ const SlideThumbnails: React.FC<SlideThumbnailsProps> = ({ slides, currentSlide,
         return null;
     }
 
-    // 16:9 aspect ratio dimensions
-    const thumbnailHeight = isMobile ? 48 : 64;
-    const thumbnailWidth = thumbnailHeight * (16 / 9); // 16:9 aspect ratio
+    // Fluid responsive thumbnail sizing using clamp()
+    // Mobile: 40-48px, Desktop: 48-64px - scales smoothly with viewport height
+    const thumbnailHeightValue = isMobile ? 'clamp(40px, 8vh, 48px)' : 'clamp(48px, 9vh, 64px)';
+    const thumbnailWidthValue = isMobile ? 'clamp(71px, 14.2vh, 85px)' : 'clamp(85px, 16vh, 114px)'; // 16:9 aspect ratio
     const spacing = isMobile ? 8 : 12;
 
     return (
@@ -97,9 +98,9 @@ const SlideThumbnails: React.FC<SlideThumbnailsProps> = ({ slides, currentSlide,
                         ref={index === currentSlide ? activeThumbRef : null}
                         onClick={() => onSlideClick(index)}
                         sx={{
-                            minWidth: `${thumbnailWidth}px`,
-                            width: `${thumbnailWidth}px`,
-                            height: `${thumbnailHeight}px`,
+                            minWidth: thumbnailWidthValue,
+                            width: thumbnailWidthValue,
+                            height: thumbnailHeightValue,
                             position: 'relative',
                             cursor: 'pointer',
                             borderRadius: '4px',

@@ -308,9 +308,10 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
             {/* Slide Preview Area */}
             <Box sx={{
                 position: 'relative',
-                // Conditional height: fullscreen uses full viewport, normal mode is clamped
-                height: isFullscreen ? '100%' : 'clamp(200px, 50vh, 90vh)',
-                maxHeight: isFullscreen ? '100%' : 'calc(100% - 250px)', // Leave room for footer in normal mode
+                // Flex-based height: grow to fill available space, properly respecting container bounds
+                flex: isFullscreen ? 1 : '1 1 auto',
+                height: isFullscreen ? '100%' : undefined,
+                maxHeight: isFullscreen ? '100%' : undefined,
                 minHeight: 0,
                 display: 'flex',
                 alignItems: 'center',

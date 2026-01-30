@@ -55,7 +55,8 @@ const SlideNavigationFooter: React.FC<SlideNavigationFooterProps> = ({
             bgcolor: 'white',
             borderTop: '1px solid rgba(0,0,0,0.06)',
             position: 'relative',
-            zIndex: 2
+            zIndex: 2,
+            flexShrink: 0, // Prevent footer from shrinking below content
         }}>
             {/* Linear Progress Bar */}
             <Box sx={{ width: '100%', bgcolor: '#f1f5f9', height: styles.progressHeight }}>
