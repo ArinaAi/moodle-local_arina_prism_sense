@@ -1038,12 +1038,12 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
                 fontSize: 'clamp(0.8rem, 0.5vw + 0.75rem, 0.875rem)',
               }}
             >
-              Select Section
+              Select Topic
             </InputLabel>
             <Select
               labelId="section-selector-label"
               value={selectedSection?.toString() || ''}
-              label="Select Section"
+              label="Select Topic"
               onChange={(e) => handleSectionChange(Number(e.target.value))}
               disabled={loading}
               MenuProps={{

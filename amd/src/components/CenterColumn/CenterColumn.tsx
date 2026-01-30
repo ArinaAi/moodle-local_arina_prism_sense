@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   Box, Typography, IconButton, Card,
   CardContent, useTheme
@@ -55,20 +55,6 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
   // Find current content item to check approval status
   const currentContentItem = contentItems.find(item => item.id === currentContentId);
   const isApproved = currentContentItem?.approved || slidesApproved;
-
-  // ESC key to close preview
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && generatedContent && onClosePreview) {
-        onClosePreview();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [generatedContent, onClosePreview]);
 
   const handleDownloadSlides = () => {
     if (!currentContentId) {

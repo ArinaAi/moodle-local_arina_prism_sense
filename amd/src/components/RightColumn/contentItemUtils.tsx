@@ -36,16 +36,16 @@ export const getSlideCount = (item: ContentItem): number => {
 /**
  * Renders the appropriate icon for content type
  */
-export const ContentTypeIcon: React.FC<{ 
-    contentType: string; 
-    color: string; 
+export const ContentTypeIcon: React.FC<{
+    contentType: string;
+    color: string;
     size?: number;
-}> = ({ contentType, color, size = 28 }) => {
-    const iconStyle = { 
-        width: `clamp(${size - 4}px, 3vw, ${size}px)`, 
-        height: `clamp(${size - 4}px, 3vw, ${size}px)` 
+}> = ({ contentType, color, size = 24 }) => {
+    const iconStyle = {
+        width: `clamp(${size - 4}px, 3vw, ${size}px)`,
+        height: `clamp(${size - 4}px, 3vw, ${size}px)`
     };
-    
+
     return contentType === 'video' ? (
         <Play size={size} style={iconStyle} color={color} strokeWidth={2.5} />
     ) : (
@@ -62,6 +62,7 @@ export const ContentItemTitle: React.FC<{ title: string }> = ({ title }) => (
             variant="body2"
             sx={{
                 fontWeight: 600,
+                width: '100%',
                 color: 'text.primary',
                 mb: 0.5,
                 fontSize: 'clamp(0.8125rem, 1.25vw, 0.875rem)',
@@ -82,7 +83,7 @@ export const SlideCountChip: React.FC<{ item: ContentItem }> = ({ item }) => {
     if (item.contenttype === 'video') {
         return null;
     }
-    
+
     return (
         <Chip
             label={`${getSlideCount(item)} slides`}
