@@ -5,6 +5,13 @@ parameters:
     displayName: "Build Number"
     type: string
     default: ""
+  - name: deploymentType
+    displayName: "Enter Deployment Type"
+    type: string
+    default: container
+    values:
+      - container
+      - kubernetes
 
 variables:
   - group: arina-workspace-variables
@@ -74,8 +81,13 @@ stages:
                   inputs:
                     secureFile: "azure-key.pem"
                 - script: |
-                    VM_IP="$(LMS_SERVER_IP)"
-                    VM_PASS="$(LMS_SERVER_PASS)"
+                    if [ "${{ parameters.deploymentType }}" = "container" ]; then
+                      echo "Deployment Type: Container"
+                      VM_IP="$(LMS_SERVER_IP)"
+                    else
+                      echo "Deployment Type: Kubernetes"
+                      VM_IP="$(K8S_CLUSTER_IP)"
+                    fi
                     USERNAME="$(USERNAME)"
                     BUILD_NO="$(BUILD_NO)"
 
@@ -104,45 +116,224 @@ stages:
                     ssh -i $(sshKey.secureFilePath) "$USERNAME@$VM_IP" << EOF
                       set -e
                       set -x
+                      if [ "${{ parameters.deploymentType }}" = "container" ]; then
+                        
+                        echo "=== Starting Development Deployment ==="
+                        
+                        echo "Starting deployment process..."
+                        echo "Using BUILD_NO: $BUILD_NO"
 
-                      echo "Starting deployment process..."
-                      echo "Using BUILD_NO: $BUILD_NO"
+                        # Clean old repo
+                        if [ -d "./arina-moodle" ]; then
+                          sudo rm -rf ./arina-moodle
+                        fi
 
-                      # Clean old repo
-                      if [ -d "./arina-moodle" ]; then
-                        sudo rm -rf ./arina-moodle
+                        # Clone Azure DevOps repo
+                        echo "Cloning repository..."
+                        git clone "https://$(AZURE_PAT)@dev.azure.com/ARINA-AI/NextGenChatBot/_git/arina-moodle-plugin" ./arina-moodle
+
+                        cd ./arina-moodle
+
+                        # Login to ACR
+                        echo "Logging into Azure Container Registry..."
+                        echo "$(ACR_PASSWORD)" | docker login $(ACR_LOGIN_SERVER) -u $(ACR_USERNAME) --password-stdin
+
+                        # Stop existing containers
+                        echo "Stopping existing containers..."
+                        docker compose down
+
+                        # Clean up old images and networks
+                        docker system prune -f || true
+                        
+                        # Remove any dangling networks
+                        docker network prune -f || true
+
+                        # Start new containers with build number
+                        echo "Starting new containers with build number: $BUILD_NO"
+                        BUILD_NO="$BUILD_NO" MOODLE_DATABASE_TYPE="$(MOODLE_DATABASE_TYPE)" MOODLE_DATABASE_HOST="$(MOODLE_DATABASE_HOST)" MOODLE_DATABASE_NAME="$(MOODLE_DATABASE_NAME)" MOODLE_DATABASE_USER="$(MOODLE_DATABASE_USER)" MOODLE_DATABASE_PASSWORD="$(MOODLE_DATABASE_PASSWORD)" MYSQL_ROOT_PASSWORD="$(MYSQL_ROOT_PASSWORD)" MOODLE_WWWROOT="$(MOODLE_WWWROOT)" AZURE_STORAGE_CONNECTION_STRING="$(AZURE_STORAGE_CONNECTION_STRING)" AZURE_STORAGE_ACCOUNT_NAME="$(AZURE_STORAGE_ACCOUNT_NAME)" AZURE_STORAGE_ACCOUNT_KEY="$(AZURE_STORAGE_ACCOUNT_KEY)" LECTUREBOT_TENANT_ID="$(LECTUREBOT_TENANT_ID)" LECTUREBOT_API_BASE_URL="$(LECTUREBOT_API_BASE_URL)" docker compose up -d
+
+
+                        # Wait for containers to start
+                        sleep 10
+
+                        echo "Development deployment completed!"
+                      else
+                        echo "Kubernetes deployment"
+                                        
+                        # Clean up previous clone if exists
+                        rm -rf arina-ai-devops
+
+                        # Clone the Azure DevOps repository
+                        echo "Cloning repository: ${REPO_NAME}"
+                        git clone "https://${USER_NAME}:${AZURE_PAT}@dev.azure.com/Arina-AI/NextGenChatBot/_git/arina-ai-devops"
+
+                        cd arina-ai-devops/kubernetes/prism
+                        sed -i "s|arinactrregistry.azurecr.io/arina-moodle:amd-[0-9]*|arinactrregistry.azurecr.io/arina-moodle:amd-$BUILD_NO|g" values.yaml
+
+                        # Verify the changes
+                        echo "Updated values.yaml:"
+                        grep "image:" values.yaml
+
+                        # Perform helm upgrade
+                        echo "Deploying to Kubernetes with Helm..."
+
+                        helm upgrade --install arina-prism . \
+                          --namespace arina-prism \
+                          --create-namespace \
+                          --set-string env.MOODLE_DATABASE_HOST=$MOODLE_DATABASE_HOST \
+                          --set-string env.MOODLE_DATABASE_NAME=$MOODLE_DATABASE_NAME \
+                          --set-string env.MOODLE_DATABASE_PASSWORD=$MOODLE_DATABASE_PASSWORD \
+                          --set-string env.MOODLE_DATABASE_TYPE=$MOODLE_DATABASE_TYPE \
+                          --set-string env.MOODLE_DATABASE_USER=$MOODLE_DATABASE_USER \
+                          --set-string env.MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD \
+                          --set-string env.MYSQL_DATABASE=$MYSQL_DATABASE \
+                          --set-string env.MYSQL_USER=$MYSQL_USER \
+                          --set-string env.MYSQL_PASSWORD=$MYSQL_PASSWORD \
+                          --set-string env.AZURE_STORAGE_CONNECTION_STRING="$(printf '%q' "$AZURE_STORAGE_CONNECTION_STRING")" \
+                          --set-string env.AZURE_STORAGE_ACCOUNT_NAME=$AZURE_STORAGE_ACCOUNT_NAME \
+                          --set-string env.AZURE_STORAGE_ACCOUNT_KEY=$AZURE_STORAGE_ACCOUNT_KEY \
+                          --set-string env.LECTUREBOT_TENANT_ID=$LECTUREBOT_TENANT_ID \
+                          --set-string env.MOODLE_WWWROOT=$K8s_MOODLE_WWWROOT \
+                          --set-string env.LECTUREBOT_API_BASE_URL=$K8s_LECTUREBOT_API_BASE_URL
+
+                        kubectl create secret docker-registry acr-secret \
+                          --docker-server=${ACR_LOGIN_SERVER} \
+                          --docker-username=${ACR_USERNAME} \
+                          --docker-password=${ACR_PASSWORD} \
+                          -n arina-prism --save-config --dry-run=client -o yaml | kubectl apply -f -
+
+                        # Wait for resources to stabilize
+                        sleep 5
+
+                        # Verify deployment
+                        echo "Verifying Kubernetes deployment..."
+                        kubectl rollout status deployment/arina-moodle -n arina-prism
+
+                        echo "Kubernetes deployment completed successfully!"
                       fi
-
-                      # Clone Azure DevOps repo
-                      echo "Cloning repository..."
-                      git clone "https://$(AZURE_PAT)@dev.azure.com/ARINA-AI/NextGenChatBot/_git/arina-moodle-plugin" ./arina-moodle
-
-                      cd ./arina-moodle
-
-                      # Login to ACR
-                      echo "Logging into Azure Container Registry..."
-                      echo "$(ACR_PASSWORD)" | docker login $(ACR_LOGIN_SERVER) -u $(ACR_USERNAME) --password-stdin
-
-                      # Stop existing containers
-                      echo "Stopping existing containers..."
-                      docker compose down
-
-                      # Clean up old images and networks
-                      docker system prune -f || true
-                      
-                      # Remove any dangling networks
-                      docker network prune -f || true
-
-                      # Start new containers with build number
-                      echo "Starting new containers with build number: $BUILD_NO"
-                      BUILD_NO="$BUILD_NO" MOODLE_DATABASE_TYPE="$(MOODLE_DATABASE_TYPE)" MOODLE_DATABASE_HOST="$(MOODLE_DATABASE_HOST)" MOODLE_DATABASE_NAME="$(MOODLE_DATABASE_NAME)" MOODLE_DATABASE_USER="$(MOODLE_DATABASE_USER)" MOODLE_DATABASE_PASSWORD="$(MOODLE_DATABASE_PASSWORD)" MYSQL_ROOT_PASSWORD="$(MYSQL_ROOT_PASSWORD)" MOODLE_WWWROOT="$(MOODLE_WWWROOT)" AZURE_STORAGE_CONNECTION_STRING="$(AZURE_STORAGE_CONNECTION_STRING)" AZURE_STORAGE_ACCOUNT_NAME="$(AZURE_STORAGE_ACCOUNT_NAME)" AZURE_STORAGE_ACCOUNT_KEY="$(AZURE_STORAGE_ACCOUNT_KEY)" LECTUREBOT_TENANT_ID="$(LECTUREBOT_TENANT_ID)" LECTUREBOT_API_BASE_URL="$(LECTUREBOT_API_BASE_URL)" docker compose up -d
-
-
-                      # Wait for containers to start
-                      sleep 10
-
-                      echo "Deployment completed successfully!"
                     EOF
 
-                    echo "Development deployment completed!"
                   displayName: "Deploy to Development Server"
+
+  - stage: Admin_Approval
+    displayName: "Admin Approval for Production"
+    dependsOn: DeployToDev
+    condition: succeeded('DeployToDev')
+    jobs:
+      - deployment: ApprovalJob
+        displayName: "Waiting for Admin Approval"
+        environment: "Production"
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - script: echo "=== Approval granted, proceeding with production ==="
+                  displayName: "Approval Confirmation"
+
+  - stage: DeployToProd
+    displayName: "Deploy to Production"
+    dependsOn: Admin_Approval
+    condition: succeeded('Admin_Approval')
+    variables:
+      - group: arina-prod-moodle-plugin-variables
+    jobs:
+      - deployment: DeployProd
+        displayName: "Deploy to Production Environment"
+        environment: Production
+        variables:
+          - name: BUILD_NO
+            value: ${{ parameters.buildNumber }}
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: DownloadSecureFile@1
+                  name: sshKey
+                  inputs:
+                    secureFile: "azure-key.pem"
+                - script: |
+                    echo "Deployment Type: Kubernetes"
+                    VM_IP="$(K8S_CLUSTER_IP)"
+                    USERNAME="$(USERNAME)"
+                    BUILD_NO="$(BUILD_NO)"
+
+                    # Validate required variables
+                    if [ -z "$VM_IP" ] || [ -z "$VM_PASS" ] || [ -z "$USERNAME" ] || [ -z "$BUILD_NO" ]; then
+                      echo "Error: Missing required variables"
+                      echo "VM_IP: $VM_IP"
+                      echo "USERNAME: $USERNAME" 
+                      echo "BUILD_NO: $BUILD_NO"
+                      exit 1
+                    fi
+
+                    echo "Deploying with BUILD_NO: $BUILD_NO"
+
+                    # Update package lists and install required packages with sudo
+                    sudo apt-get update
+                    sudo apt-get install -y sshpass
+
+                    chmod 600 $(sshKey.secureFilePath)
+
+                    if ! ssh-keyscan "$VM_IP" >> ~/.ssh/known_hosts 2>/dev/null; then
+                      echo "Warning: ssh-keyscan failed; proceeding with caution."
+                    fi
+
+                    # SSH into server using the downloaded secure key
+                    ssh -i $(sshKey.secureFilePath) "$USERNAME@$VM_IP" << EOF
+                      set -e
+                      set -x
+                        echo "Kubernetes deployment"
+                                        
+                        # Clean up previous clone if exists
+                        sudo rm -rf arina-ai-devops
+
+                        # Clone the Azure DevOps repository
+                        echo "Cloning repository: ${REPO_NAME}"
+                        git clone "https://${USER_NAME}:${AZURE_PAT}@dev.azure.com/Arina-AI/NextGenChatBot/_git/arina-ai-devops"
+
+                        cd arina-ai-devops/kubernetes/prism
+                        sed -i "s|arinactrregistry.azurecr.io/arina-moodle:amd-[0-9]*|arinactrregistry.azurecr.io/arina-moodle:amd-$BUILD_NO|g" values-prod.yaml
+
+                        # Verify the changes
+                        echo "Updated values.yaml:"
+                        grep "image:" values-prod.yaml
+                        # Perform helm upgrade
+                        echo "Deploying to Kubernetes with Helm..."
+
+                        helm upgrade --install arina-prism . \
+                          -f values-prod.yaml \
+                          --namespace arina-prism \
+                          --create-namespace \
+                          --set-string env.MOODLE_DATABASE_HOST=$MOODLE_DATABASE_HOST \
+                          --set-string env.MOODLE_DATABASE_NAME=$MOODLE_DATABASE_NAME \
+                          --set-string env.MOODLE_DATABASE_PASSWORD=$MOODLE_DATABASE_PASSWORD \
+                          --set-string env.MOODLE_DATABASE_TYPE=$MOODLE_DATABASE_TYPE \
+                          --set-string env.MOODLE_DATABASE_USER=$MOODLE_DATABASE_USER \
+                          --set-string env.MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD \
+                          --set-string env.MYSQL_DATABASE=$MYSQL_DATABASE \
+                          --set-string env.MYSQL_USER=$MYSQL_USER \
+                          --set-string env.MYSQL_PASSWORD=$MYSQL_PASSWORD \
+                          --set-string env.AZURE_STORAGE_CONNECTION_STRING="$(printf '%q' "$AZURE_STORAGE_CONNECTION_STRING")" \
+                          --set-string env.AZURE_STORAGE_ACCOUNT_NAME=$AZURE_STORAGE_ACCOUNT_NAME \
+                          --set-string env.AZURE_STORAGE_ACCOUNT_KEY=$AZURE_STORAGE_ACCOUNT_KEY \
+                          --set-string env.LECTUREBOT_TENANT_ID=$LECTUREBOT_TENANT_ID \
+                          --set-string env.MOODLE_WWWROOT=$K8s_MOODLE_WWWROOT \
+                          --set-string env.LECTUREBOT_API_BASE_URL=$K8s_LECTUREBOT_API_BASE_URL
+
+                        kubectl create secret docker-registry acr-secret \
+                          --docker-server=${ACR_LOGIN_SERVER} \
+                          --docker-username=${ACR_USERNAME} \
+                          --docker-password=${ACR_PASSWORD} \
+                          -n arina-prism --save-config --dry-run=client -o yaml | kubectl apply -f -
+
+                        # Wait for resources to stabilize
+                        sleep 5
+
+                        # Verify deployment
+                        echo "Verifying Kubernetes deployment..."
+                        kubectl rollout status deployment/arina-moodle -n arina-prism
+
+                        echo "Kubernetes deployment completed successfully!"
+                    EOF
+
+                  displayName: "Deploy to Production Server"
