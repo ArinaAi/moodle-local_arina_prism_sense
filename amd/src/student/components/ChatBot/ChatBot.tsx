@@ -1,7 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Box, TextField, IconButton, Typography, Avatar, Chip, Fade } from '@mui/material';
+import { Box, TextField, IconButton, Typography, Avatar } from '@mui/material';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import { WelcomeState } from './WelcomeState';
+import { MessageItem } from './MessageItem';
+import { FeedbackModal } from './FeedbackModal';
+import { TypingIndicator } from './TypingIndicator';
 
 interface Message {
     id: string; // Added unique ID
@@ -15,6 +19,17 @@ const ChatBot: React.FC = () => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // Feedback state: 'up', 'down', or null for each message id
+    const [feedbackState, setFeedbackState] = useState<Record<string, 'up' | 'down' | null>>({});
+    // Track which message is showing "copied" feedback
+    const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+    // Feedback dialog state
+    const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
+    const [feedbackMessageId, setFeedbackMessageId] = useState<string | null>(null);
+    const [feedbackText, setFeedbackText] = useState('');
+    const [feedbackCategory, setFeedbackCategory] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const suggestedQuestions = [
         "Explain this concept in simple terms",
@@ -32,10 +47,12 @@ const ChatBot: React.FC = () => {
     }, [messages, isTyping]);
 
     const handleSendMessage = (text: string) => {
-        if (!text.trim()) { return; }
+        if (!text.trim()) { 
+            return; 
+        }
 
         const userMessage: Message = {
-            id: Date.now().toString(), // Simple unique ID
+            id: Date.now().toString(),
             text: text,
             isBot: false,
             timestamp: new Date()
@@ -48,7 +65,7 @@ const ChatBot: React.FC = () => {
         // Simulate AI response
         setTimeout(() => {
             const botMessage: Message = {
-                id: (Date.now() + 1).toString(), // Ensure unique ID
+                id: (Date.now() + 1).toString(),
                 text: "I'm a simulated AI response. The backend integration will come in the next phase!",
                 isBot: true,
                 timestamp: new Date()
@@ -66,6 +83,62 @@ const ChatBot: React.FC = () => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             handleSendMessage(input);
+        }
+    };
+
+    // Handle feedback (thumbs up/down)
+    const handleFeedback = (messageId: string, type: 'up' | 'down') => {
+        if (type === 'down') {
+            setFeedbackMessageId(messageId);
+            setFeedbackDialogOpen(true);
+            return;
+        }
+        
+        // Toggle thumbs up immediately
+        setFeedbackState(prev => ({
+            ...prev,
+            [messageId]: prev[messageId] === type ? null : type
+        }));
+    };
+
+    // Close feedback dialog
+    const handleCloseFeedbackDialog = () => {
+        setFeedbackDialogOpen(false);
+        setFeedbackMessageId(null);
+        setFeedbackText('');
+        setFeedbackCategory(null);
+    };
+
+    // Submit feedback
+    const handleSubmitFeedback = () => {
+        if (!feedbackMessageId) {
+            return;
+        }
+
+        setIsSubmitting(true);
+        
+        // Mark as disliked
+        setFeedbackState(prev => ({
+            ...prev,
+            [feedbackMessageId]: 'down'
+        }));
+        
+        // Simulate API call
+        setTimeout(() => {
+            // Send feedback to backend
+            setIsSubmitting(false);
+            handleCloseFeedbackDialog();
+        }, 500);
+    };
+
+    // Handle copy to clipboard
+    const handleCopy = async (messageId: string, text: string) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopiedMessageId(messageId);
+            setTimeout(() => setCopiedMessageId(null), 2000);
+        } catch {
+            console.error('Failed to copy text');
         }
     };
 
@@ -129,154 +202,23 @@ const ChatBot: React.FC = () => {
                 bgcolor: '#fafbfc'
             }}>
                 {messages.length === 0 ? (
-                    // Welcome State
-                    <Box sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flex: 1,
-                        gap: 3,
-                        py: 'clamp(24px, 4vw, 32px)'
-                    }}>
-                        <Avatar sx={{
-                            bgcolor: 'rgba(37, 99, 235, 0.1)',
-                            color: '#2563eb',
-                            width: 'clamp(48px, 10vw, 64px)',
-                            height: 'clamp(48px, 10vw, 64px)'
-                        }}>
-                            <AutoAwesomeIcon fontSize="large" />
-                        </Avatar>
-                        <Box sx={{ textAlign: 'center', maxWidth: '80%' }}>
-                            <Typography variant="h6" fontWeight={700} gutterBottom sx={{ fontSize: 'clamp(1.1rem, 3vw, 1.25rem)' }}>
-                                Hi! I&apos;m your AI Tutor
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                Ask me anything about this lecture. I&apos;m here to help you understand better!
-                            </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%' }}>
-                            <Typography variant="caption" color="text.secondary" sx={{ px: 1, fontWeight: 600 }}>
-                                Try asking:
-                            </Typography>
-                            {suggestedQuestions.map((question) => (
-                                <Chip
-                                    key={question}
-                                    label={question}
-                                    onClick={() => handleSuggestedQuestion(question)}
-                                    sx={{
-                                        justifyContent: 'flex-start',
-                                        height: 'auto',
-                                        py: 'clamp(8px, 1.5vw, 12px)',
-                                        px: 'clamp(12px, 2vw, 16px)',
-                                        fontSize: 'clamp(0.8rem, 2vw, 0.875rem)',
-                                        fontWeight: 500,
-                                        bgcolor: 'white',
-                                        border: '1px solid rgba(37, 99, 235, 0.2)',
-                                        borderRadius: 2,
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s',
-                                        '&:hover': {
-                                            bgcolor: 'rgba(37, 99, 235, 0.04)',
-                                            borderColor: '#2563eb',
-                                            transform: 'translateX(4px)'
-                                        },
-                                        '& .MuiChip-label': {
-                                            whiteSpace: 'normal',
-                                            textAlign: 'left'
-                                        }
-                                    }}
-                                />
-                            ))}
-                        </Box>
-                    </Box>
+                    <WelcomeState 
+                        suggestedQuestions={suggestedQuestions}
+                        onQuestionClick={handleSuggestedQuestion}
+                    />
                 ) : (
-                    // Messages
                     <>
                         {messages.map((msg) => (
-                            <Fade in key={msg.id} timeout={300}>
-                                <Box
-                                    sx={{
-                                        display: 'flex',
-                                        gap: 1.5,
-                                        flexDirection: msg.isBot ? 'row' : 'row-reverse',
-                                        alignItems: 'flex-start'
-                                    }}
-                                >
-                                    {msg.isBot && (
-                                        <Avatar sx={{
-                                            bgcolor: 'rgba(37, 99, 235, 0.1)',
-                                            color: '#2563eb',
-                                            width: 32,
-                                            height: 32,
-                                            flexShrink: 0
-                                        }}>
-                                            <AutoAwesomeIcon fontSize="small" sx={{ fontSize: 16 }} />
-                                        </Avatar>
-                                    )}
-                                    <Box
-                                        sx={{
-                                            maxWidth: '75%',
-                                            px: 'clamp(14px, 3vw, 20px)',
-                                            py: 'clamp(8px, 1.5vw, 12px)',
-                                            borderRadius: 2.5,
-                                            bgcolor: msg.isBot ? 'white' : '#2563eb',
-                                            color: msg.isBot ? 'text.primary' : '#ffffff',
-                                            border: msg.isBot ? '1px solid rgba(0,0,0,0.08)' : 'none',
-                                            boxShadow: msg.isBot ? '0 1px 3px rgba(0,0,0,0.05)' : 'none'
-                                        }}
-                                    >
-                                        <Typography variant="body2" sx={{ lineHeight: 1.6, color: msg.isBot ? 'inherit' : '#ffffff', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)' }}>
-                                            {msg.text}
-                                        </Typography>
-                                    </Box>
-                                </Box>
-                            </Fade>
+                            <MessageItem
+                                key={msg.id}
+                                message={msg}
+                                feedbackState={feedbackState[msg.id] || null}
+                                copiedMessageId={copiedMessageId}
+                                onFeedback={handleFeedback}
+                                onCopy={handleCopy}
+                            />
                         ))}
-
-                        {/* Typing Indicator */}
-                        {isTyping && (
-                            <Fade in timeout={300}>
-                                <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
-                                    <Avatar sx={{
-                                        bgcolor: 'rgba(37, 99, 235, 0.1)',
-                                        color: '#2563eb',
-                                        width: 32,
-                                        height: 32
-                                    }}>
-                                        <AutoAwesomeIcon fontSize="small" sx={{ fontSize: 16 }} />
-                                    </Avatar>
-                                    <Box sx={{
-                                        px: 2,
-                                        py: 1.5,
-                                        borderRadius: 2.5,
-                                        borderTopLeftRadius: 0,
-                                        bgcolor: 'white',
-                                        border: '1px solid rgba(0,0,0,0.08)',
-                                        display: 'flex',
-                                        gap: 0.5
-                                    }}>
-                                        {[0, 1, 2].map((dot) => (
-                                            <Box
-                                                key={dot}
-                                                sx={{
-                                                    width: 8,
-                                                    height: 8,
-                                                    borderRadius: '50%',
-                                                    bgcolor: '#2563eb',
-                                                    animation: 'bounce 1.4s infinite',
-                                                    animationDelay: `${dot * 0.2}s`,
-                                                    '@keyframes bounce': {
-                                                        '0%, 60%, 100%': { transform: 'translateY(0)' },
-                                                        '30%': { transform: 'translateY(-8px)' }
-                                                    }
-                                                }}
-                                            />
-                                        ))}
-                                    </Box>
-                                </Box>
-                            </Fade>
-                        )}
+                        {isTyping && <TypingIndicator />}
                         <div ref={messagesEndRef} />
                     </>
                 )}
@@ -333,6 +275,18 @@ const ChatBot: React.FC = () => {
                     </IconButton>
                 </Box>
             </Box>
+
+            {/* Feedback Modal */}
+            <FeedbackModal
+                open={feedbackDialogOpen}
+                isSubmitting={isSubmitting}
+                feedbackText={feedbackText}
+                feedbackCategory={feedbackCategory}
+                onClose={handleCloseFeedbackDialog}
+                onSubmit={handleSubmitFeedback}
+                onTextChange={setFeedbackText}
+                onCategoryChange={setFeedbackCategory}
+            />
         </Box>
     );
 };

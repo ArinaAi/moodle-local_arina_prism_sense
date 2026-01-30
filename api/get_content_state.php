@@ -25,6 +25,13 @@ try {
     // Release session lock to improve concurrency
     \core\session\manager::write_close();
     
+    // Self-healing: Auto-cleanup error content on refresh
+    // This ensures the generated content list stays clean
+    $DB->delete_records('local_lecturebot_content', [
+        'courseid' => $courseid,
+        'status' => 'error'
+    ]);
+    
     // Get all content for this course
     $contents = $DB->get_records('local_lecturebot_content', ['courseid' => $courseid], 'timecreated DESC');
     
