@@ -42,7 +42,7 @@ const Header: React.FC<HeaderProps> = ({ moodleContext, children, onBack }) => {
                 flexShrink: 0,
                 zIndex: 10,
                 gap: { xs: 1, sm: 2 },
-                minHeight: { xs: '56px', sm: '64px', md: '72px' },
+                maxHeight: { xs: '32px', sm: '44px', md: '60px', lg: '76px' },
             }}
         >
             <Box sx={{
@@ -64,8 +64,8 @@ const Header: React.FC<HeaderProps> = ({ moodleContext, children, onBack }) => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        width: isMobile ? '36px' : '40px',
-                        height: isMobile ? '36px' : '40px',
+                        width: isMobile ? '28px' : '32px',
+                        height: isMobile ? '28px' : '32px',
                         backgroundColor: '#f8f9fa',
                         border: '1px solid #e9ecef',
                         borderRadius: '20px',

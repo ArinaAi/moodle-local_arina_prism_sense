@@ -15,19 +15,18 @@ interface SlideNavigationFooterProps {
 }
 
 // Helper function for responsive styles (moved outside to reduce complexity)
-// Helper function for responsive styles (moved outside to reduce complexity)
 const getNavStyles = (isMobile: boolean) => ({
     progressHeight: 'clamp(2px, 0.3vw, 3px)',
-    padding: 'clamp(4px, 0.8vw, 8px)',
-    prevPx: 'clamp(6px, 1.5vw, 12px)',
-    nextPx: 'clamp(6px, 2vw, 16px)',
+    padding: 'clamp(8px, 1.2vw, 12px)',
+    prevPx: 'clamp(12px, 2vw, 20px)',
+    nextPx: 'clamp(12px, 2.5vw, 24px)',
     touchTarget: {
-        minHeight: 'clamp(24px, 4vw, 32px)',
-        minWidth: 'clamp(24px, 4vw, 32px)',
+        minHeight: 'clamp(32px, 5vw, 40px)',
+        minWidth: 'clamp(32px, 5vw, 40px)',
     },
-    fontSize: 'clamp(0.6rem, 1.2vw, 0.75rem)',
-    labelFontSize: 'clamp(0.6rem, 1.2vw, 0.75rem)',
-    separatorMargin: '0 clamp(2px, 0.3vw, 4px)',
+    fontSize: 'clamp(0.75rem, 1.5vw, 0.875rem)',
+    labelFontSize: 'clamp(0.75rem, 1.5vw, 0.875rem)',
+    separatorMargin: '0 clamp(4px, 0.5vw, 6px)',
     hoverTransform: 'translateY(-1px)',
     showIcons: !isMobile,
 });
@@ -56,7 +55,11 @@ const SlideNavigationFooter: React.FC<SlideNavigationFooterProps> = ({
             borderTop: '1px solid rgba(0,0,0,0.06)',
             position: 'relative',
             zIndex: 2,
-            flexShrink: 0, // Prevent footer from shrinking below content
+            flexShrink: 1, // Allow footer to participate in flex shrinking
+            minHeight: 'clamp(40px, 8vh, 60px)', // Minimum height that scales with viewport
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden', // Prevent content overflow when shrinking
         }}>
             {/* Linear Progress Bar */}
             <Box sx={{ width: '100%', bgcolor: '#f1f5f9', height: styles.progressHeight }}>

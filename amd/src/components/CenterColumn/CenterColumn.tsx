@@ -203,6 +203,7 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
         }
       }}>
         <Box sx={{
+          height: 42, // Fixed height to prevent jumping
           pb: 'clamp(12px, 1.5vh, 16px)',
           borderBottom: `1px solid ${theme.palette.divider}`,
           mb: 'clamp(12px, 1.5vh, 16px)',
@@ -221,19 +222,10 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
             <IconButton
               onClick={onClosePreview}
               size="small"
-              sx={{
-                color: 'text.secondary',
-                // Fluid touch target
-                minWidth: 'clamp(36px, 5vw, 44px)',
-                minHeight: 'clamp(36px, 5vw, 44px)',
-                '&:hover': {
-                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                  color: 'text.primary',
-                },
-              }}
+              sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary' } }}
               aria-label="Close preview"
             >
-              <Close />
+              <Close fontSize="small" />
             </IconButton>
           )}
         </Box>

@@ -21,23 +21,30 @@ const SlideDisplay: React.FC<SlideDisplayProps> = ({
     const [currentTopicIndex, setCurrentTopicIndex] = useState(0);
 
     const currentTopic = generatedContent?.results?.[currentTopicIndex];
-    const totalSlides = currentTopic?.slideCount || currentTopic?.content?.length || 0;
     const currentContentId = currentContentItem?.id;
+
+    // Strip "Slides: " or "Video: " prefix from title
+    const displayTitle = (currentContentItem?.title || currentContentItem?.sectionname || currentTopic?.topic || 'Untitled')
+        .replace(/^(Slides|Video): /i, '');
 
     const renderSlideInfo = () => (
         <Box sx={{
-            mb: 'clamp(12px, 1.5vw, 16px)',
+            mb: 'clamp(8px, 1vw, 12px)',
             display: 'flex',
             alignItems: 'center',
             gap: 'clamp(8px, 1.5vw, 16px)',
-            flexWrap: 'wrap'
         }}>
             <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ fontSize: 'clamp(0.75rem, 1.25vw, 0.875rem)' }}
+                variant="h6"
+                sx={{ 
+                    fontSize: 'clamp(1rem, 3.5vw, 1.35rem)',
+                    fontWeight: 700,
+                    letterSpacing: '-0.01em',
+                    color: '#0F6CBF',
+                    lineHeight: 1.2
+                }}
             >
-                {totalSlides} slide{totalSlides === 1 ? '' : 's'} generated for {currentContentItem?.sectionname || currentContentItem?.title || currentTopic?.topic || 'this section'}
+                {displayTitle}
             </Typography>
             {
                 isApproved && (
@@ -108,13 +115,20 @@ const SlideDisplay: React.FC<SlideDisplayProps> = ({
     };
 
     return (
-        <Box className="animate-scale-up" sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <Box className="animate-scale-up" sx={{ 
+            width: '100%', 
+            height: '100%', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            justifyContent: 'start',
+            minHeight: 0 
+        }}>
             {currentTopic && renderSlideInfo()}
 
             <Box
                 sx={{
                     width: '100%',
-                    flex: 1,
+                    flex: '0 1 auto', // Size based on content, don't grow beyond it
                     minHeight: 0,
                     border: '2px solid #e0e0e0',
                     borderRadius: 1,
@@ -126,7 +140,11 @@ const SlideDisplay: React.FC<SlideDisplayProps> = ({
                 }}
             >
                 {currentContentId && moodleContext && (
-                    <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                    <Box sx={{ 
+                        flex: '0 1 auto', // Size based on content, don't grow beyond it
+                        minHeight: 0, 
+                        overflow: 'hidden',
+                    }}>
                         <PptxViewer
                             contentId={currentContentId}
                             courseId={moodleContext.courseid}

@@ -72,9 +72,9 @@ const ContentViewerHeader: React.FC<ContentViewerHeaderProps> = ({ selectedConte
                 <IconButton
                     onClick={onClose}
                     size="small"
-                    sx={{ color: '#64748b', '&:hover': { bgcolor: 'rgba(0,0,0,0.04)', color: '#1e293b' } }}
+                    sx={{ color: '#64748b', '&:hover': { color: '#1e293b' } }}
                 >
-                    <CloseIcon />
+                    <CloseIcon fontSize="small" />
                 </IconButton>
             </Box>
         </Box>

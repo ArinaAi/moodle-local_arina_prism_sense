@@ -58,7 +58,9 @@ const getSlideCardStyles = (zoomLevel: number) => ({
 
 // Container styles based on fullscreen state
 const getContainerStyles = (isFullscreen: boolean, containerBg: ReturnType<typeof getContainerBg>) => ({
-    flexGrow: 1,
+    flex: 1,
+    minHeight: 0, // Critical: allows flex item to shrink below content size
+    maxHeight: isFullscreen ? '100vh' : 'clamp(150px, 40vh, 800px)', // Fluid responsive height
     position: isFullscreen ? 'fixed' as const : 'relative' as const,
     top: isFullscreen ? 0 : undefined,
     left: isFullscreen ? 0 : undefined,
@@ -67,7 +69,6 @@ const getContainerStyles = (isFullscreen: boolean, containerBg: ReturnType<typeo
     width: isFullscreen ? '100vw' : undefined,
     height: isFullscreen ? '100vh' : undefined,
     maxWidth: isFullscreen ? '100vw' : undefined,
-    maxHeight: isFullscreen ? '100vh' : undefined,
     display: 'flex',
     flexDirection: 'column' as const,
     overflow: 'hidden',
@@ -308,19 +309,17 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
             {/* Slide Preview Area */}
             <Box sx={{
                 position: 'relative',
-                // Flex-based height: grow to fill available space, properly respecting container bounds
-                flex: isFullscreen ? 1 : '1 1 auto',
-                height: isFullscreen ? '100%' : undefined,
-                maxHeight: isFullscreen ? '100%' : undefined,
-                minHeight: 0,
+                flex: 1,
+                height: isFullscreen ? '100%' : 'clamp(120px, 45vh, 700px)', // Fluid responsive height
+                maxHeight: isFullscreen ? '100%' : 'clamp(120px, 45vh, 700px)',
+                minHeight: 0, // Critical: allows flex shrinking
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexDirection: 'column',
-                p: layoutStyles.padding,
-                overflow: 'auto',
+                p: isFullscreen ? 2 : layoutStyles.padding,
+                overflow: isFullscreen ? 'visible' : 'hidden',
                 perspective: '1000px',
-                WebkitOverflowScrolling: 'touch',
             }}>
                     {/* Status / Loading */}
                     {isLoading && <CircularProgress size={40} thickness={4} sx={{ color: '#2563eb' }} />}
@@ -335,12 +334,14 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
                     {!isLoading && !error && currentSlideData && (
                         <Box sx={{
                             position: 'relative',
-                            maxWidth: '100%',
-                            maxHeight: '100%',
+                            flex: '0 1 auto', // Can shrink but doesn't grow beyond content
+                            maxWidth: isFullscreen ? '95%' : 'min(100%, clamp(200px, 80vw, 1200px))', // Full width in fullscreen
+                            maxHeight: isFullscreen ? '90%' : 'clamp(100px, 40vh, 600px)', // Full height in fullscreen
                             minHeight: 0, // Allow shrinking
-                            borderRadius: 1,
-                            overflow: 'visible',
-                            boxShadow: '0 20px 50px -12px rgba(0, 0, 0, 0.15)',
+                            minWidth: 0, // Allow shrinking in width too
+                            borderRadius: isFullscreen ? 1 : 0,
+                            overflow: 'hidden', // Clip content that overflows
+                            boxShadow: isFullscreen ? 'none' : '0 20px 50px -12px rgba(0, 0, 0, 0.15)',
                             transition: 'transform 0.3s ease',
                             transformOrigin: 'center center',
                             zIndex: 1,
@@ -354,10 +355,10 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
                                 alt={`Slide ${currentSlideData.slideNumber}`}
                                 style={{
                                     display: 'block',
-                                    maxWidth: '100%',
-                                    maxHeight: '100%',
                                     width: 'auto',
                                     height: 'auto',
+                                    maxWidth: '100%',
+                                    maxHeight: isFullscreen ? '85vh' : 'clamp(100px, 40vh, 600px)', // Full height in fullscreen
                                     objectFit: 'contain',
                                 }}
                             />

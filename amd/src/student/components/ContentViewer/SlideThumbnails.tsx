@@ -49,10 +49,11 @@ const SlideThumbnails: React.FC<SlideThumbnailsProps> = ({ slides, currentSlide,
     }
 
     // Fluid responsive thumbnail sizing using clamp()
-    // Mobile: 40-48px, Desktop: 48-64px - scales smoothly with viewport height
-    const thumbnailHeightValue = isMobile ? 'clamp(40px, 8vh, 48px)' : 'clamp(48px, 9vh, 64px)';
-    const thumbnailWidthValue = isMobile ? 'clamp(71px, 14.2vh, 85px)' : 'clamp(85px, 16vh, 114px)'; // 16:9 aspect ratio
-    const spacing = isMobile ? 8 : 12;
+    // Scale based on viewport height - smaller on short screens, larger on tall screens
+    // Mobile: 28-48px, Desktop: 32-64px - more aggressive scaling for short viewports
+    const thumbnailHeightValue = isMobile ? 'clamp(28px, 6vh, 48px)' : 'clamp(32px, 7vh, 64px)';
+    const thumbnailWidthValue = isMobile ? 'clamp(50px, 10.7vh, 85px)' : 'clamp(57px, 12.4vh, 114px)'; // 16:9 aspect ratio
+    const spacing = isMobile ? 6 : 10;
 
     return (
         <Box
@@ -62,7 +63,9 @@ const SlideThumbnails: React.FC<SlideThumbnailsProps> = ({ slides, currentSlide,
                 gap: `${spacing}px`,
                 overflowX: 'auto',
                 overflowY: 'hidden',
-                py: 1.5,
+                flex: 1, // Allow thumbnails to fill available space
+                minHeight: 0, // Allow shrinking
+                py: 'clamp(4px, 1vh, 12px)', // Fluid vertical padding
                 px: 2,
                 bgcolor: 'rgba(0,0,0,0.02)',
                 borderTop: '1px solid rgba(0,0,0,0.06)',
