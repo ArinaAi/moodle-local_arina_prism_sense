@@ -235,8 +235,10 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
   };
 
   const handleTitleChange = (boxIndex: number, value: string) => {
+    // Limit title to 50 characters
+    const truncatedValue = value.slice(0, 50);
     const newBoxes = [...boxes] as [BoxState, BoxState, BoxState];
-    newBoxes[boxIndex] = { ...boxes[boxIndex], title: value };
+    newBoxes[boxIndex] = { ...boxes[boxIndex], title: truncatedValue };
     setBoxes(newBoxes);
 
     // Clear validation error when user types
@@ -248,8 +250,10 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
   };
 
   const handleAuthorChange = (boxIndex: number, value: string) => {
+    // Limit author to 25 characters
+    const truncatedValue = value.slice(0, 25);
     const newBoxes = [...boxes] as [BoxState, BoxState, BoxState];
-    newBoxes[boxIndex] = { ...boxes[boxIndex], author: value };
+    newBoxes[boxIndex] = { ...boxes[boxIndex], author: truncatedValue };
     setBoxes(newBoxes);
 
     // Clear validation error when user types

@@ -65,10 +65,7 @@ export const ContentItemTitle: React.FC<{ title: string }> = ({ title }) => (
                 width: '100%',
                 color: 'text.primary',
                 mb: 0.5,
-                fontSize: 'clamp(0.8125rem, 1.25vw, 0.875rem)',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
+                fontSize: 'clamp(0.8125rem, 1.25vw, 0.875rem)'
             }}
         >
             {title}

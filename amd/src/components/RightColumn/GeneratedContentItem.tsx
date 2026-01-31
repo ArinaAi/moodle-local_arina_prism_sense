@@ -177,56 +177,57 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                 <ContentTypeIcon contentType={item.contenttype} color="#28a745" />
             </Box>
 
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-                <ContentItemTitle title={item.sectionname} />
-                <Box sx={{ display: 'flex', gap: 'clamp(4px, 1vw, 8px)', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <StatusBadge status={item.approved ? 'approved' : 'ready'} size="small" />
-                    <SlideCountChip item={item} />
-                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 'clamp(0.7rem, 1.25vw, 0.75rem)' }}>
-                        {item.approved ? 'Ready to publish' : 'Pending approval'}
-                    </Typography>
+            <Box sx={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 'clamp(8px, 1.5vw, 12px)'}}>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <ContentItemTitle title={item.sectionname} />
+                    <Box sx={{ display: 'flex', gap: 'clamp(4px, 1vw, 8px)', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <StatusBadge status={item.approved ? 'approved' : 'ready'} size="small" />
+                        <SlideCountChip item={item} />
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 'clamp(0.7rem, 1.25vw, 0.75rem)' }}>
+                            {item.approved ? 'Ready to publish' : 'Pending approval'}
+                        </Typography>
+                    </Box>
                 </Box>
-            </Box>
-
-            <Box sx={{ display: 'flex', gap: 'clamp(4px, 1vw, 8px)', flexShrink: 0 }}>
-                {item.approved && (
-                    <Tooltip title="Publish to course page" arrow placement="top" PopperProps={{ sx: { zIndex: 100006 } }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'clamp(4px, 1vw, 8px)', flexShrink: 0, alignItems: 'center' }}>
+                    {item.approved && (
+                        <Tooltip title="Publish to course page" arrow placement="top" PopperProps={{ sx: { zIndex: 100006 } }}>
+                            <IconButton
+                                size="small"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onPublish(`content-${item.id}`);
+                                }}
+                                sx={{
+                                    width: 'clamp(20px, 3vw, 24px)',
+                                    height: 'clamp(20px, 3vw, 24px)',
+                                    backgroundColor: 'success.main',
+                                    color: 'white',
+                                    '&:hover': {
+                                        backgroundColor: 'success.dark',
+                                    },
+                                }}
+                            >
+                                <Add fontSize="small" sx={{ fontSize: 'clamp(14px, 2vw, 16px)' }} />
+                            </IconButton>
+                        </Tooltip>
+                    )}
+                    
+                    <Tooltip title="More options" arrow placement="top" PopperProps={{ sx: { zIndex: 100006 } }}>
                         <IconButton
                             size="small"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onPublish(`content-${item.id}`);
-                            }}
+                            onClick={(e) => onMenuOpen(e, item.id)}
                             sx={{
-                                width: 'clamp(28px, 3vw, 32px)',
-                                height: 'clamp(28px, 3vw, 32px)',
-                                backgroundColor: 'success.main',
-                                color: 'white',
-                                '&:hover': {
-                                    backgroundColor: 'success.dark',
-                                },
+                                width: 'clamp(20px, 3vw, 24px)',
+                                height: 'clamp(20px, 3vw, 24px)',
+                                backgroundColor: 'grey.300',
+                                color: 'grey.700',
+                                '&:hover': { backgroundColor: 'grey.400' },
                             }}
                         >
-                            <Add fontSize="small" sx={{ fontSize: 'clamp(18px, 2vw, 20px)' }} />
+                            <MoreVert fontSize="small" sx={{ fontSize: 'clamp(14px, 2vw, 16px)' }} />
                         </IconButton>
                     </Tooltip>
-                )}
-                
-                <Tooltip title="More options" arrow placement="top" PopperProps={{ sx: { zIndex: 100006 } }}>
-                    <IconButton
-                        size="small"
-                        onClick={(e) => onMenuOpen(e, item.id)}
-                        sx={{
-                            width: 'clamp(28px, 3vw, 32px)',
-                            height: 'clamp(28px, 3vw, 32px)',
-                            backgroundColor: 'grey.300',
-                            color: 'grey.700',
-                            '&:hover': { backgroundColor: 'grey.400' },
-                        }}
-                    >
-                        <MoreVert fontSize="small" sx={{ fontSize: 'clamp(18px, 2vw, 20px)' }} />
-                    </IconButton>
-                </Tooltip>
+                </Box>
             </Box>
         </ListItem>
     );
