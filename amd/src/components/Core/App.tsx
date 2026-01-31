@@ -1,6 +1,6 @@
 
 // App.tsx - Main entry point
-import React, { useEffect, useReducer, useCallback } from 'react';
+import React, { useEffect, useReducer, useCallback, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   ThemeProvider,
@@ -10,6 +10,14 @@ import {
   Typography,
   Alert,
   Snackbar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import '../../types/window';
 import MainLayout from '../Layout/MainLayout';
@@ -33,6 +41,9 @@ import { useContentActions } from '../../hooks/useContentActions';
 
 export const App: React.FC = () => {
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const [showApproveConfirmation, setShowApproveConfirmation] = useState(false);
+  const muiTheme = useTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
 
   // Custom Hooks
   const { notification, showNotification, closeNotification } = useNotification();
@@ -96,6 +107,20 @@ export const App: React.FC = () => {
     showNotification('Preview closed', 'info');
   }, [showNotification]);
 
+  // Approval confirmation handlers
+  const handleOpenApproveConfirmation = useCallback(() => {
+    setShowApproveConfirmation(true);
+  }, []);
+
+  const handleCloseApproveConfirmation = useCallback(() => {
+    setShowApproveConfirmation(false);
+  }, []);
+
+  const handleConfirmApprove = useCallback(() => {
+    setShowApproveConfirmation(false);
+    handleApproveSlides();
+  }, [handleApproveSlides]);
+
   // Preview Logic handled by Modal directly calling dispatch usually, 
   // but VideoLectureModal expects onPreviewContent prop
 
@@ -155,7 +180,7 @@ export const App: React.FC = () => {
               onOpenSourcesModal={handleOpenSourcesModal}
               onOpenCurriculumModal={handleOpenCurriculumModal}
               onOpenVideoModal={handleOpenVideoLectureModal}
-              onApproveSlides={handleApproveSlides}
+              onApproveSlides={handleOpenApproveConfirmation}
               onClosePreview={handleCloseReview}
               onOpenFeedbackModal={handleOpenFeedbackModal}
               onPublishContent={handlePublishContent}
@@ -202,6 +227,71 @@ export const App: React.FC = () => {
               }}
             />
           )}
+
+          {/* Approve Confirmation Dialog */}
+          <Dialog
+            open={showApproveConfirmation}
+            onClose={handleCloseApproveConfirmation}
+            fullScreen={isMobile}
+            sx={{ zIndex: 100005 }}
+            PaperProps={{
+              sx: {
+                borderRadius: isMobile ? 0 : '12px',
+                width: { xs: '100%', sm: '420px' },
+                maxWidth: { xs: '100%', sm: '420px' },
+              },
+            }}
+          >
+            <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
+              Approve Content?
+            </DialogTitle>
+            <DialogContent>
+              <DialogContentText sx={{ color: 'text.secondary' }}>
+                Are you sure you want to approve this content? This action cannot be undone. Once approved, you will not be able to regenerate this content.
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions
+              sx={{
+                px: { xs: 2, sm: 3 },
+                pb: { xs: 2, sm: 3 },
+                gap: 1,
+                flexDirection: { xs: 'column-reverse', sm: 'row' },
+              }}
+            >
+              <Button
+                onClick={handleCloseApproveConfirmation}
+                variant="outlined"
+                fullWidth={isMobile}
+                sx={{
+                  fontWeight: 600,
+                  borderWidth: 2,
+                  minHeight: { xs: '48px', sm: 'auto' },
+                  '&:hover': {
+                    borderWidth: 2,
+                  },
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleConfirmApprove}
+                variant="contained"
+                color="success"
+                fullWidth={isMobile}
+                sx={{
+                  fontWeight: 600,
+                  minHeight: { xs: '48px', sm: 'auto' },
+                  background: 'linear-gradient(135deg, #28A745 0%, #218838 100%)',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #218838 0%, #1e7e34 100%)',
+                    boxShadow: '0 6px 20px rgba(40, 167, 69, 0.4)',
+                  },
+                }}
+              >
+                Approve
+              </Button>
+            </DialogActions>
+          </Dialog>
 
           {/* Notification Snackbar */}
           <Snackbar
