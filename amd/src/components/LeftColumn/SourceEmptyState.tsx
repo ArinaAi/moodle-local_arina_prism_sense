@@ -45,7 +45,7 @@ const SourceEmptyState: React.FC = () => {
                     fontSize: 'clamp(0.875rem, 2vw, 1rem)',
                 }}
             >
-                Upload PDFs by Section
+                Upload PDFs by Topic
             </Typography>
             <Typography 
                 variant="body2" 
@@ -56,7 +56,7 @@ const SourceEmptyState: React.FC = () => {
                     lineHeight: 1.4,
                 }}
             >
-                Click &quot;Manage Sources&quot; to upload 1-3 PDFs per section
+                Click &quot;Manage Sources&quot; to upload 1-3 PDFs per topic
             </Typography>
             <Typography 
                 variant="caption" 
@@ -66,7 +66,7 @@ const SourceEmptyState: React.FC = () => {
                     fontSize: 'clamp(0.65rem, 1.5vw, 0.75rem)',
                 }}
             >
-                Sources are organized by course sections
+                Sources are organized by course topics
             </Typography>
         </Box>
     );

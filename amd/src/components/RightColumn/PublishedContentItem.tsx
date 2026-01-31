@@ -1,6 +1,5 @@
 import React from 'react';
-import { Box, Typography, ListItem, IconButton, Tooltip, useTheme } from '@mui/material';
-import { Visibility } from '@mui/icons-material';
+import { Box, Typography, ListItem, useTheme } from '@mui/material';
 import StatusBadge from './StatusBadge';
 import type { ContentItem } from '../../types/app';
 import { useContentPreview } from '../../hooks/useContentPreview';
@@ -54,27 +53,6 @@ const PublishedContentItem: React.FC<PublishedContentItemProps> = ({ item }) => 
                     </Typography>
                 </Box>
             </Box>
-
-            <Tooltip title={item.contenttype === 'video' ? "Preview video" : "Preview slides"} arrow placement="top" PopperProps={{ sx: { zIndex: 100006 } }}>
-                <IconButton
-                    size="small"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        if (item.result) {
-                            handlePreviewContent(item.id);
-                        }
-                    }}
-                    sx={{
-                        width: 'clamp(28px, 3vw, 32px)',
-                        height: 'clamp(28px, 3vw, 32px)',
-                        backgroundColor: 'info.main',
-                        color: 'white',
-                        '&:hover': { backgroundColor: 'info.dark' },
-                    }}
-                >
-                    <Visibility fontSize="small" sx={{ fontSize: 'clamp(18px, 2vw, 20px)' }} />
-                </IconButton>
-            </Tooltip>
         </ListItem>
     );
 };
