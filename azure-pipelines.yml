@@ -180,7 +180,7 @@ stages:
                         helm upgrade --install arina-prism . \
                           --namespace arina-prism \
                           --create-namespace \
-                          --set-string env.MOODLE_DATABASE_HOST=$MOODLE_DATABASE_HOST \
+                          --set-string env.MOODLE_DATABASE_HOST=$K8s_MOODLE_DATABASE_HOST \
                           --set-string env.MOODLE_DATABASE_NAME=$MOODLE_DATABASE_NAME \
                           --set-string env.MOODLE_DATABASE_PASSWORD=$MOODLE_DATABASE_PASSWORD \
                           --set-string env.MOODLE_DATABASE_TYPE=$MOODLE_DATABASE_TYPE \
