@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { Box, Typography, IconButton, Slider, Menu, MenuItem, CircularProgress } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
@@ -57,8 +56,8 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title: _title }) =>
     // Fullscreen change listener - Simple approach
     useEffect(() => {
         const handleFullscreenChange = () => {
-            // Simply check if our container is the fullscreen element
-            const isNowFullscreen = document.fullscreenElement === containerRef.current;
+            // Simply check if we're in fullscreen mode
+            const isNowFullscreen = !!document.fullscreenElement;
             setIsFullscreen(isNowFullscreen);
         };
 
@@ -271,7 +270,7 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title: _title }) =>
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxSizing: 'border-box',
+            boxSizing: 'border-box'
         };
 
         if (isFullscreen) {
@@ -396,6 +395,7 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title: _title }) =>
     // Render the video player content
     const renderVideoPlayer = () => (
         <Box
+            ref={containerRef}
             tabIndex={0}
             onMouseEnter={() => setShowControls(true)}
             onMouseLeave={() => setShowControls(!isPlaying)}
@@ -506,16 +506,9 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title: _title }) =>
         </Box>
     );
 
-    // When in fullscreen mode, render using a portal to document.body
-    // This ensures it overlays everything, including parent containers
-    if (isFullscreen) {
-        return createPortal(renderVideoPlayer(), document.body);
-    }
-
-    // Normal mode - render inline with a ref on the wrapper for fullscreen API
+    // Always render inline - the native Fullscreen API or CSS-based fullscreen will handle the overlay
     return (
         <Box 
-            ref={containerRef}
             sx={{
                 width: '100%',
                 maxWidth: '100%',
