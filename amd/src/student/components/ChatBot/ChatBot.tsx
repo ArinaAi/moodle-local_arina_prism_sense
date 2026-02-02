@@ -1,11 +1,27 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Box, TextField, IconButton, Typography, Avatar } from '@mui/material';
+import { Box, TextField, IconButton, Typography, Avatar, ClickAwayListener } from '@mui/material';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import LanguageRoundedIcon from '@mui/icons-material/LanguageRounded';
+
+// Language options
+type LanguageCode = 'en' | 'hi' | 'mr';
+interface LanguageOption {
+    code: LanguageCode;
+    label: string;
+    nativeLabel: string;
+}
+
+const LANGUAGES: LanguageOption[] = [
+    { code: 'en', label: 'English', nativeLabel: 'English'},
+    { code: 'hi', label: 'Hindi', nativeLabel: 'हिंदी'},
+    { code: 'mr', label: 'Marathi', nativeLabel: 'मराठी'},
+];
 import { WelcomeState } from './WelcomeState';
 import { MessageItem } from './MessageItem';
 import { FeedbackModal } from './FeedbackModal';
 import { TypingIndicator } from './TypingIndicator';
+import type { MoodleContext } from '../../../types/moodle';
 
 interface Message {
     id: string; // Added unique ID
@@ -14,11 +30,19 @@ interface Message {
     timestamp: Date;
 }
 
-const ChatBot: React.FC = () => {
+interface ChatBotProps {
+    moodleContext: MoodleContext;
+}
+
+const ChatBot: React.FC<ChatBotProps> = ({ moodleContext }) => {
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState<Message[]>([]);
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    
+    // Language selector state
+    const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode>('en');
+    const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
 
     // Feedback state: 'up', 'down', or null for each message id
     const [feedbackState, setFeedbackState] = useState<Record<string, 'up' | 'down' | null>>({});
@@ -86,6 +110,43 @@ const ChatBot: React.FC = () => {
         }
     };
 
+    // Helper to save negative feedback to database
+    const saveFeedbackToDatabase = async (
+        messageId: string,
+        category?: string | null,
+        comments?: string | null
+    ) => {
+        // Find the message text for context
+        const message = messages.find(m => m.id === messageId);
+        const messageText = message?.text || '';
+
+        try {
+            const response = await fetch(
+                `${moodleContext.wwwroot}/local/lecturebot/api/save_chat_feedback.php`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        courseid: String(moodleContext.courseid),
+                        messageid: messageId,
+                        category: category || '',
+                        comments: comments || '',
+                        messagetext: messageText,
+                        sesskey: moodleContext.sesskey,
+                    }),
+                }
+            );
+            const result = await response.json();
+            if (!result.success) {
+                console.error('Failed to save chat feedback:', result.error);
+            }
+        } catch (error) {
+            console.error('Error saving chat feedback:', error);
+        }
+    };
+
     // Handle feedback (thumbs up/down)
     const handleFeedback = (messageId: string, type: 'up' | 'down') => {
         if (type === 'down') {
@@ -110,7 +171,7 @@ const ChatBot: React.FC = () => {
     };
 
     // Submit feedback
-    const handleSubmitFeedback = () => {
+    const handleSubmitFeedback = async () => {
         if (!feedbackMessageId) {
             return;
         }
@@ -123,12 +184,15 @@ const ChatBot: React.FC = () => {
             [feedbackMessageId]: 'down'
         }));
         
-        // Simulate API call
-        setTimeout(() => {
-            // Send feedback to backend
-            setIsSubmitting(false);
-            handleCloseFeedbackDialog();
-        }, 500);
+        // Save feedback to database
+        await saveFeedbackToDatabase(
+            feedbackMessageId,
+            feedbackCategory,
+            feedbackText
+        );
+
+        setIsSubmitting(false);
+        handleCloseFeedbackDialog();
     };
 
     // Handle copy to clipboard
@@ -232,7 +296,7 @@ const ChatBot: React.FC = () => {
                     gap: 1,
                     border: '1.5px solid rgba(0,0,0,0.12)',
                     borderRadius: 6,
-                    px: 'clamp(12px, 2vw, 16px)',
+                    px: 'clamp(8px, 1.5vw, 12px)',
                     py: 'clamp(4px, 1vw, 6px)',
                     transition: 'all 0.2s',
                     '&:focus-within': {
@@ -240,6 +304,133 @@ const ChatBot: React.FC = () => {
                         boxShadow: '0 0 0 3px rgba(37, 99, 235, 0.1)'
                     }
                 }}>
+                    {/* Language Selector */}
+                    <ClickAwayListener onClickAway={() => setLanguageMenuOpen(false)}>
+                        <Box sx={{ position: 'relative' }}>
+                            {/* Language Toggle Button */}
+                            <Box
+                                component="button"
+                                onClick={() => setLanguageMenuOpen(!languageMenuOpen)}
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 0.5,
+                                    px: 1,
+                                    py: 0.5,
+                                    border: 'none',
+                                    borderRadius: 2,
+                                    bgcolor: languageMenuOpen ? 'rgba(37, 99, 235, 0.1)' : 'rgba(0,0,0,0.04)',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    '&:hover': {
+                                        bgcolor: 'rgba(37, 99, 235, 0.1)',
+                                    },
+                                }}
+                            >
+                                <LanguageRoundedIcon sx={{ 
+                                    fontSize: 18, 
+                                    color: languageMenuOpen ? '#2563eb' : 'rgba(0,0,0,0.5)',
+                                    transition: 'color 0.2s'
+                                }} />
+                                <Typography sx={{ 
+                                    fontSize: '0.75rem', 
+                                    fontWeight: 600,
+                                    color: languageMenuOpen ? '#2563eb' : 'rgba(0,0,0,0.6)',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: 0.5,
+                                    transition: 'color 0.2s'
+                                }}>
+                                    {selectedLanguage}
+                                </Typography>
+
+                            </Box>
+
+                            {/* Language Dropdown Menu */}
+                            <Box sx={{
+                                position: 'absolute',
+                                bottom: 'calc(100% + 8px)',
+                                left: 0,
+                                bgcolor: 'white',
+                                borderRadius: 1,
+                                boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                                overflow: 'hidden',
+                                minWidth: 140,
+                                zIndex: 100,
+                                opacity: languageMenuOpen ? 1 : 0,
+                                transform: languageMenuOpen ? 'translateY(0)' : 'translateY(8px)',
+                                visibility: languageMenuOpen ? 'visible' : 'hidden',
+                                transition: 'opacity 0.2s ease, transform 0.2s ease, visibility 0.2s',
+                                pointerEvents: languageMenuOpen ? 'auto' : 'none',
+                            }}>
+                                <Box sx={{ 
+                                    px: 1.5, 
+                                    py: 0.75, 
+                                    bgcolor: 'rgba(0,0,0,0.02)',
+                                    borderBottom: '1px solid rgba(0,0,0,0.06)'
+                                }}>
+                                    <Typography sx={{ 
+                                        fontSize: '0.65rem', 
+                                        fontWeight: 700, 
+                                        textTransform: 'uppercase',
+                                        letterSpacing: 0.8
+                                    }}>
+                                        Chat Language
+                                    </Typography>
+                                </Box>
+                                {LANGUAGES.map((lang) => (
+                                    <Box
+                                        key={lang.code}
+                                        component="button"
+                                        onClick={() => {
+                                            setSelectedLanguage(lang.code);
+                                            setLanguageMenuOpen(false);
+                                        }}
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 1,
+                                            width: '100%',
+                                            px: 1.5,
+                                            py: 1,
+                                            border: 'none',
+                                            bgcolor: selectedLanguage === lang.code 
+                                                ? 'rgba(37, 99, 235, 0.08)' 
+                                                : 'transparent',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.15s ease',
+                                            borderLeft: selectedLanguage === lang.code 
+                                                ? '1px solid #2563eb' 
+                                                : '3px solid transparent',
+                                            '&:hover': {
+                                                bgcolor: selectedLanguage === lang.code 
+                                                    ? 'rgba(37, 99, 235, 0.12)' 
+                                                    : 'rgba(0,0,0,0.04)',
+                                            },
+                                        }}
+                                    >
+                                        <Box sx={{ flex: 1, textAlign: 'left' }}>
+                                            <Typography sx={{ 
+                                                fontSize: '0.85rem', 
+                                                fontWeight: selectedLanguage === lang.code ? 600 : 500,
+                                                color: selectedLanguage === lang.code ? '#2563eb' : 'rgba(0,0,0,0.8)',
+                                            }}>
+                                                {lang.nativeLabel}
+                                            </Typography>
+                                        </Box>
+                                        {selectedLanguage === lang.code && (
+                                            <Box sx={{
+                                                width: 6,
+                                                height: 6,
+                                                borderRadius: '50%',
+                                                bgcolor: '#2563eb',
+                                            }}/>
+                                        )}
+                                    </Box>
+                                ))}
+                            </Box>
+                        </Box>
+                    </ClickAwayListener>
+
                     <TextField
                         fullWidth
                         placeholder="Ask a question..."
@@ -249,7 +440,7 @@ const ChatBot: React.FC = () => {
                         onKeyDown={handleKeyPress}
                         InputProps={{
                             disableUnderline: true,
-                            sx: { fontSize: 'clamp(0.875rem, 2vw, 1rem)' }
+                            sx: { fontSize: 'clamp(0.875rem, 2vw, 1rem)', ml: '5px'}
                         }}
                         sx={{ '& input::placeholder': { fontSize: 'clamp(0.875rem, 2vw, 1rem)' } }}
                     />
