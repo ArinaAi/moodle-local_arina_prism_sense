@@ -87,7 +87,7 @@ const getPanelAnimStyles = (isChatOpen: boolean) => ({
 });
 
 // Mobile content renderer based on state
-const renderMobileContent = (isChatOpen: boolean, selectedContent: any) => {
+const renderMobileContent = (isChatOpen: boolean, selectedContent: any, moodleContext: MoodleContext) => {
     if (isChatOpen) {
         return (
             <Paper
@@ -101,7 +101,7 @@ const renderMobileContent = (isChatOpen: boolean, selectedContent: any) => {
                     flexDirection: 'column',
                 }}
             >
-                <ChatBot />
+                <ChatBot moodleContext={moodleContext} />
             </Paper>
         );
     }
@@ -191,7 +191,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ moodleContext }) => {
                         display: 'flex',
                         flexDirection: 'column',
                     }}>
-                        {renderMobileContent(isChatOpen, selectedContent)}
+                        {renderMobileContent(isChatOpen, selectedContent, moodleContext)}
                     </Box>
                 ) : (
                     /* Desktop/Tablet Layout - Sliding panels */
@@ -275,7 +275,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ moodleContext }) => {
                                 transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
                             }}
                         >
-                            <ChatBot />
+                            <ChatBot moodleContext={moodleContext} />
                         </Paper>
 
                     </Box>
