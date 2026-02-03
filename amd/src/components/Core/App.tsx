@@ -24,8 +24,9 @@ import MainLayout from '../Layout/MainLayout';
 import Header from '../Layout/Header';
 import SourcesModal from '../Modals/SourcesModal';
 import CurriculumModal from '../Modals/CurriculumModal';
-import FeedbackModal from '../Modals/FeedbackModal';
+import ContentFeedbackModal from '../Modals/ContentFeedbackModal';
 import VideoLectureModal from '../Modals/VideoLectureModal';
+import type { ContentFeedbackData } from '../../types/feedback';
 
 // Import refactored modules
 import { theme } from '../../theme/theme';
@@ -217,11 +218,42 @@ export const App: React.FC = () => {
           />
 
           {state.showFeedbackModal && (
-            <FeedbackModal
+            <ContentFeedbackModal
               open={state.showFeedbackModal}
               onClose={handleCloseFeedbackModal}
-              onSubmitFeedback={(_feedback) => {
-                // Handle regenerate with feedback
+              contentId={state.currentContentId}
+              onSubmitFeedback={async (feedback: ContentFeedbackData) => {
+                // Save structured feedback to database
+                if (state.currentContentId && state.moodleContext) {
+                  try {
+                    const response = await fetch(
+                      `${state.moodleContext.wwwroot}/local/lecturebot/api/save_content_feedback.php`,
+                      {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          contentid: state.currentContentId,
+                          feedback_type: 'structured',
+                          topics_needing_depth: feedback.topicsNeedingDepth,
+                          topics_overexplained: feedback.topicsOverExplained,
+                          extra_topics: feedback.extraTopics,
+                          missing_subtopics: feedback.missingSubtopics,
+                          reordered_flow: feedback.reorderedTopicFlow,
+                          selected_categories: feedback.selectedCategories,
+                          sesskey: state.moodleContext.sesskey,
+                        }),
+                      }
+                    );
+                    const result = await response.json();
+                    if (!result.success) {
+                      console.error('Failed to save feedback:', result.error);
+                    }
+                  } catch (error) {
+                    console.error('Error saving feedback:', error);
+                  }
+                }
                 showNotification('Feedback submitted. Regenerating slides...', 'info');
                 handleCloseFeedbackModal();
               }}
