@@ -137,6 +137,7 @@ try {
             'timepublished' => $content->timepublished,
             'cmid' => $content->cmid,
             'result' => $generationData['result'] ?? null,
+            'generationdata' => $content->generationdata,
             'content_strategy' => $generationData['content_strategy'] ?? 'standard',
             'approved' => (bool)$content->approved,
             'approvedby' => $content->approvedby,
