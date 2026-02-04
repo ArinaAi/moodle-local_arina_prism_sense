@@ -355,16 +355,63 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
     setBoxes(newBoxes);
   };
 
-  const uploadFile = async (file: File, boxIndex: number, title: string, author: string, skipRefresh: boolean = false) => {
-    if (!selectedSection) {
+  const handleUploadFailures = (failures: Array<{ filename: string; index: number; error: string }>, filesToUpload: { box: BoxState; index: number }[]) => {
+    setBoxes((prevBoxes) => {
+      const newBoxes = [...prevBoxes] as [BoxState, BoxState, BoxState];
+      failures.forEach((failure) => {
+        const uploadedItem = filesToUpload[failure.index];
+        if (uploadedItem) {
+          newBoxes[uploadedItem.index] = {
+            type: 'error',
+            file: uploadedItem.box.file,
+            error: failure.error,
+            title: uploadedItem.box.title,
+            author: uploadedItem.box.author,
+          };
+        }
+      });
+      return newBoxes;
+    });
+  };
+
+  const reloadSourcesAfterUpload = async () => {
+    await loadSections();
+    if (selectedSection === null) {return};
+
+    const sourcesResponse = await fetch(
+      `${moodleContext.wwwroot}/local/lecturebot/api/get_sources.php?courseid=${moodleContext.courseid}&sectionid=${selectedSection}`,
+      {
+        method: 'GET',
+        credentials: 'include',
+      }
+    );
+    const sourcesData = await sourcesResponse.json();
+
+    if (sourcesData.success && sourcesData.sources) {
+      setSectionSources((prev) => ({
+        ...prev,
+        [selectedSection]: sourcesData.sources,
+      }));
+      loadSectionSources(selectedSection);
+    }
+  };
+
+  const uploadFiles = async (filesToUpload: { box: BoxState; index: number }[]) => {
+    if (!selectedSection || filesToUpload.length === 0) {
       return;
     }
 
     try {
       const formData = new FormData();
-      formData.append('pdf', file);
-      formData.append('title', title);
-      formData.append('author', author);
+      
+      // Add all files and metadata as arrays
+      filesToUpload.forEach(({ box }) => {
+        if (box.file) {
+          formData.append('pdf[]', box.file);
+          formData.append('title[]', box.title);
+          formData.append('author[]', box.author);
+        }
+      });
 
       const response = await fetch(
         `${moodleContext.wwwroot}/local/lecturebot/api/upload_source.php?courseid=${moodleContext.courseid}&sectionid=${selectedSection}&sesskey=${moodleContext.sesskey}`,
@@ -381,48 +428,30 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
         throw new Error(data.error || 'Upload failed');
       }
 
-      // If skipping refresh, we just mark this box as success temporarily or leave it as uploading until final refresh
-      // But to be safe, let's mark it as 'success' type with existing source data if returned, or just keep it until refresh
-      if (!skipRefresh) {
-        // Reload all sources from server to ensure fresh data
-        await loadSections();
-
-        // Reload the current section's sources
-        if (selectedSection !== null) {
-          const sourcesResponse = await fetch(
-            `${moodleContext.wwwroot}/local/lecturebot/api/get_sources.php?courseid=${moodleContext.courseid}&sectionid=${selectedSection}`,
-            {
-              method: 'GET',
-              credentials: 'include',
-            }
-          );
-          const sourcesData = await sourcesResponse.json();
-
-          if (sourcesData.success && sourcesData.sources) {
-            setSectionSources((prev) => ({
-              ...prev,
-              [selectedSection]: sourcesData.sources,
-            }));
-
-            // Reload boxes with fresh data
-            loadSectionSources(selectedSection);
-          }
-        }
+      // Handle partial failures
+      if (data.failures && data.failures.length > 0) {
+        handleUploadFailures(data.failures, filesToUpload);
+        return data;
       }
+
+      // Only reload sources when ALL uploads succeeded
+      await reloadSourcesAfterUpload();
+      return data;
     } catch (error) {
-      // Update box to error state
+      // Mark all files as errored
       setBoxes((prevBoxes) => {
         const newBoxes = [...prevBoxes] as [BoxState, BoxState, BoxState];
-        newBoxes[boxIndex] = {
-          type: 'error',
-          file,
-          error: (error as Error).message,
-          title: '',
-          author: '',
-        };
+        filesToUpload.forEach(({ box, index }) => {
+          newBoxes[index] = {
+            type: 'error',
+            file: box.file,
+            error: (error as Error).message,
+            title: box.title,
+            author: box.author,
+          };
+        });
         return newBoxes;
       });
-      // Re-throw to let the caller know it failed
       throw error;
     }
   };
@@ -522,65 +551,39 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
     });
   };
 
-  const processUploads = async (boxesToUpload: { box: BoxState; index: number }[]) => {
-    for (const { box, index } of boxesToUpload) {
-      if (box.type === 'pending_details' && box.file && box.title.trim() && box.author.trim()) {
-        try {
-          // Pass true to skip refresh for individual uploads
-          await uploadFile(box.file, index, box.title, box.author, true);
-        } catch (error) {
-          console.error(`Failed to upload box ${index}:`, error);
-          // Loop continues to next item
-        }
-      }
-    }
-  };
-
-  const refreshSectionSources = async () => {
-    await loadSections();
-    if (selectedSection !== null) {
-      const sourcesResponse = await fetch(
-        `${moodleContext.wwwroot}/local/lecturebot/api/get_sources.php?courseid=${moodleContext.courseid}&sectionid=${selectedSection}`,
-        {
-          method: 'GET',
-          credentials: 'include',
-        }
-      );
-      const sourcesData = await sourcesResponse.json();
-
-      if (sourcesData.success && sourcesData.sources) {
-        setSectionSources((prev) => ({
-          ...prev,
-          [selectedSection]: sourcesData.sources,
-        }));
-        // This will re-render boxes with the final state from server
-        loadSectionSources(selectedSection);
-      }
-    }
-  };
-
   const handleDoneClick = async () => {
     if (!validatePendingBoxes()) {
       return;
     }
 
-    markBoxesAsUploading();
-
+    // Filter for pending boxes BEFORE marking as uploading
     const boxesToUpload = boxes
       .map((box, index) => ({ box, index }))
-      .filter(({ box }) => box.type === 'pending_details');
+      .filter(({ box }) => box.type === 'pending_details' && box.file);
 
     if (boxesToUpload.length === 0) {
       onClose();
       return;
     }
 
+    // Now mark them as uploading
+    markBoxesAsUploading();
+
     try {
-      await processUploads(boxesToUpload);
-      await refreshSectionSources();
-      onClose();
+      const result = await uploadFiles(boxesToUpload);
+      
+      // Check if any uploads failed
+      if (result && result.failures && result.failures.length > 0) {
+        // Don't close - user needs to see errors and retry
+        setErrors({ general: `${result.failures.length} file(s) failed to upload. Please retry.` });
+      } else {
+        // All succeeded - close modal
+        onClose();
+      }
     } catch (err) {
-      console.error('Upload sequence interrupted:', err);
+      console.error('Upload failed:', err);
+      setErrors({ general: 'Some files failed to upload. Please try again.' });
+      // Don't close - let user see error and retry
     }
   };
 
@@ -912,9 +915,45 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
                                 <ErrorIcon sx={{ fontSize: 10, color: '#ffffff' }} />
                               </Box>
                             </Box>
-                            <Typography variant="caption" sx={{ color: '#dc3545', mb: 1, textAlign: 'center', lineHeight: 1.2 }}>
+                            <Typography 
+                              variant="body2" 
+                              sx={{ 
+                                fontWeight: 600,
+                                mb: 0.5,
+                                color: '#1a1a1a',
+                                textAlign: 'center',
+                                fontSize: 'clamp(0.75rem, 0.5vw + 0.7rem, 0.85rem)',
+                              }}
+                            >
+                              {truncateFilename(box.file.name)}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: '#dc3545', mb: 1, textAlign: 'center', lineHeight: 1.3, display: 'block', px: 1 }}>
                               {box.error || 'Upload failed'}
                             </Typography>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="primary"
+                              sx={{ mt: 1, minWidth: 80 }}
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                // Mark as uploading
+                                setBoxes((prevBoxes) => {
+                                  const newBoxes = [...prevBoxes] as [BoxState, BoxState, BoxState];
+                                  newBoxes[boxIndex] = { ...box, type: 'uploading' };
+                                  return newBoxes;
+                                });
+                                
+                                // Retry upload
+                                try {
+                                  await uploadFiles([{ box, index: boxIndex }]);
+                                } catch (error) {
+                                  console.error('Retry failed:', error);
+                                }
+                              }}
+                            >
+                              Retry
+                            </Button>
                             <IconButton
                               onClick={(e) => {
                                 e.stopPropagation();
