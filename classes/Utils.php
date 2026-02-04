@@ -325,5 +325,57 @@ class Utils
         $parts = explode('/', $path, 2);
         return isset($parts[1]) ? $parts[1] : $path;
     }
+
+    /**
+     * Get and validate JSON input from php://input
+     * @return array
+     * @throws \moodle_exception
+     */
+    public static function getJsonInput()
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+        if (!$input) {
+            throw new \moodle_exception('Invalid JSON input', 'local_lecturebot');
+        }
+        return $input;
+    }
+
+    /**
+     * Authenticate and validate a course content request
+     * @param int $courseid
+     * @param int $contentid
+     * @param string $capability
+     * @return \stdClass The content record
+     * @throws \moodle_exception
+     */
+    public static function validateCourseContentRequest(
+        $courseid,
+        $contentid,
+        $capability = 'moodle/course:manageactivities'
+        )
+    {
+        global $DB;
+
+        if ($courseid <= 0) {
+            throw new \moodle_exception('Invalid course ID', 'local_lecturebot');
+        }
+
+        if ($contentid <= 0) {
+            throw new \moodle_exception('Invalid content ID', 'local_lecturebot');
+        }
+
+        require_login($courseid);
+        $context = \context_course::instance($courseid);
+        require_capability($capability, $context);
+        require_sesskey();
+
+        $content = $DB->get_record('local_lecturebot_content', ['id' => $contentid], '*', MUST_EXIST);
+
+        if ($content->courseid != $courseid) {
+            throw new \moodle_exception('Content does not belong to this course', 'local_lecturebot');
+        }
+
+        return $content;
+    }
 }
 

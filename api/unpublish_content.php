@@ -1,8 +1,8 @@
 <?php
 /**
- * Publish content - changes status to 'published'
+ * Unpublish content - changes status from 'published' back to 'ready'
  *
- * This endpoint updates the content status without creating any Moodle resource.
+ * This endpoint reverts content to ready status for re-editing or re-publishing.
  */
 
 define('AJAX_SCRIPT', true);
@@ -23,39 +23,34 @@ try {
 
 try {
     
-    // Check if already published
-    if ($content_record->status === 'published') {
-        echo json_encode([
-            'success' => true,
-            'message' => 'Content is already published'
-        ]);
-        exit;
-    }
-    
-    // Check if approved
-    if (!$content_record->approved) {
+    // Check if currently published
+    if ($content_record->status !== 'published') {
         http_response_code(400);
-        echo json_encode(['error' => 'Content must be approved before publishing']);
+        echo json_encode(['error' => 'Content is not currently published']);
         exit;
     }
     
-    // Update status to published
+    // Delete tracking records for this content
+    $DB->delete_records('local_lecturebot_tracking', ['contentid' => $contentid]);
+    
+    // Update status back to ready
     $update_record = new stdClass();
     $update_record->id = $contentid;
-    $update_record->status = 'published';
-    $update_record->timepublished = time();
+    $update_record->status = 'ready';
+    $update_record->timepublished = null;
+    $update_record->cmid = null;
     $update_record->timemodified = time();
     
     $DB->update_record('local_lecturebot_content', $update_record);
     
     echo json_encode([
         'success' => true,
-        'message' => 'Content published successfully'
+        'message' => 'Content unpublished successfully'
     ]);
     
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([
-        'error' => 'Failed to publish content: ' . $e->getMessage()
+        'error' => 'Failed to unpublish content: ' . $e->getMessage()
     ]);
 }

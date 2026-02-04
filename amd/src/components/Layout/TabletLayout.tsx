@@ -18,6 +18,7 @@ const TabletLayout: React.FC<LayoutProps> = ({
     onClosePreview,
     onOpenFeedbackModal,
     onPublishContent,
+    onUnpublishContent,
     onClearAllContent: _onClearAllContent,
     onDeleteContent,
     isLoadingContent,
@@ -34,6 +35,10 @@ const TabletLayout: React.FC<LayoutProps> = ({
         contentId: null,
     });
     const [deleteConfirmation, setDeleteConfirmation] = useState<{ open: boolean; contentId: number | null }>({
+        open: false,
+        contentId: null,
+    });
+    const [unpublishConfirmation, setUnpublishConfirmation] = useState<{ open: boolean; contentId: string | null }>({
         open: false,
         contentId: null,
     });
@@ -127,6 +132,7 @@ const TabletLayout: React.FC<LayoutProps> = ({
                         contentItems={state.contentItems}
                         isLoading={isLoadingContent ?? false}
                         onPublish={onPublishContent}
+                        onUnpublish={(contentId) => setUnpublishConfirmation({ open: true, contentId })}
                         onMenuOpen={handleMenuOpen}
                         isMobile={isSmallTablet}
                         onPreviewContent={handlePreviewContent}
@@ -137,7 +143,10 @@ const TabletLayout: React.FC<LayoutProps> = ({
                 <Box sx={{ minHeight: 0, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
                     <PublishedContentList
                         contentItems={state.contentItems}
+                        onUnpublish={(contentId) => setUnpublishConfirmation({ open: true, contentId })}
+                        onMenuOpen={handleMenuOpen}
                         isMobile={isSmallTablet}
+                        onPreviewContent={handlePreviewContent}
                     />
                 </Box>
             </Box>
@@ -185,6 +194,35 @@ const TabletLayout: React.FC<LayoutProps> = ({
                         variant="contained"
                     >
                         Delete
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Unpublish Confirmation Dialog */}
+            <Dialog
+                open={unpublishConfirmation.open}
+                onClose={() => setUnpublishConfirmation({ open: false, contentId: null })}
+                PaperProps={{ sx: { borderRadius: '20px' } }}
+            >
+                <DialogTitle>Unpublish Content?</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Are you sure you want to unpublish this content? It will be removed from the course page and moved back to the Generated Content section.
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions sx={{ p: 2 }}>
+                    <Button onClick={() => setUnpublishConfirmation({ open: false, contentId: null })}>Cancel</Button>
+                    <Button
+                        onClick={() => {
+                            if (unpublishConfirmation.contentId && onUnpublishContent) {
+                                onUnpublishContent(unpublishConfirmation.contentId);
+                            }
+                            setUnpublishConfirmation({ open: false, contentId: null });
+                        }}
+                        color="warning"
+                        variant="contained"
+                    >
+                        Unpublish
                     </Button>
                 </DialogActions>
             </Dialog>

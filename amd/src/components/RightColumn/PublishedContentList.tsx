@@ -1,15 +1,25 @@
 import React from 'react';
-import { Box, Typography, List, Card, CardContent, useTheme } from '@mui/material';
+import { Box, Typography, List, Card, CardContent, useTheme, Collapse } from '@mui/material';
 import { CheckCircle } from '@mui/icons-material';
 import type { ContentItem } from '../../types/app';
-import PublishedContentItem from './PublishedContentItem';
+import GeneratedContentItem from './GeneratedContentItem';
+import { TransitionGroup } from 'react-transition-group';
 
 interface PublishedContentListProps {
     contentItems: ContentItem[];
+    onUnpublish: (contentId: string) => void;
+    onMenuOpen: (event: React.MouseEvent<HTMLButtonElement>, contentId: number) => void;
     isMobile?: boolean;
+    onPreviewContent?: (contentId: number) => void;
 }
 
-const PublishedContentList: React.FC<PublishedContentListProps> = ({ contentItems, isMobile = false }) => {
+const PublishedContentList: React.FC<PublishedContentListProps> = ({ 
+    contentItems, 
+    onUnpublish, 
+    onMenuOpen, 
+    isMobile = false,
+    onPreviewContent 
+}) => {
     const theme = useTheme();
     const publishedItems = contentItems.filter(item => item.status === 'published');
 
@@ -42,9 +52,19 @@ const PublishedContentList: React.FC<PublishedContentListProps> = ({ contentItem
 
                 {publishedItems.length === 0 ? renderEmptyState() : (
                     <List sx={{ flex: 1, overflow: 'auto', p: 0, pr: 1, scrollbarWidth: 'thin' }}>
-                        {publishedItems.map(item => (
-                            <PublishedContentItem key={item.id} item={item} />
-                        ))}
+                        <TransitionGroup component={null}>
+                            {publishedItems.map(item => (
+                                <Collapse key={item.id} timeout={400}>
+                                    <GeneratedContentItem 
+                                        item={item} 
+                                        onPublish={() => {}} 
+                                        onUnpublish={onUnpublish}
+                                        onMenuOpen={onMenuOpen}
+                                        onPreview={onPreviewContent}
+                                    />
+                                </Collapse>
+                            ))}
+                        </TransitionGroup>
                     </List>
                 )}
             </CardContent>

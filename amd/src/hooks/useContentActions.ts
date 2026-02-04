@@ -334,10 +334,8 @@ export const useContentActions = (
         }
 
         try {
-            // Show loading notification
-            showNotification(`Publishing to ${contentItem.sectionname}...`, 'info');
 
-            // Call publish API with the original section ID from generation
+            // Call simplified publish API
             const apiUrl = `${state.moodleContext.wwwroot}/local/lecturebot/api/publish_content.php?sesskey=${state.moodleContext.sesskey}`;
 
             const response = await fetch(apiUrl, {
@@ -345,11 +343,7 @@ export const useContentActions = (
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     courseid: state.moodleContext.courseid,
-                    sectionid: contentItem.sectionid,
                     contentid: numericId,
-                    title: contentItem.title,
-                    content: contentItem.result,
-                    type: contentItem.contenttype,
                 }),
             });
 
@@ -358,7 +352,7 @@ export const useContentActions = (
                 throw new Error(`Failed to publish content: ${errorText} `);
             }
 
-            const result = await response.json();
+            await response.json();
 
             // Update the content item in local state to mark it as published
             const updatedItems = state.contentItems.map(item => {
@@ -367,7 +361,7 @@ export const useContentActions = (
                         ...item,
                         status: 'published' as const,
                         timepublished: Math.floor(Date.now() / 1000),
-                        cmid: result.moduleid || null,
+                        cmid: null,
                     };
                 }
                 return item;
@@ -379,6 +373,72 @@ export const useContentActions = (
         } catch (error) {
             console.error('Error publishing content:', error);
             showNotification('Failed to publish content. Please try again.', 'error');
+        }
+    }, [state.contentItems, state.moodleContext, dispatch, showNotification]);
+
+    const handleUnpublishContent = useCallback(async (contentId: string) => {
+        // Extract numeric ID from "content-123" format
+        const numericId = contentId.startsWith('content-')
+            ? parseInt(contentId.replace('content-', ''), 10)
+            : null;
+
+        if (!numericId || !state.moodleContext) {
+            showNotification('Invalid content ID', 'error');
+            return;
+        }
+
+        // Find the content item
+        const contentItem = state.contentItems.find(item => Number(item.id) === numericId);
+
+        if (!contentItem) {
+            showNotification('Content not found', 'error');
+            return;
+        }
+
+        if (contentItem.status !== 'published') {
+            showNotification('Content is not currently published', 'warning');
+            return;
+        }
+
+        try {
+
+            const apiUrl = `${state.moodleContext.wwwroot}/local/lecturebot/api/unpublish_content.php?sesskey=${state.moodleContext.sesskey}`;
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    courseid: state.moodleContext.courseid,
+                    contentid: numericId,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to unpublish content: ${errorText} `);
+            }
+
+            await response.json(); // Parse response but don't use result
+
+            // Update the content item in local state
+            const updatedItems = state.contentItems.map(item => {
+                if (Number(item.id) === numericId) {
+                    return {
+                        ...item,
+                        status: 'ready' as const,
+                        timepublished: null,
+                        cmid: null,
+                    };
+                }
+                return item;
+            });
+
+            dispatch({ type: 'SET_CONTENT_ITEMS', payload: updatedItems });
+
+            showNotification('Content unpublished successfully!', 'success');
+        } catch (error) {
+            console.error('Error unpublishing content:', error);
+            showNotification('Failed to unpublish content. Please try again.', 'error');
         }
     }, [state.contentItems, state.moodleContext, dispatch, showNotification]);
 
@@ -458,6 +518,7 @@ export const useContentActions = (
         handleGenerateVideoLecture,
         handleApproveSlides,
         handlePublishContent,
+        handleUnpublishContent,
         handleClearAllContent,
         handleDeleteContent
     };

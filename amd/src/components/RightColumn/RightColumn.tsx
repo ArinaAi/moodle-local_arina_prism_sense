@@ -25,6 +25,7 @@ interface RightColumnProps {
     contentItems: ContentItem[];
   };
   onPublishContent: (contentId: string) => void;
+  onUnpublishContent: (contentId: string) => void;
   onClearAll?: () => void;
   onDeleteContent?: (contentId: number) => void;
   isMobile?: boolean;
@@ -54,6 +55,7 @@ const getResponsiveStyles = (isMobile: boolean, isSmallScreen: boolean, fullHeig
 const RightColumn: React.FC<RightColumnProps> = ({
   state,
   onPublishContent,
+  onUnpublishContent,
   onClearAll,
   onDeleteContent,
   isMobile = false,
@@ -69,6 +71,10 @@ const RightColumn: React.FC<RightColumnProps> = ({
 
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ open: boolean; contentId: number | null }>({
+    open: false,
+    contentId: null,
+  });
+  const [unpublishConfirmation, setUnpublishConfirmation] = useState<{ open: boolean; contentId: string | null }>({
     open: false,
     contentId: null,
   });
@@ -140,6 +146,7 @@ const RightColumn: React.FC<RightColumnProps> = ({
           contentItems={state.contentItems}
           isLoading={isLoading}
           onPublish={onPublishContent}
+          onUnpublish={(contentId) => setUnpublishConfirmation({ open: true, contentId })}
           onMenuOpen={handleMenuOpen}
           isMobile={isMobile}
           onPreviewContent={onPreviewContent}
@@ -148,7 +155,10 @@ const RightColumn: React.FC<RightColumnProps> = ({
         {/* Published Content Card */}
         <PublishedContentList
           contentItems={state.contentItems}
+          onUnpublish={(contentId) => setUnpublishConfirmation({ open: true, contentId })}
+          onMenuOpen={handleMenuOpen}
           isMobile={isMobile}
+          onPreviewContent={onPreviewContent}
         />
       </Box>
 
@@ -301,6 +311,54 @@ const RightColumn: React.FC<RightColumnProps> = ({
             sx={{ minHeight: styles.buttonMinHeight }}
           >
             Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Unpublish Content Confirmation Dialog */}
+      <Dialog
+        open={unpublishConfirmation.open}
+        onClose={() => setUnpublishConfirmation({ open: false, contentId: null })}
+        maxWidth="xs"
+        fullWidth
+        fullScreen={isSmallScreen}
+        sx={{
+          zIndex: 100010,
+          '& .MuiDialog-paper': {
+            borderRadius: styles.dialogBorderRadius,
+            p: 1,
+            m: styles.dialogMargin,
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontSize: styles.dialogTitleFontSize }}>
+          Unpublish Content?
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to unpublish this content? It will be removed from the course page and moved back to the Generated Content section.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: styles.dialogActionsPadding }}>
+          <Button
+            onClick={() => setUnpublishConfirmation({ open: false, contentId: null })}
+            color="inherit"
+            sx={{ minHeight: styles.buttonMinHeight }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              if (unpublishConfirmation.contentId && onUnpublishContent) {
+                onUnpublishContent(unpublishConfirmation.contentId);
+              }
+              setUnpublishConfirmation({ open: false, contentId: null });
+            }}
+            color="warning"
+            variant="contained"
+            sx={{ minHeight: styles.buttonMinHeight }}
+          >
+            Unpublish
           </Button>
         </DialogActions>
       </Dialog>

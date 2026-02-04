@@ -16,6 +16,7 @@ const MobileLayout: React.FC<LayoutProps> = ({
     onClosePreview,
     onOpenFeedbackModal,
     onPublishContent,
+    onUnpublishContent,
     onClearAllContent,
     onDeleteContent,
     isLoadingContent,
@@ -125,6 +126,7 @@ const MobileLayout: React.FC<LayoutProps> = ({
                     <RightColumn
                         state={{ contentItems: state.contentItems }}
                         onPublishContent={onPublishContent}
+                        onUnpublishContent={onUnpublishContent}
                         onClearAll={onClearAllContent}
                         onDeleteContent={onDeleteContent}
                         isMobile={true}

@@ -16,6 +16,7 @@ const DesktopLayout: React.FC<LayoutProps> = ({
     onClosePreview,
     onOpenFeedbackModal,
     onPublishContent,
+    onUnpublishContent,
     onClearAllContent,
     onDeleteContent,
     isLoadingContent,
@@ -76,6 +77,7 @@ const DesktopLayout: React.FC<LayoutProps> = ({
                 <RightColumn
                     state={{ contentItems: state.contentItems }}
                     onPublishContent={onPublishContent}
+                    onUnpublishContent={onUnpublishContent}
                     onClearAll={onClearAllContent}
                     onDeleteContent={onDeleteContent}
                     isLoading={isLoadingContent}

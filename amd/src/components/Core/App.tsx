@@ -60,6 +60,7 @@ export const App: React.FC = () => {
     handleGenerateVideoLecture,
     handleApproveSlides,
     handlePublishContent,
+    handleUnpublishContent,
     handleClearAllContent,
     handleDeleteContent
   } = useContentActions(state, dispatch, showNotification);
@@ -185,6 +186,7 @@ export const App: React.FC = () => {
               onClosePreview={handleCloseReview}
               onOpenFeedbackModal={handleOpenFeedbackModal}
               onPublishContent={handlePublishContent}
+              onUnpublishContent={handleUnpublishContent}
               onClearAllContent={handleClearAllContent}
               onDeleteContent={handleDeleteContent}
               isLoadingContent={isLoadingContent}

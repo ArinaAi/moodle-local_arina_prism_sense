@@ -1,15 +1,17 @@
 import React from 'react';
-import { Box, Typography, List, CircularProgress, Card, CardContent, useTheme } from '@mui/material';
+import { Box, Typography, List, CircularProgress, Card, CardContent, useTheme, Collapse } from '@mui/material';
 import { FileText } from 'lucide-react';
 import type { ContentItem } from '../../types/app';
 import GeneratedContentItem from './GeneratedContentItem';
+import { TransitionGroup } from 'react-transition-group';
 
 interface GeneratedContentListProps {
     contentItems: ContentItem[];
     isLoading: boolean;
     onPublish: (contentId: string) => void;
+    onUnpublish: (contentId: string) => void;
     onMenuOpen: (event: React.MouseEvent<HTMLButtonElement>, contentId: number) => void;
-    isMobile?: boolean; // Keep for potential future styling needs
+    isMobile?: boolean;
     onPreviewContent?: (contentId: number) => void;
 }
 
@@ -17,13 +19,14 @@ const GeneratedContentList: React.FC<GeneratedContentListProps> = ({
     contentItems,
     isLoading,
     onPublish,
+    onUnpublish,
     onMenuOpen,
     isMobile = false,
     onPreviewContent,
 }) => {
     const theme = useTheme();
 
-    // Filter items
+    // Filter items - excluding published (they go in PublishedContentList)
     const generatingItems = contentItems.filter(item => item.status === 'generating');
     const readyItems = contentItems.filter(item => item.status === 'ready');
     const errorItems = contentItems.filter(item => item.status === 'error');
@@ -55,9 +58,23 @@ const GeneratedContentList: React.FC<GeneratedContentListProps> = ({
 
         return (
             <List sx={{ flex: 1, overflow: 'auto', p: 0, pr: 1, scrollbarWidth: 'thin' }}>
-                {generatingItems.map(item => <GeneratedContentItem key={item.id} item={item} onPublish={onPublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} />)}
-                {readyItems.map(item => <GeneratedContentItem key={item.id} item={item} onPublish={onPublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} />)}
-                {errorItems.map(item => <GeneratedContentItem key={item.id} item={item} onPublish={onPublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} />)}
+                <TransitionGroup component={null}>
+                    {generatingItems.map(item => (
+                        <Collapse key={item.id} timeout={400}>
+                            <GeneratedContentItem item={item} onPublish={onPublish} onUnpublish={onUnpublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} />
+                        </Collapse>
+                    ))}
+                    {readyItems.map(item => (
+                        <Collapse key={item.id} timeout={400}>
+                            <GeneratedContentItem item={item} onPublish={onPublish} onUnpublish={onUnpublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} />
+                        </Collapse>
+                    ))}
+                    {errorItems.map(item => (
+                        <Collapse key={item.id} timeout={400}>
+                            <GeneratedContentItem item={item} onPublish={onPublish} onUnpublish={onUnpublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} />
+                        </Collapse>
+                    ))}
+                </TransitionGroup>
             </List>
         );
     };

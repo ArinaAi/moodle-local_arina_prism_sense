@@ -10,6 +10,7 @@ export interface LayoutProps {
     onClosePreview?: () => void;
     onOpenFeedbackModal: () => void;
     onPublishContent: (contentId: string) => void;
+    onUnpublishContent: (contentId: string) => void;
     onClearAllContent: () => void;
     onDeleteContent: (contentId: number) => void;
     isLoadingContent?: boolean;
