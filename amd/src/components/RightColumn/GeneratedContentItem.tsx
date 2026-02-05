@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography, ListItem, CircularProgress, IconButton, Tooltip, useTheme } from '@mui/material';
-import { Add, Close, MoreVert, Error as ErrorIcon } from '@mui/icons-material';
+import { Add, MoreVert, Error as ErrorIcon } from '@mui/icons-material';
 import StatusBadge from './StatusBadge';
 import type { ContentItem } from '../../types/app';
 import { useContentPreview } from '../../hooks/useContentPreview';
@@ -23,7 +23,7 @@ const TOOLTIP_CONFIG = {
     PopperProps: { sx: { zIndex: 100006 } }
 };
 
-const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPublish, onUnpublish, onMenuOpen, onPreview }) => {
+const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPublish, onMenuOpen, onPreview }) => {
     const theme = useTheme();
     const { handlePreviewContent: localHandlePreview } = useContentPreview({ contentItems: [item] });
 
