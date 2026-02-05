@@ -46,22 +46,6 @@ try {
     $result = [];
     foreach ($contents as $content) {
         // Self-healing: Check if published content was deleted from course manually
-        if ($content->status === 'published' && !empty($content->cmid)) {
-            // Check if the course module still exists in the database (bypass cache)
-            // Also check deletioninprogress flag (Recycle Bin)
-            $cm_record = $DB->get_record('course_modules', ['id' => $content->cmid], 'id, deletioninprogress');
-            
-            if (!$cm_record || (!empty($cm_record->deletioninprogress) && $cm_record->deletioninprogress)) {
-                // Content was deleted from course page
-                // sync status: delete from our database permanently
-                
-                $DB->delete_records('local_lecturebot_content', ['id' => $content->id]);
-                
-                // Skip processing this item as it's now deleted
-                continue;
-            }
-        }
-
         $generationData = json_decode($content->generationdata, true);
         
         // Get approver information if content is approved
@@ -135,7 +119,7 @@ try {
             'timecreated' => $content->timecreated,
             'timemodified' => $content->timemodified,
             'timepublished' => $content->timepublished,
-            'cmid' => $content->cmid,
+            'timepublished' => $content->timepublished,
             'result' => $generationData['result'] ?? null,
             'generationdata' => $content->generationdata,
             'content_strategy' => $generationData['content_strategy'] ?? 'standard',

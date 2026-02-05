@@ -44,6 +44,7 @@ try {
     $update_record->id = $contentid;
     $update_record->status = 'published';
     $update_record->timepublished = time();
+    $update_record->publishedby = $USER->id;
     $update_record->timemodified = time();
     
     $DB->update_record('local_lecturebot_content', $update_record);

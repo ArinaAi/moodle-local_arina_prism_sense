@@ -234,6 +234,7 @@ try {
         'requested_at' => time(),
         'regen_count' => $regenCount
     ]);
+    $content->createdby = $USER->id;
     $content->timecreated = time();
     $content->timemodified = time();
 

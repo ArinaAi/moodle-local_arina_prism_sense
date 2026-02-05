@@ -39,16 +39,19 @@
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Time generation requested"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Time last modified"/>
         <FIELD NAME="timepublished" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Time published to course"/>
-        <FIELD NAME="cmid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Course module ID when published"/>
         <FIELD NAME="approved" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Whether content is approved (0=no, 1=yes)"/>
         <FIELD NAME="approvedby" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="User ID who approved the content"/>
         <FIELD NAME="timeapproved" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Timestamp when content was approved"/>
         <FIELD NAME="request_id" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Backend request ID for async tracking via Kafka"/>
+        <FIELD NAME="createdby" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="User ID who generated the content"/>
+        <FIELD NAME="publishedby" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="User ID who published the content"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
         <KEY NAME="courseid" TYPE="foreign" FIELDS="courseid" REFTABLE="course" REFFIELDS="id"/>
         <KEY NAME="approvedby" TYPE="foreign" FIELDS="approvedby" REFTABLE="user" REFFIELDS="id"/>
+        <KEY NAME="createdby" TYPE="foreign" FIELDS="createdby" REFTABLE="user" REFFIELDS="id"/>
+        <KEY NAME="publishedby" TYPE="foreign" FIELDS="publishedby" REFTABLE="user" REFFIELDS="id"/>
       </KEYS>
       <INDEXES>
         <INDEX NAME="courseid_status" UNIQUE="false" FIELDS="courseid, status"/>

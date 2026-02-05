@@ -131,7 +131,6 @@ export interface ContentItem {
   timecreated: number;
   timemodified: number;
   timepublished: number | null;
-  cmid: number | null;
   approved: boolean;
   approvedby: number | null;
   timeapproved: number | null;

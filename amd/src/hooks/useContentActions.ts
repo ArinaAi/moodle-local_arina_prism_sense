@@ -71,7 +71,6 @@ export const useContentActions = (
             timecreated: Math.floor(Date.now() / 1000),
             timemodified: Math.floor(Date.now() / 1000),
             timepublished: null,
-            cmid: null,
             result: null,
             approved: false,
             approvedby: null,
@@ -207,7 +206,6 @@ export const useContentActions = (
             timecreated: Math.floor(Date.now() / 1000),
             timemodified: Math.floor(Date.now() / 1000),
             timepublished: null,
-            cmid: null,
             approved: false,
             approvedby: null,
             timeapproved: null,
@@ -253,7 +251,7 @@ export const useContentActions = (
             if (data.status === 'error') {
                 throw new Error(data.error);
             }
-        
+
             // Reload content state silently to replace temp item with real data
             console.log('🔄 Calling loadContentState (silent) after video generation request...');
             await loadContentState(false);
@@ -361,7 +359,6 @@ export const useContentActions = (
                         ...item,
                         status: 'published' as const,
                         timepublished: Math.floor(Date.now() / 1000),
-                        cmid: null,
                     };
                 }
                 return item;
@@ -427,7 +424,6 @@ export const useContentActions = (
                         ...item,
                         status: 'ready' as const,
                         timepublished: null,
-                        cmid: null,
                     };
                 }
                 return item;

@@ -15,6 +15,8 @@
  */
 
 defined('MOODLE_INTERNAL') || die();
+// NOSONAR - This file contains Moodle upgrade functions with necessary patterns
+// Each function follows required Moodle DB upgrade structure
 
 /**
  * Upgrade the local_lecturebot plugin.
@@ -50,6 +52,12 @@ function xmldb_local_lecturebot_upgrade($oldversion)
     if ($oldversion < 2026011400) {
         local_lecturebot_upgrade_2026011400($dbman);
     }
+
+    if ($oldversion < 2026020500) {
+        local_lecturebot_upgrade_2026020500($dbman);
+    }
+
+
 
     return true;
 }
@@ -257,4 +265,39 @@ function local_lecturebot_upgrade_2026011400($dbman)
 
     // Lecturebot savepoint reached.
     upgrade_plugin_savepoint(true, 2026011400, 'local', 'lecturebot');
+}
+
+/**
+ * Upgrade to add createdby and publishedby fields and remove unused cmid field
+ */
+function local_lecturebot_upgrade_2026020500($dbman)
+{
+    $table = new xmldb_table('local_lecturebot_content');
+
+    // Add createdby field.
+    $field = new xmldb_field('createdby', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'request_id');
+    if (!$dbman->field_exists($table, $field)) {
+        $dbman->add_field($table, $field);
+    }
+
+    // Add publishedby field.
+    $field = new xmldb_field('publishedby', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'createdby');
+    if (!$dbman->field_exists($table, $field)) {
+        $dbman->add_field($table, $field);
+    }
+    
+    // Add foreign keys
+    $key = new xmldb_key('createdby', XMLDB_KEY_FOREIGN, ['createdby'], 'user', ['id']);
+    $dbman->add_key($table, $key);
+    
+    $key = new xmldb_key('publishedby', XMLDB_KEY_FOREIGN, ['publishedby'], 'user', ['id']);
+    $dbman->add_key($table, $key);
+
+    // Remove cmid field
+    $field = new xmldb_field('cmid');
+    if ($dbman->field_exists($table, $field)) {
+        $dbman->drop_field($table, $field);
+    }
+
+    upgrade_plugin_savepoint(true, 2026020500, 'local', 'lecturebot');
 }

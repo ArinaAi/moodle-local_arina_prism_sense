@@ -38,7 +38,6 @@ try {
     $update_record->id = $contentid;
     $update_record->status = 'ready';
     $update_record->timepublished = null;
-    $update_record->cmid = null;
     $update_record->timemodified = time();
     
     $DB->update_record('local_lecturebot_content', $update_record);
