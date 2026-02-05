@@ -1,6 +1,5 @@
 import React from 'react';
 import { Box, Typography, Skeleton } from '@mui/material';
-import SmoothProgressBar from './SmoothProgressBar';
 import ThoughtStream from './ThoughtStream';
 import VideoLoadingSkeleton from './VideoLoadingSkeleton';
 
@@ -37,7 +36,6 @@ const GeneratingState: React.FC<GeneratingStateProps> = ({
                 overflow: 'auto',
             }}>
                 <VideoLoadingSkeleton />
-                <SmoothProgressBar processingStatus={processingStatus} />
                 <ThoughtStream processingStatus={processingStatus} isVideo={true} />
             </Box>
         );
@@ -164,9 +162,6 @@ const GeneratingState: React.FC<GeneratingStateProps> = ({
                         </Box>
                     ))}
                 </Box>
-
-                {/* Smooth Progress Bar */}
-                <SmoothProgressBar processingStatus={processingStatus} />
             </Box>
 
             {/* Thought Stream - Centered */}
