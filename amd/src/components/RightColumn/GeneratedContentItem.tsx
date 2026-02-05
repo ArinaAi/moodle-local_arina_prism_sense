@@ -15,12 +15,12 @@ interface GeneratedContentItemProps {
 }
 
 const TOOLTIP_CONFIG = {
-  arrow: true,
-  placement: "top" as const,
-  enterDelay: 800, // Increased from 500
-  enterTouchDelay: 800, // Increased from 500
-  leaveTouchDelay: 2000, // Keep or adjust
-  PopperProps: { sx: { zIndex: 100006 } }
+    arrow: true,
+    placement: "top" as const,
+    enterDelay: 800, // Increased from 500
+    enterTouchDelay: 800, // Increased from 500
+    leaveTouchDelay: 2000, // Keep or adjust
+    PopperProps: { sx: { zIndex: 100006 } }
 };
 
 const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPublish, onUnpublish, onMenuOpen, onPreview }) => {
@@ -159,7 +159,7 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
     return (
         <ListItem
             sx={{
-                border: isPublished 
+                border: isPublished
                     ? `1px solid ${theme.palette.success.light}`
                     : `1px solid ${theme.palette.success.light}`,
                 borderRadius: '20px',
@@ -186,7 +186,7 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                 },
                 '&:hover': {
                     transform: 'translateX(4px)',
-                    boxShadow: isPublished 
+                    boxShadow: isPublished
                         ? '0 6px 16px rgba(40, 167, 69, 0.25)'
                         : '0 6px 16px rgba(40, 167, 69, 0.2)',
                     borderColor: theme.palette.success.main,
@@ -209,17 +209,17 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                 <ContentTypeIcon contentType={item.contenttype} color="#28a745" />
             </Box>
 
-            <Box sx={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 'clamp(8px, 1.5vw, 12px)'}}>
+            <Box sx={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 'clamp(8px, 1.5vw, 12px)' }}>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                     <ContentItemTitle title={item.sectionname} />
-                    <Box sx={{ 
-                        display: 'flex', 
-                        gap: 'clamp(4px, 1vw, 8px)', 
-                        alignItems: 'center', 
+                    <Box sx={{
+                        display: 'flex',
+                        gap: 'clamp(4px, 1vw, 8px)',
+                        alignItems: 'center',
                         flexWrap: 'wrap',
                         transition: 'all 0.3s ease',
                     }}>
-                        <Box sx={{ 
+                        <Box sx={{
                             transition: 'all 0.3s ease',
                             animation: isPublished ? 'fadeIn 0.5s ease' : 'none',
                             '@keyframes fadeIn': {
@@ -230,12 +230,12 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                             <StatusBadge status={isPublished ? 'published' : (item.approved ? 'approved' : 'ready')} size="small" />
                         </Box>
                         <SlideCountChip item={item} />
-                        <Typography variant="caption" sx={{ 
-                            color: 'text.secondary', 
+                        <Typography variant="caption" sx={{
+                            color: 'text.secondary',
                             fontSize: 'clamp(0.7rem, 1.25vw, 0.75rem)',
                             transition: 'color 0.3s ease',
                         }}>
-                            {isPublished 
+                            {isPublished
                                 ? (item.timepublished ? formatDate(item.timepublished) : 'Published')
                                 : (item.approved ? 'Ready to publish' : 'Pending approval')
                             }
@@ -243,34 +243,28 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                     </Box>
                 </Box>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'clamp(4px, 1vw, 8px)', flexShrink: 0, alignItems: 'center' }}>
-                    {item.approved && (
-                        <Tooltip 
-                            title={isPublished ? "Unpublish content" : "Publish to course page"} 
+                    {item.approved && !isPublished && (
+                        <Tooltip
+                            title="Publish to course page"
                             {...TOOLTIP_CONFIG}
                         >
                             <IconButton
                                 size="small"
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    if (isPublished) {
-                                        onUnpublish(`content-${item.id}`);
-                                    } else {
-                                        onPublish(`content-${item.id}`);
-                                    }
+                                    onPublish(`content-${item.id}`);
                                 }}
                                 sx={{
                                     width: 'clamp(20px, 3vw, 24px)',
                                     height: 'clamp(20px, 3vw, 24px)',
-                                    backgroundColor: isPublished ? 'error.main' : 'success.main',
+                                    backgroundColor: 'success.main',
                                     color: 'white',
                                     transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                                     transform: 'scale(1)',
                                     '&:hover': {
-                                        backgroundColor: isPublished ? 'error.dark' : 'success.dark',
+                                        backgroundColor: 'success.dark',
                                         transform: 'scale(1.1)',
-                                        boxShadow: isPublished 
-                                            ? '0 4px 12px rgba(220, 53, 69, 0.4)'
-                                            : '0 4px 12px rgba(40, 167, 69, 0.4)',
+                                        boxShadow: '0 4px 12px rgba(40, 167, 69, 0.4)',
                                     },
                                     '&:active': {
                                         transform: 'scale(0.95)',
@@ -283,25 +277,18 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                        transform: isPublished ? 'rotate(90deg)' : 'rotate(0deg)',
+                                        transform: 'rotate(0deg)',
                                     }}
                                 >
-                                    {isPublished ? (
-                                        <Close fontSize="small" sx={{ 
-                                            fontSize: 'clamp(14px, 2vw, 16px)',
-                                            transition: 'opacity 0.2s ease',
-                                        }} />
-                                    ) : (
-                                        <Add fontSize="small" sx={{ 
-                                            fontSize: 'clamp(14px, 2vw, 16px)',
-                                            transition: 'opacity 0.2s ease',
-                                        }} />
-                                    )}
+                                    <Add fontSize="small" sx={{
+                                        fontSize: 'clamp(14px, 2vw, 16px)',
+                                        transition: 'opacity 0.2s ease',
+                                    }} />
                                 </Box>
                             </IconButton>
                         </Tooltip>
                     )}
-                    
+
                     <Tooltip title="More options" {...TOOLTIP_CONFIG}>
                         <IconButton
                             size="small"

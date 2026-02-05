@@ -14,7 +14,7 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import { Delete, InfoOutlined } from '@mui/icons-material';
+import { Delete, InfoOutlined, UnpublishedOutlined } from '@mui/icons-material';
 
 import type { ContentItem } from '../../types/app';
 import GeneratedContentList from './GeneratedContentList';
@@ -127,6 +127,18 @@ const RightColumn: React.FC<RightColumnProps> = ({
     handleMenuClose();
   };
 
+  const handleUnpublishClick = () => {
+    if (menuAnchor.contentId) {
+      setUnpublishConfirmation({ open: true, contentId: `content-${menuAnchor.contentId}` });
+    }
+    handleMenuClose();
+  };
+
+
+  const menuSelectedItem = menuAnchor.contentId
+    ? state.contentItems.find(item => item.id === menuAnchor.contentId)
+    : null;
+
 
   return (
     <>
@@ -198,6 +210,26 @@ const RightColumn: React.FC<RightColumnProps> = ({
             View Details
           </Typography>
         </MenuItem>
+        {menuSelectedItem?.status === 'published' && (
+          <MenuItem
+            onClick={handleUnpublishClick}
+            sx={{
+              color: 'warning.main',
+              gap: 1.5,
+              py: styles.menuItemPy,
+              px: 2,
+              minHeight: styles.menuItemMinHeight,
+              '&:hover': {
+                backgroundColor: 'rgba(237, 108, 2, 0.08)',
+              },
+            }}
+          >
+            <UnpublishedOutlined fontSize="small" />
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              Unpublish
+            </Typography>
+          </MenuItem>
+        )}
         <MenuItem
           onClick={handleDeleteClick}
           sx={{
