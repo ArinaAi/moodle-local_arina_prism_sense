@@ -97,18 +97,33 @@ try {
     
     // Check if source_content_id is provided (to use specific slide deck's text)
     $sourceContentId = isset($input['source_content_id']) ? (int)$input['source_content_id'] : 0;
-    $curriculumText = '';
+    
+    // Check for regeneration feedback
+    $parentContentId = isset($input['parent_content_id']) ? (int)$input['parent_content_id'] : 0;
+    $feedbackId = isset($input['feedback_id']) ? (int)$input['feedback_id'] : 0;
+    $feedbackData = null;
 
-    if ($sourceContentId > 0) {
-        $sourceContent = $DB->get_record('local_lecturebot_content', ['id' => $sourceContentId]);
+    if ($feedbackId > 0) {
+        $feedbackData = $DB->get_record('local_lecturebot_feedback', ['id' => $feedbackId]);
+        if ($feedbackData && $parentContentId === 0) {
+            $parentContentId = $feedbackData->contentid;
+        }
+    }
+
+    $curriculumText = '';
+    $sourceRegenCount = null;
+
+    if ($sourceContentId > 0 || $parentContentId > 0) {
+        $idToUse = $sourceContentId > 0 ? $sourceContentId : $parentContentId;
+        $sourceContent = $DB->get_record('local_lecturebot_content', ['id' => $idToUse]);
         if ($sourceContent && !empty($sourceContent->generationdata)) {
             $genData = json_decode($sourceContent->generationdata, true);
             if (isset($genData['curriculum_text'])) {
                 $curriculumText = $genData['curriculum_text'];
-                error_log("LectureBot: Using curriculum text from source content ID: $sourceContentId");
+                error_log("LectureBot: Using curriculum text from content ID: $idToUse");
             }
             if (isset($genData['regen_count'])) {
-                $sourceRegenCount = $genData['regen_count']; // Capture regen_count from source
+                $sourceRegenCount = $genData['regen_count'];
             }
         }
     }
@@ -129,7 +144,7 @@ try {
                         $curriculumText = trim($curriculumText);
                         break;
                     }
-                }else   if ($cm->modname == 'label') {
+                } else if ($cm->modname == 'label') {
                     $label = $DB->get_record('label', ['id' => $cm->instance]);
                     if ($label && !empty($label->intro)) {
                         $curriculumText = strip_tags($label->intro);
@@ -222,6 +237,24 @@ try {
     $content->contenttype = $contentType;
     $content->status = 'generating';
     $content->title = ($contentType === 'video' ? 'Video: ' : 'Slides: ') . $sectionName;
+    $content->parent_content_id = $parentContentId > 0 ? $parentContentId : null;
+    $content->feedback_id = $feedbackId > 0 ? $feedbackId : null;
+    
+    // Prepare feedback for AI backend
+    $feedbackDetails = null;
+    if ($feedbackData) {
+        $feedbackDetails = [
+            'type' => $feedbackData->feedback_type,
+            'selected_categories' => json_decode($feedbackData->selected_categories),
+            'topics_needing_depth' => json_decode($feedbackData->topics_needing_depth),
+            'topics_overexplained' => json_decode($feedbackData->topics_overexplained),
+            'extra_topics' => json_decode($feedbackData->extra_topics),
+            'missing_subtopics' => json_decode($feedbackData->missing_subtopics),
+            'reordered_flow' => json_decode($feedbackData->reordered_flow),
+            'comments' => $feedbackData->comments
+        ];
+    }
+
     $content->generationdata = json_encode([
         'curriculum_text' => $curriculumText,
         'content_strategy' => $contentStrategy,
@@ -230,9 +263,10 @@ try {
         'voice_gender' => $voiceGender,
         'avatar_strategy' => $avatarStrategy,
         'avtar_video_needed' => $avatarVideoNeeded,
-        'content_type' => $contentType, // Save explicitly mapping
+        'content_type' => $contentType,
         'requested_at' => time(),
-        'regen_count' => $regenCount
+        'regen_count' => $regenCount,
+        'feedback' => $feedbackDetails
     ]);
     $content->createdby = $USER->id;
     $content->timecreated = time();
@@ -244,47 +278,36 @@ try {
     // NEW: Queue Adhoc Task
     // ==========================================
     // Create Adhoc Task (Real or Mock based on config)
-    // Create Adhoc Task (Real or Mock based on config)
+    $task_data = [
+        'content_id' => $contentId,
+        'curriculum_text' => $curriculumText,
+        'tenant_id' => $tenantId,
+        'course_id' => $courseid,
+        'section_id' => $sectionid,
+        'regen_count' => $regenCount,
+        'video_length' => $videoLength,
+        'content_strategy' => $contentStrategy,
+        'language' => $language,
+        'voice_gender' => $voiceGender,
+        'avatar_strategy' => $avatarStrategy,
+        'avtar_video_needed' => $avatarVideoNeeded,
+        'content_type' => $contentType,
+        'feedback' => $feedbackDetails,
+        'parent_content_id' => $parentContentId
+    ];
+
     if (defined('DEVELOPER_MODE') && DEVELOPER_MODE) {
         $task = new \local_lecturebot\task\generate_content_task_mock();
-        $task->set_custom_data([
-            'content_id' => $contentId,
-            'curriculum_text' => $curriculumText,
-            'tenant_id' => $tenantId,
-            'course_id' => $courseid,
-            'section_id' => $sectionid,
-            'regen_count' => $regenCount,
-            'video_length' => $videoLength,
-            'content_strategy' => $contentStrategy,
-            'language' => $language,
-            'voice_gender' => $voiceGender,
-            'avatar_strategy' => $avatarStrategy,
-            'avtar_video_needed' => $avatarVideoNeeded,
-            'content_type' => $contentType // Pass to task
-        ]);
+        $task->set_custom_data($task_data);
         
         // DEVELOPER MODE: EXECUTE SYNCHRONOUSLY
         // Bypassing Adhoc Queue to avoid Cron dependencies in local dev
-        error_log("LectureBot: [DEV] Executing mock task synchronously");
+        error_log("LectureBot: [DEV] Executing mock task synchronously for content $contentId");
         $task->execute();
         
     } else {
         $task = new \local_lecturebot\task\generate_content_task();
-        $task->set_custom_data([
-            'content_id' => $contentId,
-            'curriculum_text' => $curriculumText,
-            'tenant_id' => $tenantId,
-            'course_id' => $courseid,
-            'section_id' => $sectionid,
-            'regen_count' => $regenCount,
-            'video_length' => $videoLength,
-            'content_strategy' => $contentStrategy,
-            'language' => $language,
-            'voice_gender' => $voiceGender,
-            'avatar_strategy' => $avatarStrategy,
-            'avtar_video_needed' => $avatarVideoNeeded,
-            'content_type' => $contentType // Pass to task
-        ]);
+        $task->set_custom_data($task_data);
         
         // PRODUCTION: Queue the task
         \core\task\manager::queue_adhoc_task($task);
@@ -309,7 +332,3 @@ try {
         'error' => 'Server error: ' . $e->getMessage()
     ]);
 }
-
-
-
-

@@ -45,7 +45,9 @@ export const useContentActions = (
         curriculum: CurriculumStructure,
         contentStrategy: 'standard' | 'example_driven',
         sectionId: number,
-        videoLength: string
+        videoLength: string,
+        parentContentId?: number,
+        feedbackId?: number
     ) => {
         if (!state.moodleContext) {
             showNotification('Moodle context not available', 'error');
@@ -57,7 +59,10 @@ export const useContentActions = (
         const sectionName = section?.name || `Section ${section?.section || ''} `;
 
         // Show started notification immediately for UX
-        showNotification(`Generation started for "${sectionName}"...`, 'info');
+        const notificationMsg = parentContentId
+            ? `Regenerating "${sectionName}" based on feedback...`
+            : `Generation started for "${sectionName}"...`;
+        showNotification(notificationMsg, 'info');
 
         // Create a temporary content item immediately for instant UI feedback
         const tempContentItem: ContentItem = {
@@ -66,7 +71,7 @@ export const useContentActions = (
             sectionname: sectionName,
             contenttype: 'slide-deck',
             status: 'generating' as const,
-            title: `Slides: ${sectionName} `,
+            title: parentContentId ? `Regenerating: ${sectionName}` : `Slides: ${sectionName} `,
             errormessage: null,
             timecreated: Math.floor(Date.now() / 1000),
             timemodified: Math.floor(Date.now() / 1000),
@@ -102,6 +107,8 @@ export const useContentActions = (
                 section_id: sectionId,
                 content_strategy: contentStrategy,
                 video_length: videoLength,
+                parent_content_id: parentContentId,
+                feedback_id: feedbackId
             };
 
             const response = await fetch(proxyUrl, {

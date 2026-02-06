@@ -228,8 +228,11 @@ export const App: React.FC = () => {
                 // Save structured feedback to database
                 if (state.currentContentId && state.moodleContext) {
                   try {
+                    // Find the current content item to get metadata for regeneration
+                    const currentItem = state.contentItems.find(item => item.id === state.currentContentId);
+
                     const response = await fetch(
-                      `${state.moodleContext.wwwroot}/local/lecturebot/api/save_content_feedback.php`,
+                      `${state.moodleContext.wwwroot}/local/lecturebot/api/save_content_feedback.php?sesskey=${state.moodleContext.sesskey}`,
                       {
                         method: 'POST',
                         headers: {
@@ -249,14 +252,43 @@ export const App: React.FC = () => {
                       }
                     );
                     const result = await response.json();
-                    if (!result.success) {
+
+                    if (result.success && result.feedback_id && currentItem) {
+                      // Trigger regeneration - COMMENTED OUT AS BACKEND NOT READY
+                      /*
+                      const generationData = currentItem.generationdata ? JSON.parse(currentItem.generationdata) : {};
+
+                      handleGenerateSlides(
+                        {} as any, // Curriculum fetched by backend
+                        generationData.content_strategy || 'standard',
+                        currentItem.sectionid,
+                        generationData.video_length || 'standard',
+                        state.currentContentId,
+                        result.feedback_id
+                      );
+                      */
+                      showNotification('Feedback saved successfully.', 'success');
+                    } else if (!result.success) {
                       console.error('Failed to save feedback:', result.error);
+                      showNotification('Failed to save feedback.', 'error');
+                      /*
+                      // Fallback: degenerate without feedback linkage if save fails
+                      if (currentItem) {
+                        handleGenerateSlides(
+                          {} as any,
+                          'standard',
+                          currentItem.sectionid,
+                          'standard',
+                          state.currentContentId
+                        );
+                      }
+                      */
                     }
                   } catch (error) {
-                    console.error('Error saving feedback:', error);
+                    console.error('Error in feedback submission flow:', error);
+                    showNotification('Error processing feedback.', 'error');
                   }
                 }
-                showNotification('Feedback submitted. Regenerating slides...', 'info');
                 handleCloseFeedbackModal();
               }}
             />

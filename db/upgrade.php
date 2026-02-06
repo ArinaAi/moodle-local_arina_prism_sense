@@ -57,7 +57,9 @@ function xmldb_local_lecturebot_upgrade($oldversion)
         local_lecturebot_upgrade_2026020500($dbman);
     }
 
-
+    if ($oldversion < 2026020600) {
+        local_lecturebot_upgrade_2026020600($dbman);
+    }
 
     return true;
 }
@@ -300,4 +302,64 @@ function local_lecturebot_upgrade_2026020500($dbman)
     }
 
     upgrade_plugin_savepoint(true, 2026020500, 'local', 'lecturebot');
+}
+
+/**
+ * Upgrade to add feedback table and content linkage
+ */
+function local_lecturebot_upgrade_2026020600($dbman)
+{
+    global $DB;
+    $table = new xmldb_table('local_lecturebot_content');
+
+    // Add parent_content_id field.
+    $field = new xmldb_field('parent_content_id', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'publishedby');
+    if (!$dbman->field_exists($table, $field)) {
+        $dbman->add_field($table, $field);
+    }
+
+    // Add feedback_id field.
+    $field = new xmldb_field('feedback_id', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'parent_content_id');
+    if (!$dbman->field_exists($table, $field)) {
+        $dbman->add_field($table, $field);
+    }
+
+    // Add foreign key for parent_content_id.
+    $key = new xmldb_key(
+        'parent_content_id',
+        XMLDB_KEY_FOREIGN,
+        ['parent_content_id'],
+        'local_lecturebot_content',
+        ['id']
+        );
+    $dbman->add_key($table, $key);
+
+    // Create local_lecturebot_feedback table.
+    $table_fb = new xmldb_table('local_lecturebot_feedback');
+
+    $table_fb->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+    $table_fb->add_field('contentid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+    $table_fb->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+    $table_fb->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+    $table_fb->add_field('feedback_type', XMLDB_TYPE_CHAR, '50', null, XMLDB_NOTNULL, null, 'structured');
+    $table_fb->add_field('selected_categories', XMLDB_TYPE_TEXT, null, null, null, null, null);
+    $table_fb->add_field('topics_needing_depth', XMLDB_TYPE_TEXT, null, null, null, null, null);
+    $table_fb->add_field('topics_overexplained', XMLDB_TYPE_TEXT, null, null, null, null, null);
+    $table_fb->add_field('extra_topics', XMLDB_TYPE_TEXT, null, null, null, null, null);
+    $table_fb->add_field('missing_subtopics', XMLDB_TYPE_TEXT, null, null, null, null, null);
+    $table_fb->add_field('reordered_flow', XMLDB_TYPE_TEXT, null, null, null, null, null);
+    $table_fb->add_field('rating', XMLDB_TYPE_INTEGER, '1', null, null, null, null);
+    $table_fb->add_field('comments', XMLDB_TYPE_TEXT, null, null, null, null, null);
+    $table_fb->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+
+    $table_fb->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+    $table_fb->add_key('contentid', XMLDB_KEY_FOREIGN, ['contentid'], 'local_lecturebot_content', ['id']);
+    $table_fb->add_key('courseid', XMLDB_KEY_FOREIGN, ['courseid'], 'course', ['id']);
+    $table_fb->add_key('userid', XMLDB_KEY_FOREIGN, ['userid'], 'user', ['id']);
+
+    if (!$dbman->table_exists($table_fb)) {
+        $dbman->create_table($table_fb);
+    }
+
+    upgrade_plugin_savepoint(true, 2026020600, 'local', 'lecturebot');
 }
