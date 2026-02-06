@@ -19,10 +19,13 @@ import {
   DialogContentText,
   DialogActions,
   TextField,
+  Checkbox,
+  FormControlLabel,
+  Tooltip,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import { Close, Error as ErrorIcon, Add, Check, Delete } from '@mui/icons-material';
+import { Close, Error as ErrorIcon, Add, Check, Delete, InfoOutlined } from '@mui/icons-material';
 import { FileText } from 'lucide-react';
 import { getModalBoxStyles, getModalLayoutStyles } from '../../utils/modalStyles';
 import { formatFileSize } from '../../utils/helpers';
@@ -56,6 +59,7 @@ interface BoxState {
   error?: string;
   title: string;
   author: string;
+  isScanned: boolean;
 }
 
 // Helper function to get border color based on box type
@@ -118,9 +122,9 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
   const [sections, setSections] = useState<SectionOption[]>([]);
   const [selectedSection, setSelectedSection] = useState<number | null>(null);
   const [boxes, setBoxes] = useState<[BoxState, BoxState, BoxState]>([
-    { type: 'empty', title: '', author: '' },
-    { type: 'empty', title: '', author: '' },
-    { type: 'empty', title: '', author: '' },
+    { type: 'empty', title: '', author: '', isScanned: false },
+    { type: 'empty', title: '', author: '', isScanned: false },
+    { type: 'empty', title: '', author: '', isScanned: false },
   ]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -212,9 +216,9 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
   const loadSectionSources = (sectionId: number) => {
     const sources = sectionSources[sectionId] || [];
     const newBoxes: [BoxState, BoxState, BoxState] = [
-      { type: 'empty', title: '', author: '' },
-      { type: 'empty', title: '', author: '' },
-      { type: 'empty', title: '', author: '' },
+      { type: 'empty', title: '', author: '', isScanned: false },
+      { type: 'empty', title: '', author: '', isScanned: false },
+      { type: 'empty', title: '', author: '', isScanned: false },
     ];
 
     sources.forEach((source, index) => {
@@ -227,6 +231,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
           existingSource: source,
           title: fallbackTitle,
           author: source.author || '',
+          isScanned: false,
         };
       }
     });
@@ -262,6 +267,12 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
       newErrors[boxIndex] = false;
       setValidationErrors(newErrors);
     }
+  };
+
+  const handleScannedChange = (boxIndex: number, checked: boolean) => {
+    const newBoxes = [...boxes] as [BoxState, BoxState, BoxState];
+    newBoxes[boxIndex] = { ...boxes[boxIndex], isScanned: checked };
+    setBoxes(newBoxes);
   };
 
 
@@ -313,6 +324,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
       file: pdfFiles[0],
       title: '',
       author: '',
+      isScanned: false,
     };
     setBoxes(newBoxes);
 
@@ -351,6 +363,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
       file: pdfFiles[0],
       title: '',
       author: '',
+      isScanned: false,
     };
     setBoxes(newBoxes);
   };
@@ -367,6 +380,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
             error: failure.error,
             title: uploadedItem.box.title,
             author: uploadedItem.box.author,
+            isScanned: uploadedItem.box.isScanned,
           };
         }
       });
@@ -376,7 +390,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
 
   const reloadSourcesAfterUpload = async () => {
     await loadSections();
-    if (selectedSection === null) {return};
+    if (selectedSection === null) { return };
 
     const sourcesResponse = await fetch(
       `${moodleContext.wwwroot}/local/lecturebot/api/get_sources.php?courseid=${moodleContext.courseid}&sectionid=${selectedSection}`,
@@ -403,13 +417,15 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
 
     try {
       const formData = new FormData();
-      
+
       // Add all files and metadata as arrays
       filesToUpload.forEach(({ box }) => {
         if (box.file) {
           formData.append('pdf[]', box.file);
           formData.append('title[]', box.title);
           formData.append('author[]', box.author);
+          // Uncomment when backend API is ready to accept is_scanned parameter
+          // formData.append('is_scanned[]', box.isScanned ? '1' : '0');
         }
       });
 
@@ -448,6 +464,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
             error: (error as Error).message,
             title: box.title,
             author: box.author,
+            isScanned: box.isScanned,
           };
         });
         return newBoxes;
@@ -489,7 +506,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
 
       // Clear the box
       const newBoxes = [...boxes] as [BoxState, BoxState, BoxState];
-      newBoxes[boxIndex] = { type: 'empty', title: '', author: '' };
+      newBoxes[boxIndex] = { type: 'empty', title: '', author: '', isScanned: false };
       setBoxes(newBoxes);
 
       // Update section sources
@@ -508,7 +525,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
 
   const removeErrorBox = (boxIndex: number) => {
     const newBoxes = [...boxes] as [BoxState, BoxState, BoxState];
-    newBoxes[boxIndex] = { type: 'empty', title: '', author: '' };
+    newBoxes[boxIndex] = { type: 'empty', title: '', author: '', isScanned: false };
     setBoxes(newBoxes);
   };
 
@@ -571,7 +588,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
 
     try {
       const result = await uploadFiles(boxesToUpload);
-      
+
       // Check if any uploads failed
       if (result && result.failures && result.failures.length > 0) {
         // Don't close - user needs to see errors and retry
@@ -817,19 +834,90 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
                             )}
 
                             {isPending && (
-                              <Button
-                                size="small"
-                                color="error"
-                                sx={{ mt: 1, minWidth: 'auto' }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const newBoxes = [...boxes] as [BoxState, BoxState, BoxState];
-                                  newBoxes[boxIndex] = { type: 'empty', title: '', author: '' };
-                                  setBoxes(newBoxes);
-                                }}
-                              >
-                                Remove
-                              </Button>
+                              <>
+                                <Button
+                                  size="small"
+                                  color="error"
+                                  sx={{ mt: 1, minWidth: 'auto' }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const newBoxes = [...boxes] as [BoxState, BoxState, BoxState];
+                                    newBoxes[boxIndex] = { type: 'empty', title: '', author: '', isScanned: false };
+                                    setBoxes(newBoxes);
+                                  }}
+                                >
+                                  Remove
+                                </Button>
+
+                                {/* Scanned PDF Indicator */}
+                                <Box
+                                  sx={{
+                                    mt: 1.5,
+                                  }}
+                                >
+                                  <FormControlLabel
+                                    control={
+                                      <Checkbox
+                                        checked={box.isScanned}
+                                        onChange={(e) => handleScannedChange(boxIndex, e.target.checked)}
+                                        disabled={isUploading}
+                                        size="small"
+                                        sx={{
+                                          padding: '4px',
+                                          color: 'rgba(0, 0, 0, 0.4)',
+                                          '&.Mui-checked': {
+                                            color: '#0D5CA2',
+                                          },
+                                          '&.Mui-disabled': {
+                                            color: 'rgba(0, 0, 0, 0.26)',
+                                          },
+                                        }}
+                                      />
+                                    }
+                                    label={
+                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                        <Typography
+                                          variant="body2"
+                                          sx={{
+                                            fontSize: '0.8125rem',
+                                            color: isUploading ? 'text.disabled' : 'text.secondary',
+                                          }}
+                                        >
+                                          Scanned document
+                                        </Typography>
+                                        <Tooltip
+                                          title="Check this if the PDF is a scanned/photographed document. Digital PDFs have selectable text."
+                                          arrow
+                                          placement="top"
+                                          PopperProps={{
+                                            sx: {
+                                              zIndex: 100002,
+                                            },
+                                          }}
+                                        >
+                                          <InfoOutlined
+                                            sx={{
+                                              fontSize: 14,
+                                              color: 'text.disabled',
+                                              cursor: 'help',
+                                              '&:hover': !isUploading ? {
+                                                color: 'text.secondary',
+                                              } : undefined,
+                                            }}
+                                          />
+                                        </Tooltip>
+                                      </Box>
+                                    }
+                                    sx={{
+                                      margin: 0,
+                                      userSelect: 'none',
+                                      '& .MuiFormControlLabel-label': {
+                                        marginTop: '1px',
+                                      },
+                                    }}
+                                  />
+                                </Box>
+                              </>
                             )}
                           </>
                         )}
@@ -915,9 +1003,9 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
                                 <ErrorIcon sx={{ fontSize: 10, color: '#ffffff' }} />
                               </Box>
                             </Box>
-                            <Typography 
-                              variant="body2" 
-                              sx={{ 
+                            <Typography
+                              variant="body2"
+                              sx={{
                                 fontWeight: 600,
                                 mb: 0.5,
                                 color: '#1a1a1a',
@@ -943,7 +1031,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
                                   newBoxes[boxIndex] = { ...box, type: 'uploading' };
                                   return newBoxes;
                                 });
-                                
+
                                 // Retry upload
                                 try {
                                   await uploadFiles([{ box, index: boxIndex }]);

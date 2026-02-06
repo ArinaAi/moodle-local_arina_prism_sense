@@ -65,6 +65,8 @@ try {
         // Get titles and authors as arrays
         $titles = isset($_POST['title']) && is_array($_POST['title']) ? $_POST['title'] : [];
         $authors = isset($_POST['author']) && is_array($_POST['author']) ? $_POST['author'] : [];
+        // Uncomment when OCR processing is implemented
+        // $isScannedArray = isset($_POST['is_scanned']) && is_array($_POST['is_scanned']) ? $_POST['is_scanned'] : [];
     } else {
         // Single file upload (backward compatibility)
         if ($_FILES['pdf']['error'] === UPLOAD_ERR_OK) {

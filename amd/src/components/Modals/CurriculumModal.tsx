@@ -418,6 +418,11 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
             title="Determines the target duration for the generated video lecture content"
             arrow
             placement="top"
+            PopperProps={{
+              sx: {
+                zIndex: 100002,
+              },
+            }}
           >
             <FormLabel
               component="legend"
@@ -522,6 +527,11 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
             title="Choose how the AI generates content: theory-focused or example-driven with practical applications"
             arrow
             placement="top"
+            PopperProps={{
+              sx: {
+                zIndex: 100002,
+              },
+            }}
           >
             <FormLabel
               component="legend"
