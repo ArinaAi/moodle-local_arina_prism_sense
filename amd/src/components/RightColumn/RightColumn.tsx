@@ -230,24 +230,26 @@ const RightColumn: React.FC<RightColumnProps> = ({
             </Typography>
           </MenuItem>
         )}
-        <MenuItem
-          onClick={handleDeleteClick}
-          sx={{
-            color: 'error.main',
-            gap: 1.5,
-            py: styles.menuItemPy,
-            px: 2,
-            minHeight: styles.menuItemMinHeight,
-            '&:hover': {
-              backgroundColor: 'rgba(220, 53, 69, 0.08)',
-            },
-          }}
-        >
-          <Delete fontSize="small" />
-          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-            Delete
-          </Typography>
-        </MenuItem>
+        {menuSelectedItem?.status !== 'published' && (
+          <MenuItem
+            onClick={handleDeleteClick}
+            sx={{
+              color: 'error.main',
+              gap: 1.5,
+              py: styles.menuItemPy,
+              px: 2,
+              minHeight: styles.menuItemMinHeight,
+              '&:hover': {
+                backgroundColor: 'rgba(220, 53, 69, 0.08)',
+              },
+            }}
+          >
+            <Delete fontSize="small" />
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              Delete
+            </Typography>
+          </MenuItem>
+        )}
       </Menu>
 
       {/* Clear All Confirmation Dialog */}
