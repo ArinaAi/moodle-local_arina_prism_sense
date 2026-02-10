@@ -25,7 +25,7 @@ if (defined('DEVELOPER_MODE') && DEVELOPER_MODE) {
 ob_start();
 
 $contentid = required_param('contentid', PARAM_INT);
-require_login();
+require_login(null, false);
 
 // Clear any output that may have occurred
 ob_clean();
@@ -36,9 +36,13 @@ try {
     // Get the content record
     $content = $DB->get_record('local_lecturebot_content', ['id' => $contentid], '*', MUST_EXIST);
 
-    // Verify user has access to this course
-    $context = context_course::instance($content->courseid);
-    require_capability('moodle/course:view', $context);
+// Verify user has access to this course
+    $course = get_course($content->courseid);
+    
+    // Use can_access_course for robust permission check (handles role switching better)
+    if (!can_access_course($course)) {
+        throw new moodle_exception('noaccess', 'moodle', '', null, 'You do not have permission to view this content.');
+    }
     
     // Release session lock to prevent blocking during long image extraction/upload
     \core\session\manager::write_close();
