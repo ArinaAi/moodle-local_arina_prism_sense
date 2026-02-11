@@ -86,9 +86,9 @@ stages:
                       VM_IP="$(LMS_SERVER_IP)"
                     else
                       echo "Deployment Type: Kubernetes"
-                      VM_IP="$(K8S_CLUSTER_IP)"
+                      VM_IP="$(DO_K8S_CLUSTER_IP)"
                     fi
-                    USERNAME="$(USERNAME)"
+                    USERNAME=root
                     BUILD_NO="$(BUILD_NO)"
 
                     # Validate required variables
@@ -165,7 +165,7 @@ stages:
 
                         # Clone the Azure DevOps repository
                         echo "Cloning repository: ${REPO_NAME}"
-                        git clone "https://${USER_NAME}:${AZURE_PAT}@dev.azure.com/Arina-AI/NextGenChatBot/_git/arina-ai-devops"
+                        git clone --branch=k8s-grafana-implementation "https://${USER_NAME}:${AZURE_PAT}@dev.azure.com/Arina-AI/NextGenChatBot/_git/arina-ai-devops"
 
                         cd arina-ai-devops/kubernetes/prism
                         sed -i "s|arinactrregistry.azurecr.io/arina-moodle:amd-[0-9]*|arinactrregistry.azurecr.io/arina-moodle:amd-$BUILD_NO|g" values.yaml
