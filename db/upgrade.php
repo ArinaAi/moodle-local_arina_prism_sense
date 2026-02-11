@@ -61,6 +61,10 @@ function xmldb_local_lecturebot_upgrade($oldversion)
         local_lecturebot_upgrade_2026020600($dbman);
     }
 
+    if ($oldversion < 2026021100) {
+        local_lecturebot_upgrade_2026021100($dbman);
+    }
+
     return true;
 }
 
@@ -362,4 +366,20 @@ function local_lecturebot_upgrade_2026020600($dbman)
     }
 
     upgrade_plugin_savepoint(true, 2026020600, 'local', 'lecturebot');
+}
+
+/**
+ * Upgrade to add is_scanned field to track scanned vs digital PDFs
+ */
+function local_lecturebot_upgrade_2026021100($dbman)
+{
+    $table = new xmldb_table('local_lecturebot_sources');
+
+    // Add is_scanned field.
+    $field = new xmldb_field('is_scanned', XMLDB_TYPE_INTEGER, '1', null, null, null, null, 'author');
+    if (!$dbman->field_exists($table, $field)) {
+        $dbman->add_field($table, $field);
+    }
+
+    upgrade_plugin_savepoint(true, 2026021100, 'local', 'lecturebot');
 }

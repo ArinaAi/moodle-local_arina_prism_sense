@@ -50,6 +50,7 @@ interface ExistingSource {
   timecreated: number;
   title?: string;
   author?: string;
+  is_scanned?: number | null;
 }
 
 interface BoxState {
@@ -424,8 +425,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
           formData.append('pdf[]', box.file);
           formData.append('title[]', box.title);
           formData.append('author[]', box.author);
-          // Uncomment when backend API is ready to accept is_scanned parameter
-          // formData.append('is_scanned[]', box.isScanned ? '1' : '0');
+          formData.append('is_photograph[]', box.isScanned ? 'true' : 'false');
         }
       });
 
@@ -958,9 +958,37 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
                             >
                               {truncateFilename(box.existingSource.filename)}
                             </Typography>
-                            <Typography variant="caption" sx={{ color: '#6c757d' }}>
+                            <Typography variant="caption" sx={{ color: '#6c757d', mb: 1 }}>
                               {formatFileSize(box.existingSource.filesize)}
                             </Typography>
+
+                            {/* Scanned Badge - Centered Below */}
+                            {box.existingSource.is_scanned === 1 && (
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  justifyContent: 'center',
+                                  mt: 1,
+                                }}
+                              >
+                                <Box
+                                  sx={{
+                                    background: 'linear-gradient(135deg, #f8f8f8 0%, #ececec 100%)',
+                                    color: '#666',
+                                    border: '1px solid #ddd',
+                                    borderRadius: '12px',
+                                    padding: '1px 6px',
+                                    fontSize: '0.6rem',
+                                    fontWeight: 500,
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.3px',
+                                  }}
+                                >
+                                  Scanned
+                                </Box>
+                              </Box>
+                            )}
+
                             <IconButton
                               onClick={(e) => {
                                 e.stopPropagation();

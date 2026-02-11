@@ -8,6 +8,7 @@ export interface SourceFile {
   filesize: number;
   sectionid: number;
   sectionname: string;
+  is_scanned?: number | null;
   timecreated: number;
 }
 

@@ -51,6 +51,7 @@ try {
                 'title' => $source->title,
                 'author' => $source->author,
                 'fileitemid' => $source->fileitemid,
+                'is_scanned' => isset($source->is_scanned) ? (int)$source->is_scanned : null,
                 'timecreated' => $source->timecreated
             ];
         }
@@ -72,6 +73,7 @@ try {
                 'fileitemid' => $source->fileitemid,
                 'sectionid' => $source->sectionid,
                 'sectionname' => $section_names[$source->sectionid] ?? "Unknown Section",
+                'is_scanned' => isset($source->is_scanned) ? (int)$source->is_scanned : null,
                 'timecreated' => $source->timecreated
             ];
         }

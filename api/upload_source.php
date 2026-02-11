@@ -42,6 +42,7 @@ try {
     $uploadedFiles = [];
     $titles = [];
     $authors = [];
+    $isPhotographs = [];
     
     // Check if files were uploaded (supports both single and multiple file upload)
     if (!isset($_FILES['pdf'])) {
@@ -65,14 +66,16 @@ try {
         // Get titles and authors as arrays
         $titles = isset($_POST['title']) && is_array($_POST['title']) ? $_POST['title'] : [];
         $authors = isset($_POST['author']) && is_array($_POST['author']) ? $_POST['author'] : [];
-        // Uncomment when OCR processing is implemented
-        // $isScannedArray = isset($_POST['is_scanned']) && is_array($_POST['is_scanned']) ? $_POST['is_scanned'] : [];
+        // Get is_photograph flag array for scanned PDF detection
+        $isPhotographs = isset($_POST['is_photograph']) &&
+        is_array($_POST['is_photograph']) ? $_POST['is_photograph'] : [];
     } else {
         // Single file upload (backward compatibility)
         if ($_FILES['pdf']['error'] === UPLOAD_ERR_OK) {
             $uploadedFiles[] = $_FILES['pdf'];
             $titles[] = optional_param('title', '', PARAM_TEXT);
             $authors[] = optional_param('author', '', PARAM_TEXT);
+            $isPhotographs[] = optional_param('is_photograph', 'false', PARAM_TEXT);
         }
     }
     
@@ -171,8 +174,9 @@ try {
         // Get title and author for this file
         $title = isset($titles[$index]) ? clean_param($titles[$index], PARAM_TEXT) : '';
         $author = isset($authors[$index]) ? clean_param($authors[$index], PARAM_TEXT) : '';
+        $isPhotograph = isset($isPhotographs[$index]) ? $isPhotographs[$index] : 'false';
         
-        error_log("LectureBot Upload: File $index - Title: '$title', Author: '$author'");
+        error_log("LectureBot Upload: File $index - Title: '$title', Author: '$author', Is Scanned: '$isPhotograph'");
         
         // Prepare database record
         $record = new stdClass();
@@ -183,6 +187,7 @@ try {
         $record->author = $author ?: '';
         $record->fileitemid = $itemid;
         $record->filesize = $storedfile->get_filesize();
+        $record->is_scanned = ($isPhotograph === 'true') ? 1 : 0;
         $record->timecreated = time();
         $record->timemodified = time();
         
