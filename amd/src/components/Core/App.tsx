@@ -26,7 +26,9 @@ import SourcesModal from '../Modals/SourcesModal';
 import CurriculumModal from '../Modals/CurriculumModal';
 import ContentFeedbackModal from '../Modals/ContentFeedbackModal';
 import VideoLectureModal from '../Modals/VideoLectureModal';
+import PluginFeedbackModal from '../Modals/PluginFeedbackModal';
 import type { ContentFeedbackData } from '../../types/feedback';
+import type { PluginFeedback } from '../../types/app';
 
 // Import refactored modules
 import { theme } from '../../theme/theme';
@@ -87,6 +89,14 @@ export const App: React.FC = () => {
 
   const handleCloseFeedbackModal = useCallback(() => {
     dispatch({ type: 'SHOW_FEEDBACK_MODAL', payload: false });
+  }, []);
+
+  const handleOpenPluginFeedbackModal = useCallback(() => {
+    dispatch({ type: 'SHOW_PLUGIN_FEEDBACK_MODAL', payload: true });
+  }, []);
+
+  const handleClosePluginFeedbackModal = useCallback(() => {
+    dispatch({ type: 'SHOW_PLUGIN_FEEDBACK_MODAL', payload: false });
   }, []);
 
   const handleOpenCurriculumModal = useCallback(() => {
@@ -167,7 +177,10 @@ export const App: React.FC = () => {
           }}
         >
           {/* Header */}
-          <Header moodleContext={state.moodleContext} />
+          <Header
+            moodleContext={state.moodleContext}
+            onOpenPluginFeedback={handleOpenPluginFeedbackModal}
+          />
 
           {/* Main Content - Takes remaining space after Header */}
           <Box sx={{
@@ -218,6 +231,62 @@ export const App: React.FC = () => {
             contentItems={state.contentItems}
 
           />
+
+          {state.showPluginFeedbackModal && (
+            <PluginFeedbackModal
+              open={state.showPluginFeedbackModal}
+              onClose={handleClosePluginFeedbackModal}
+              currentView={state.currentContentId ? 'Content Preview' : 'Content List'}
+              recentError={state.contentItems.find(item => item.status === 'error')?.errormessage || undefined}
+              onSubmit={async (feedback: PluginFeedback) => {
+                try {
+                  // Ensure moodleContext is available
+                  if (!state.moodleContext) {
+                    showNotification('Session error. Please refresh the page.', 'error');
+                    return;
+                  }
+
+                  // Create FormData for multipart upload (supports file upload)
+                  const formData = new FormData();
+
+                  // Add user and owner IDs
+                  formData.append('user_id', state.moodleContext.userid.toString());
+                  formData.append('owner_id', state.moodleContext.tenantid.toString());
+
+                  // Add feedback data
+                  formData.append('issue_types', JSON.stringify(feedback.selectedCategories));
+                  formData.append('issue_description', feedback.additionalDetails);
+
+                  // Add screenshot if present
+                  if (feedback.attachments && feedback.attachments.length > 0) {
+                    formData.append('screenshot', feedback.attachments[0]);
+                  }
+
+                  // Make API call
+                  const response = await fetch(
+                    `${state.moodleContext.wwwroot}/local/lecturebot/api/save_plugin_feedback.php?sesskey=${state.moodleContext.sesskey}`,
+                    {
+                      method: 'POST',
+                      body: formData,
+                      // Don't set Content-Type header - browser will set it with boundary for multipart/form-data
+                    }
+                  );
+
+                  const result = await response.json();
+
+                  if (result.success) {
+                    showNotification('Thank you for your feedback! We\'ll use it to improve PRISM.', 'success');
+                  } else {
+                    console.error('Failed to save feedback:', result.error);
+                    showNotification('Failed to submit feedback. Please try again.', 'error');
+                  }
+                } catch (error) {
+                  console.error('Error submitting feedback:', error);
+                  showNotification('An error occurred while submitting feedback.', 'error');
+                }
+              }}
+            />
+          )}
 
           {state.showFeedbackModal && (
             <ContentFeedbackModal

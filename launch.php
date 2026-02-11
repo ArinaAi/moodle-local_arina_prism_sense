@@ -4,6 +4,7 @@ require_once($CFG->libdir . '/adminlib.php');
 
 // Ensure Utils is loaded
 require_once(__DIR__ . '/classes/Utils.php');
+require_once(__DIR__ . '/configurator_azure.php');
 
 $courseid = required_param('courseid', PARAM_INT);
 require_login($courseid);

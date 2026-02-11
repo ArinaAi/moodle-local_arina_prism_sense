@@ -67,6 +67,13 @@ function local_lecturebot_init_azure_config()
     local_lecturebot_define_from_env('AZURE_STORAGE_ACCOUNT_NAME');
     local_lecturebot_define_from_env('AZURE_STORAGE_ACCOUNT_KEY');
     local_lecturebot_define_from_env('LECTUREBOT_TENANT_ID', 'default_tenant');
+    
+    // PostgreSQL Database Constants
+    local_lecturebot_define_from_env('PG_HOST');
+    local_lecturebot_define_from_env('PG_PORT', '5432');
+    local_lecturebot_define_from_env('PG_DATABASE');
+    local_lecturebot_define_from_env('PG_USER');
+    local_lecturebot_define_from_env('PG_PASSWORD');
 
     if (!defined('AZURE_BLOB_CONTAINER_NAME')) {
         $val = getenv('AZURE_BLOB_CONTAINER_NAME');

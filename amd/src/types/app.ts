@@ -91,6 +91,25 @@ export interface Quiz {
   questions: QuizQuestion[];
 }
 
+// Plugin Feedback Types
+export interface PluginFeedbackContext {
+  currentView: string;
+  recentError?: string;
+  deviceInfo: {
+    browser: string;
+    os: string;
+    screenSize: string;
+  };
+  timestamp: number;
+}
+
+export interface PluginFeedback {
+  selectedCategories: string[];
+  additionalDetails: string;
+  context: PluginFeedbackContext;
+  attachments?: File[];
+}
+
 // Backend Response Types
 export interface SubtopicResult {
   topic: string; // subtopic title
@@ -158,6 +177,7 @@ export interface AppState {
   showCurriculumModal: boolean;
   showVideoLectureModal: boolean;
   showFeedbackModal: boolean;
+  showPluginFeedbackModal: boolean;
   moodleContext: MoodleContext | null;
   slidesApproved: boolean;
 }
@@ -176,5 +196,6 @@ export type AppAction =
   | { type: 'SHOW_CURRICULUM_MODAL'; payload: boolean }
   | { type: 'SHOW_VIDEO_LECTURE_MODAL'; payload: boolean }
   | { type: 'SHOW_FEEDBACK_MODAL'; payload: boolean }
+  | { type: 'SHOW_PLUGIN_FEEDBACK_MODAL'; payload: boolean }
   | { type: 'SET_MOODLE_CONTEXT'; payload: MoodleContext | null }
   | { type: 'SET_SLIDES_APPROVED'; payload: boolean };

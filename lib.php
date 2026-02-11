@@ -25,6 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 require_once(__DIR__ . '/classes/Utils.php');
+require_once(__DIR__ . '/configurator_azure.php');
 
 use local_lecturebot\Utils;
 

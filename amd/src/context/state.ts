@@ -13,6 +13,7 @@ export const initialState: AppState = {
     showCurriculumModal: false,
     showVideoLectureModal: false,
     showFeedbackModal: false,
+    showPluginFeedbackModal: false,
     moodleContext: null,
     slidesApproved: false,
 };
@@ -54,6 +55,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
             return { ...state, showVideoLectureModal: action.payload };
         case 'SHOW_FEEDBACK_MODAL':
             return { ...state, showFeedbackModal: action.payload };
+        case 'SHOW_PLUGIN_FEEDBACK_MODAL':
+            return { ...state, showPluginFeedbackModal: action.payload };
         case 'SET_MOODLE_CONTEXT':
             return { ...state, moodleContext: action.payload };
         case 'SET_SLIDES_APPROVED':

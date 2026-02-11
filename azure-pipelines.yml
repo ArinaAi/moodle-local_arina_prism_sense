@@ -194,7 +194,12 @@ stages:
                           --set-string env.AZURE_STORAGE_ACCOUNT_KEY=$AZURE_STORAGE_ACCOUNT_KEY \
                           --set-string env.LECTUREBOT_TENANT_ID=$LECTUREBOT_TENANT_ID \
                           --set-string env.MOODLE_WWWROOT=$K8s_MOODLE_WWWROOT \
-                          --set-string env.LECTUREBOT_API_BASE_URL=$K8s_LECTUREBOT_API_BASE_URL
+                          --set-string env.LECTUREBOT_API_BASE_URL=$K8s_LECTUREBOT_API_BASE_URL \
+                          --set-string env.PG_HOST=$PG_HOST \
+                          --set-string env.PG_PORT=$PG_PORT \
+                          --set-string env.PG_DATABASE=$PG_DATABASE \
+                          --set-string env.PG_USER=$PG_USER \
+                          --set-string env.PG_PASSWORD=$PG_PASSWORD
 
                         kubectl create secret docker-registry acr-secret \
                           --docker-server=${ACR_LOGIN_SERVER} \

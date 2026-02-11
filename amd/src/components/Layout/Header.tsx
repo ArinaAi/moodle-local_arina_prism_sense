@@ -1,14 +1,16 @@
 import React from 'react';
-import { Box, Typography, useTheme, useMediaQuery } from '@mui/material';
+import { Box, Typography, useTheme, useMediaQuery, IconButton } from '@mui/material';
 import type { MoodleContext } from '../../types/moodle';
+import {MessageSquareMore} from 'lucide-react';
 
 interface HeaderProps {
     moodleContext: MoodleContext;
     children?: React.ReactNode;
     onBack?: () => void;
+    onOpenPluginFeedback?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ moodleContext, children, onBack }) => {
+const Header: React.FC<HeaderProps> = ({ moodleContext, children, onBack, onOpenPluginFeedback }) => {
 
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -141,6 +143,32 @@ const Header: React.FC<HeaderProps> = ({ moodleContext, children, onBack }) => {
                 flexShrink: 0,
             }}>
                 {children}
+                {/* Plugin Feedback Button */}
+                {onOpenPluginFeedback && (
+                    <IconButton
+                        onClick={onOpenPluginFeedback}
+                        size="small"
+                        sx={{
+                            width: { xs: 28, sm: 40 },
+                            height: { xs: 28, sm: 40 },
+                            backgroundColor: 'transparent',
+                            border: '1px solid',
+                            borderColor: 'primary.main',
+                            color: 'primary.main',
+                            transition: 'all 0.2s',
+                            '&:hover': {
+                                backgroundColor: 'rgba(15, 108, 191, 0.08)',
+                                borderColor: 'primary.dark',
+                            },
+                        }}
+                        title="Report an issue or suggest a feature"
+                    >
+                        <MessageSquareMore 
+                            size={isMobile ? 16 : 20} // Responsive icon size
+                            strokeWidth={2}
+                        />
+                    </IconButton>
+                )}
                 <Box
                     component="img"
                     src={`${moodleContext.wwwroot}/local/lecturebot/pix/arina-logo.png?v=1`}

@@ -36,8 +36,12 @@ class Utils
      */
     public static function prepareContext($course, $wwwroot)
     {
+        global $USER;
         $sections = self::getCourseSections($course->id);
+        $tenantId = defined('LECTUREBOT_TENANT_ID') ? LECTUREBOT_TENANT_ID : 1;
         return json_encode([
+            'userid' => $USER->id,
+            'tenantid' => $tenantId,
             'courseid' => $course->id,
             'coursename' => $course->fullname,
             'sesskey' => sesskey(),

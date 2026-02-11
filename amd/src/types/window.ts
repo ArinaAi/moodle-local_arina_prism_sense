@@ -1,11 +1,13 @@
 /**
  * Global window extensions for LectureBot
  */
-export {};
+export { };
 
 declare global {
   interface Window {
     MOODLE_CONTEXT?: {
+      userid: number;
+      tenantid: number;
       courseid: number;
       coursename: string;
       sesskey: string;
