@@ -1,14 +1,10 @@
 trigger: none
 
 parameters:
-  - name: buildNumber
-    displayName: "Build Number"
-    type: string
-    default: ""
   - name: deploymentType
     displayName: "Enter Deployment Type"
     type: string
-    default: container
+    default: kubernetes
     values:
       - container
       - kubernetes
@@ -31,7 +27,7 @@ stages:
         displayName: "Build and push docker image to Azure"
         variables:
           - name: BUILD_NO
-            value: ${{ parameters.buildNumber }}
+            value: $(Build.BuildNumber)
         steps:
           - script: |
               git clone https://$(AZURE_PAT)@dev.azure.com/ARINA-AI/NextGenChatBot/_git/arina-moodle
@@ -71,7 +67,7 @@ stages:
         environment: Development
         variables:
           - name: BUILD_NO
-            value: ${{ parameters.buildNumber }}
+            value: $(Build.BuildNumber)
         strategy:
           runOnce:
             deploy:
@@ -88,7 +84,7 @@ stages:
                       echo "Deployment Type: Kubernetes"
                       VM_IP="$(K8S_CLUSTER_IP)"
                     fi
-                    USERNAME="$(USERNAME)"
+                    USERNAME=root
                     BUILD_NO="$(BUILD_NO)"
 
                     # Validate required variables
@@ -247,7 +243,7 @@ stages:
         environment: Production
         variables:
           - name: BUILD_NO
-            value: ${{ parameters.buildNumber }}
+            value: $(Build.BuildNumber)
         strategy:
           runOnce:
             deploy:
