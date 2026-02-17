@@ -46,7 +46,7 @@ export const useTOC = (contentId: number | null, enabled: boolean = true): UseTO
       if (data.status === 'success' && data.toc?.curriculum_structure) {
         setTopics(data.toc.curriculum_structure);
       } else {
-        setError(data.error || 'Failed to load topics');
+        setError('Failed to load topics. Please try again.');
         setTopics([]);
       }
     } catch (err) {

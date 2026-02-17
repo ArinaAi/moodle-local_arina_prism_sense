@@ -111,7 +111,7 @@ try {
         $result[] = [
             'id' => $content->id,
             'sectionid' => $content->sectionid,
-            'sectionname' => $section_names[$content->sectionid] ?? "Unknown Section",
+            'sectionname' => $section_names[$content->sectionid] ?? "Deleted Section",
             'contenttype' => $content->contenttype,
             'status' => $content->status,
             'title' => $content->title,

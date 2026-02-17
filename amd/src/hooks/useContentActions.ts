@@ -153,9 +153,12 @@ export const useContentActions = (
 
         } catch (error) {
             console.error('Slide generation error:', error);
-            showNotification(`Error generating slides: ${(error as Error).message} `, 'error');
-            // Remove temp item on error
-            await loadContentState();
+            showNotification('Something went wrong while generating slides. Please try again.', 'error');
+            // Remove temp item from state directly (avoid loadContentState which triggers self-healing cleanup)
+            dispatch({
+                type: 'SET_CONTENT_ITEMS',
+                payload: state.contentItems
+            });
         } finally {
             dispatch({ type: 'SET_GENERATING_SLIDES', payload: false });
         }
@@ -266,9 +269,12 @@ export const useContentActions = (
 
         } catch (error: any) {
             console.error('Video generation failed:', error);
-            showNotification(error.message || 'Failed to start video generation', 'error');
-            // Remove temp item on error
-            await loadContentState();
+            showNotification('Something went wrong while generating the video. Please try again.', 'error');
+            // Remove temp item from state directly (avoid loadContentState which triggers self-healing cleanup)
+            dispatch({
+                type: 'SET_CONTENT_ITEMS',
+                payload: state.contentItems
+            });
         } finally {
             dispatch({ type: 'SET_GENERATING_SLIDES', payload: false });
         }
@@ -305,7 +311,7 @@ export const useContentActions = (
             }
         } catch (error) {
             console.error('Approval error:', error);
-            showNotification(`Error approving content: ${(error as Error).message} `, 'error');
+            showNotification('Something went wrong while approving content. Please try again.', 'error');
         }
     }, [state.moodleContext, state.currentContentId, dispatch, showNotification, loadContentState]);
 
@@ -478,7 +484,7 @@ export const useContentActions = (
             }
         } catch (error) {
             console.error('Clear content error:', error);
-            showNotification(`Error clearing content: ${(error as Error).message} `, 'error');
+            showNotification('Something went wrong while clearing content. Please try again.', 'error');
         }
     }, [state.moodleContext, dispatch, showNotification]);
 
@@ -510,7 +516,7 @@ export const useContentActions = (
             }
         } catch (error) {
             console.error('Delete content error:', error);
-            showNotification(`Error deleting content: ${(error as Error).message} `, 'error');
+            showNotification('Something went wrong while deleting content. Please try again.', 'error');
         }
     }, [state.moodleContext, state.contentItems, dispatch, showNotification]);
 

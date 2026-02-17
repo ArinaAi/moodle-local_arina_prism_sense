@@ -207,7 +207,8 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
         setSelectedSection(sectionList[0].sectionId);
       }
     } catch (err) {
-      setErrors({ general: (err as Error).message });
+      console.error('Error loading sections:', err);
+      setErrors({ general: 'Failed to load sections. Please try again.' });
 
     } finally {
       setLoading(false);
@@ -461,7 +462,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
           newBoxes[index] = {
             type: 'error',
             file: box.file,
-            error: (error as Error).message,
+            error: 'Upload failed. Please try again.',
             title: box.title,
             author: box.author,
             isScanned: box.isScanned,
@@ -518,7 +519,8 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
       // Close confirmation dialog
       closeDeleteConfirmation();
     } catch (error) {
-      setErrors({ general: (error as Error).message });
+      console.error('Error deleting source:', error);
+      setErrors({ general: 'Failed to delete source. Please try again.' });
       closeDeleteConfirmation();
     }
   };

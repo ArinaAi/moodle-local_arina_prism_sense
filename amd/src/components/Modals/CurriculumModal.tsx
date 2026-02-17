@@ -149,7 +149,8 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
         setSelectedSectionId(sections[0].id);
       }
     } catch (err) {
-      setError((err as Error).message);
+      console.error('Error loading sources:', err);
+      setError('Failed to load sources. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -195,7 +196,8 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
 
       setShowCurriculum(true);
     } catch (err) {
-      setError((err as Error).message);
+      console.error('Error loading curriculum:', err);
+      setError('Failed to load curriculum. Please try again.');
     }
   };
 

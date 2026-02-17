@@ -131,7 +131,7 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                             fontSize: 'clamp(0.65rem, 2vw, 0.75rem)',
                         }}
                     >
-                        {item.errormessage || 'Generation failed'}
+                        {'Generation failed. Please try again.'}
                     </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1 }}>
