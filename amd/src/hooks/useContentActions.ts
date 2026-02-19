@@ -151,9 +151,14 @@ export const useContentActions = (
                 throw new Error(result.error || 'Invalid response from server');
             }
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('Slide generation error:', error);
-            showNotification('Something went wrong while generating slides. Please try again.', 'error');
+            const errorMsg = error?.message?.toLowerCase() || '';
+            if (errorMsg.includes('curriculum')) {
+                showNotification('No curriculum found for this section. Please upload curriculum first.', 'error');
+            } else {
+                showNotification('Something went wrong while generating slides. Please try again.', 'error');
+            }
             // Remove temp item from state directly (avoid loadContentState which triggers self-healing cleanup)
             dispatch({
                 type: 'SET_CONTENT_ITEMS',

@@ -299,6 +299,8 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
     }
   });
 
+  const MAX_PDF_SIZE = 5 * 1024 * 1024; // 5MB in bytes
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>, boxIndex: number) => {
     if (!selectedSection) {
       return;
@@ -314,6 +316,11 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
 
     if (pdfFiles.length > 1) {
       setErrors((prev) => ({ ...prev, file: 'Please select only 1 PDF per box.' }));
+      return;
+    }
+
+    if (pdfFiles[0].size > MAX_PDF_SIZE) {
+      setErrors((prev) => ({ ...prev, file: 'File size must be less than 5MB.' }));
       return;
     }
 
@@ -353,6 +360,11 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
 
     if (pdfFiles.length === 0) {
       setErrors((prev) => ({ ...prev, file: 'Please drop PDF files only.' }));
+      return;
+    }
+
+    if (pdfFiles[0].size > MAX_PDF_SIZE) {
+      setErrors((prev) => ({ ...prev, file: 'File size must be less than 5MB.' }));
       return;
     }
 
@@ -614,8 +626,15 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
     return boxes.filter(box => box.type === 'existing' || box.type === 'uploading').length;
   };
 
+  const isAnyUploading = boxes.some(box => box.type === 'uploading');
+
   return (
-    <Modal open={open} onClose={onClose} sx={{ zIndex: 100001 }}>
+    <Modal
+      open={open}
+      onClose={isAnyUploading ? undefined : onClose}
+      disableEscapeKeyDown={isAnyUploading}
+      sx={{ zIndex: 100001 }}
+    >
       <Box
         sx={{
           ...styles.modal,
@@ -641,7 +660,11 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
           </Typography>
           <IconButton
             onClick={onClose}
-            sx={styles.touchTarget}
+            disabled={isAnyUploading}
+            sx={{
+              ...styles.touchTarget,
+              ...(isAnyUploading && { opacity: 0.3, cursor: 'not-allowed' }),
+            }}
           >
             <Close />
           </IconButton>
