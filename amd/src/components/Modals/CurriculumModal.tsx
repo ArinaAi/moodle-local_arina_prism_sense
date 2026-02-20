@@ -399,7 +399,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
         ))}
       </Box>
 
-      {/* Video Length Selector */}
+      {/* Presentation Depth Selector */}
       <Paper
         variant="outlined"
         sx={{
@@ -415,9 +415,9 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
           },
         }}
       >
-        <FormControl component="fieldset">
+        <FormControl component="fieldset" fullWidth>
           <Tooltip
-            title="Determines the target duration for the generated video lecture content"
+            title="Determines the depth and detail level for the generated presentation"
             arrow
             placement="top"
             PopperProps={{
@@ -429,16 +429,33 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
             <FormLabel
               component="legend"
               sx={{
-                fontWeight: 600,
-                color: '#1a1a1a',
                 mb: 'clamp(8px, 1.5vw + 4px, 12px)',
                 '&.Mui-focused': {
                   color: '#1a1a1a',
                 },
                 cursor: 'help',
+                width: '100%',
               }}
             >
-              Video Length
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography sx={{ fontWeight: 600, color: '#1a1a1a' }}>
+                  Presentation Depth
+                </Typography>
+                <Chip
+                  label="8 credits"
+                  size="small"
+                  sx={{
+                    bgcolor: 'rgba(15, 108, 191, 0.1)',
+                    color: '#0f6cbf',
+                    fontWeight: 600,
+                    fontSize: '0.7rem',
+                    height: '20px',
+                  }}
+                />
+              </Box>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                Video duration scales with slide count.
+              </Typography>
             </FormLabel>
           </Tooltip>
           <RadioGroup
@@ -451,10 +468,10 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
               label={
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Short (5 - 10 mins)
+                    Express (~15m)
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Slide: 10 credits • Video: 200 credits
+                    Quick summary or intro.
                   </Typography>
                 </Box>
               }
@@ -466,10 +483,10 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
               label={
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Medium (15 - 30 mins)
+                    Standard (~30m)
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Slide: 10 credits • Video: 400 credits
+                    Complete general overview.
                   </Typography>
                 </Box>
               }
@@ -480,11 +497,24 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
               control={<Radio />}
               label={
                 <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Long (30 - 45 mins)
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      Extensive (~45m)
+                    </Typography>
+                    <Chip
+                      label="Recommended"
+                      size="small"
+                      sx={{
+                        bgcolor: 'rgba(46, 125, 50, 0.1)',
+                        color: '#2e7d32',
+                        fontWeight: 600,
+                        fontSize: '0.65rem',
+                        height: '18px',
+                      }}
+                    />
+                  </Box>
                   <Typography variant="caption" color="text.secondary">
-                    Slide: 10 credits • Video: 600 credits
+                    In-depth analysis.
                   </Typography>
                 </Box>
               }
@@ -496,10 +526,10 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
               label={
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Extended (45 - 60 mins)
+                    Deep Dive
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Slide: 10 credits • Video: 800 credits
+                    Unrestricted length for maximum detail.
                   </Typography>
                 </Box>
               }

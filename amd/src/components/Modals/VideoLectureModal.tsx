@@ -298,7 +298,7 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                                         '&.Mui-focused': { color: '#1a1a1a' },
                                     }}
                                 >
-                                    Avatar
+                                    Video Gen
                                 </FormLabel>
                                 <RadioGroup value={avatarStrategy} onChange={(e) => setAvatarStrategy(e.target.value as 'none' | 'title_only')}>
                                     <FormControlLabel
@@ -307,7 +307,7 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                                         label={
                                             <Box>
                                                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                    No Avatar
+                                                    No Avatar : 1 credit / 20 secs
                                                 </Typography>
                                                 <Typography variant="caption" color="text.secondary">
                                                     Voice-only narration
@@ -322,7 +322,7 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                                         label={
                                             <Box>
                                                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                    With Avatar (Additional 1000 credits)
+                                                    With Avatar: 1.25 credit / 20 secs
                                                 </Typography>
                                                 <Typography variant="caption" color="text.secondary">
                                                     AI presenter on title slides only
