@@ -317,7 +317,7 @@ class Utils
     }
 
     /**
-     * Extract blob name from a full Azure Blob URL
+     * Extract blob name from a full Azure Blob URL or relative path
      */
     public static function extractBlobNameFromUrl($url)
     {
@@ -326,8 +326,15 @@ class Utils
             return null;
         }
         $path = ltrim($parsed['path'], '/');
-        $parts = explode('/', $path, 2);
-        return isset($parts[1]) ? $parts[1] : $path;
+        
+        // If it's a full URL with a host, the first path segment is the container name, so strip it.
+        if (isset($parsed['host'])) {
+            $parts = explode('/', $path, 2);
+            return isset($parts[1]) ? $parts[1] : $path;
+        }
+        
+        // If it's a relative path, assume it's already just the blob name (including folders inside container)
+        return $path;
     }
 
     /**

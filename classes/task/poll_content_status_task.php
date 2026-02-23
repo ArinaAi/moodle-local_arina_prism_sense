@@ -228,10 +228,9 @@ class poll_content_status_task extends \core\task\scheduled_task
         $containerName = $generationData['azure_container'] ?? null;
         $folderName    = $generationData['azure_folder'] ?? null;
 
-        // Extract IDs from folder name
-        preg_match('/Tutorial_(\d+)_(\d+)_(\d+)/', $folderName ?? '', $matches);
-        $courseid  = $matches[1] ?? $content->courseid;
-        $sectionid = $matches[2] ?? $content->sectionid;
+        // Use the original Moodle IDs from the DB record, rather than backend IDs parsed from folderName
+        $courseid  = $content->courseid;
+        $sectionid = $content->sectionid;
 
         $localFileName = $isVideo
             ? 'video_' . $content->id . '_' . time() . '.mp4'

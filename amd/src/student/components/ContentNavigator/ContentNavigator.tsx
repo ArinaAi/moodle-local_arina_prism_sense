@@ -293,7 +293,7 @@ const SectionAccordion: React.FC<SectionAccordionProps> = ({
                                     <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
                                         {item.type === 'video' && (
                                             <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                                {item.duration}
+                                                Video
                                             </Typography>
                                         )}
                                         {item.type !== 'video' && !!item.totalSlides && (
