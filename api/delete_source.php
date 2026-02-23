@@ -49,6 +49,9 @@ try {
             'document_name' => $source->filename
         ], '', '&');
         error_log('LectureBot delete URL: ' . $deleteUrl);
+        // Get API Key from settings
+        $apiKey = get_config('local_lecturebot', 'api_key');
+        
         $ch = curl_init();
         curl_setopt_array($ch, [
             CURLOPT_URL => $deleteUrl,
@@ -57,6 +60,9 @@ try {
             CURLOPT_CONNECTTIMEOUT => 60,
             CURLOPT_HTTPGET => true,
             CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_HTTPHEADER => [
+                'X-API-key: ' . $apiKey
+            ]
         ]);
         
         $response = curl_exec($ch);

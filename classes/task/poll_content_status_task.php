@@ -9,9 +9,9 @@ require_once(__DIR__ . '/../../configurator_azure.php');
 /**
  * Scheduled task to poll backend for content generation status
  *
- * This task runs every minute and checks the backend's /check_status endpoint
- * for all content items with status='generating'. When content is ready,
- * it downloads the file from Azure and updates the database.
+ * This task runs every minute and checks the backend's batch /status/batch endpoint
+ * for all content items with status='generating'. A single request is made for all
+ * pending items, reducing backend load as the system scales.
  *
  * @package    local_lecturebot
  * @copyright  2025
@@ -30,10 +30,13 @@ class poll_content_status_task extends \core\task\scheduled_task
 
     /**
      * Execute the task.
+     *
+     * Fetches all pending content items, collects their request_ids, calls the
+     * batch status endpoint once, then processes each result individually.
      */
     public function execute()
     {
-        global $DB, $CFG;
+        global $DB;
 
         mtrace("Starting poll_content_status_task...");
 
@@ -50,13 +53,41 @@ class poll_content_status_task extends \core\task\scheduled_task
             return;
         }
 
-        mtrace("Found " . count($pendingContent) . " content item(s) to check.");
+        $count = count($pendingContent);
+        mtrace("Found {$count} content item(s) to check.");
 
+        // Collect all request_ids for the batch call
+        $requestIdToContent = [];
         foreach ($pendingContent as $content) {
+            if (!empty($content->request_id)) {
+                $requestIdToContent[$content->request_id] = $content;
+            }
+        }
+
+        $requestIds = array_keys($requestIdToContent);
+
+        // Single batch call to backend — replaces N individual calls
+        mtrace("Calling batch status endpoint with " . count($requestIds) . " request_id(s)...");
+        $batchResponse = $this->checkBatchBackendStatus($requestIds);
+
+        if ($batchResponse === null) {
+            mtrace("Batch status call failed or returned no response. Will retry on next run.");
+            return;
+        }
+
+        // Process each item using its status from the batch response
+        foreach ($requestIdToContent as $requestId => $content) {
+            if (!isset($batchResponse[$requestId])) {
+                mtrace("  - No status returned for request_id {$requestId}, will retry later.");
+                continue;
+            }
+
+            $statusResponse = $batchResponse[$requestId];
+
             try {
-                $this->checkAndProcessContent($content);
+                $this->processContentStatus($content, $statusResponse);
             } catch (\Exception $e) {
-                mtrace("Error processing content {$content->id}: " . $e->getMessage());
+                mtrace("  - Error processing content {$content->id}: " . $e->getMessage());
                 // Continue with next item
             }
         }
@@ -65,33 +96,90 @@ class poll_content_status_task extends \core\task\scheduled_task
     }
 
     /**
-     * Check status of a single content item and process if complete
+     * Make a single POST to the batch status endpoint.
+     *
+     * Endpoint: POST https://demo.arina.ai/dev2230/agents/arina-message-bus-status-service/status/batch
+     * Body:    {"request_ids": ["uuid1", "uuid2", ...]}
+     * Response: flat map of { "uuid1": { status, pptx_url, ... }, "uuid2": { ... }, ... }
+     *
+     * @param  string[] $requestIds  Array of request UUID strings
+     * @return array|null            Flat map keyed by request_id, or null on failure
      */
-    private function checkAndProcessContent($content)
+    private function checkBatchBackendStatus(array $requestIds)
     {
-        global $DB, $CFG;
+        $result = null;
+        $url  = LECTUREBOT_API_CHECK_STATUS_BATCH;
+        $body = json_encode(['request_ids' => $requestIds]);
 
-        $requestId = $content->request_id;
-        mtrace("Checking content {$content->id} with request_id: {$requestId}");
+        // Get API Key from settings
+        $apiKey = get_config('local_lecturebot', 'api_key');
 
-        // Call backend check_status endpoint
-        $statusResponse = $this->checkBackendStatus($requestId);
-
-        if (!$statusResponse) {
-            mtrace("  - No response from backend, will retry later.");
-            return;
+        $ch = curl_init($url);
+        if ($ch === false) {
+            mtrace("  - Failed to initialize cURL for batch request");
+            return $result;
         }
 
-        $status = $statusResponse['status'] ?? 'unknown';
-        mtrace("  - Backend status: {$status}");
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => $body,
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_HTTPHEADER     => [
+                'Content-Type: application/json',
+                'Accept: application/json',
+                'X-API-key: ' . $apiKey
+            ],
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+        ]);
+
+        $response   = curl_exec($ch);
+        $httpCode   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErrno  = curl_errno($ch);
+        $curlError  = curl_error($ch);
+
+        curl_close($ch);
+
+        if ($curlErrno) {
+            mtrace("  - cURL error on batch request: " . $curlError);
+        } elseif ($httpCode !== 200) {
+            mtrace("  - HTTP error on batch request: {$httpCode}");
+        } elseif (empty($response)) {
+            mtrace("  - Empty response from batch endpoint");
+        } else {
+            $decoded = json_decode($response, true);
+            if (!is_array($decoded)) {
+                mtrace("  - Invalid JSON from batch endpoint");
+            } else {
+                $result = $decoded;
+            }
+        }
+
+        return $result; // flat map: { "request_id" => { ...status... }, ... }
+    }
+
+    /**
+     * Process a single content item given its pre-fetched status response.
+     *
+     * @param object $content        DB record from local_lecturebot_content
+     * @param array  $statusResponse Status data from the batch response for this request_id
+     */
+    private function processContentStatus($content, array $statusResponse)
+    {
+        $requestId = $content->request_id;
+        $status    = $statusResponse['status'] ?? 'unknown';
+
+        mtrace("  - Content {$content->id} (request_id: {$requestId}): status = {$status}");
 
         switch ($status) {
-            // Final completion statuses - these trigger file download
+            // Final completion statuses — trigger file download
             case 'completed':
             case 'success':
-            case 'slides_completed':       // Backend returns this when PPTX/slides are ready
-            case 'content_completed':      // Alternative completion status
-            case 'video_completed':        // Video generation completed
+            case 'slides_completed':    // PPTX/slides are ready
+            case 'content_completed':   // Alternative completion status
+            case 'video_completed':     // Video generation completed
                 $this->handleCompleted($content, $statusResponse);
                 break;
 
@@ -100,102 +188,56 @@ class poll_content_status_task extends \core\task\scheduled_task
                 $this->handleFailed($content, $statusResponse);
                 break;
 
-            // Intermediate milestone statuses - save progress but keep waiting
-            case 'toc_completed':          // TOC is done, lecture generation started
-            case 'lecture_completed':      // Lecture is done, slide generation started
-            case 'audio_completed':        // Audio generation completed (for video)
+            // Intermediate milestones — save progress, keep waiting
+            case 'toc_completed':       // TOC done, lecture generation started
+            case 'lecture_completed':   // Lecture done, slide generation started
+            case 'audio_completed':     // Audio done (for video)
                 $this->updateLastChecked($content, $status);
-                mtrace("  - Milestone reached ({$status}), waiting for completion...");
+                mtrace("    Milestone reached ({$status}), waiting for completion...");
                 break;
 
             // Still actively processing
             case 'processing':
             case 'queued':
             case 'pending':
-            case 'toc_generation':         // TOC generation phase
-            case 'lecture_generation':     // Lecture content generation phase
-            case 'slides_generation':      // Slides generation phase
+            case 'toc_generation':
+            case 'lecture_generation':
+            case 'slides_generation':
                 $this->updateLastChecked($content, $status);
-                mtrace("  - Still processing ({$status}), will check again later.");
+                mtrace("    Still processing ({$status}), will check again later.");
                 break;
 
             default:
-                mtrace("  - Unknown status: {$status}, will retry later.");
+                mtrace("    Unknown status: {$status}, will retry later.");
                 break;
         }
     }
 
     /**
-     * Call backend /check_status endpoint
-     */
-    private function checkBackendStatus($requestId)
-    {
-        $url = LECTUREBOT_API_CHECK_STATUS . '?request_id=' . urlencode($requestId);
-
-        $ch = curl_init($url);
-        if ($ch === false) {
-            mtrace("  - Failed to initialize cURL");
-            return null;
-        }
-
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 30,
-            CURLOPT_CONNECTTIMEOUT => 10,
-            CURLOPT_HTTPHEADER => [
-                'Accept: application/json'
-            ],
-            CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_SSL_VERIFYHOST => 2,
-        ]);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlErrno = curl_errno($ch);
-        $curlError = curl_error($ch);
-
-        curl_close($ch);
-
-        $result = null;
-
-        if ($curlErrno) {
-            mtrace("  - cURL error: " . $curlError);
-        } elseif ($httpCode !== 200) {
-            mtrace("  - HTTP error: {$httpCode}");
-        } elseif (empty($response)) {
-            mtrace("  - Empty response from backend");
-        } else {
-            $result = json_decode($response, true);
-        }
-
-        return $result;
-    }
-
-    /**
-     * Handle completed content generation
+     * Handle completed content generation — download from Azure and update DB.
      */
     private function handleCompleted($content, $statusResponse)
     {
         global $DB, $CFG;
 
-        mtrace("  - Content generation completed! Downloading from Azure...");
+        mtrace("    Content generation completed! Downloading from Azure...");
 
         $generationData = json_decode($content->generationdata, true) ?: [];
-        $isVideo = $generationData['is_video'] ?? false;
+        $isVideo        = $generationData['is_video'] ?? false;
 
         $containerName = $generationData['azure_container'] ?? null;
-        $folderName = $generationData['azure_folder'] ?? null;
+        $folderName    = $generationData['azure_folder'] ?? null;
 
         // Extract IDs from folder name
         preg_match('/Tutorial_(\d+)_(\d+)_(\d+)/', $folderName ?? '', $matches);
-        $courseid = $matches[1] ?? $content->courseid;
+        $courseid  = $matches[1] ?? $content->courseid;
         $sectionid = $matches[2] ?? $content->sectionid;
 
         $localFileName = $isVideo
             ? 'video_' . $content->id . '_' . time() . '.mp4'
             : 'slides_' . $content->id . '_' . time() . '.pptx';
 
-        // Resolve Blob Info
+        // Resolve blob info from status response
         $blobInfo = $this->resolveBlobInfo(
             $statusResponse,
             $isVideo,
@@ -205,7 +247,7 @@ class poll_content_status_task extends \core\task\scheduled_task
             $sectionid
         );
         $blobName = $blobInfo['name'];
-        $blobUrl = $blobInfo['url'];
+        $blobUrl  = $blobInfo['url'];
 
         $filepath = $CFG->tempdir . '/lecturebot/' . $localFileName;
 
@@ -213,12 +255,12 @@ class poll_content_status_task extends \core\task\scheduled_task
             mkdir($CFG->tempdir . '/lecturebot', 0755, true);
         }
 
-        // Download file - Always use authenticated Azure download since backend URLs don't have SAS tokens
-        // Extract blob name from URL if we have one, otherwise use constructed blob name
+        // Extract blob name from URL if available (authenticated Azure download)
         if ($blobUrl) {
             $blobName = \local_lecturebot\Utils::extractBlobNameFromUrl($blobUrl);
-            mtrace("  - Extracted blob name from URL: {$blobName}");
+            mtrace("    Extracted blob name from URL: {$blobName}");
         }
+
         $success = \local_lecturebot\Utils::downloadFileFromAzure($blobName, $filepath, $containerName);
 
         if (!$success || !file_exists($filepath) || filesize($filepath) === 0) {
@@ -227,44 +269,28 @@ class poll_content_status_task extends \core\task\scheduled_task
             );
         }
 
-        mtrace("  - Downloaded file: {$localFileName} (" . filesize($filepath) . " bytes)");
+        mtrace("    Downloaded file: {$localFileName} (" . filesize($filepath) . " bytes)");
 
-        // Update DB
-        $fileDetails = [
-            'path' => $filepath,
-            'name' => $localFileName
-        ];
-        $context = [
-            'isVideo' => $isVideo,
-            'courseid' => $courseid,
-            'sectionid' => $sectionid
-        ];
+        $fileDetails = ['path' => $filepath, 'name' => $localFileName];
+        $context     = ['isVideo' => $isVideo, 'courseid' => $courseid, 'sectionid' => $sectionid];
 
-        $this->updateContentOnSuccess(
-            $content,
-            $generationData,
-            $blobName,
-            $statusResponse,
-            $fileDetails,
-            $context
-        );
+        $this->updateContentOnSuccess($content, $generationData, $blobName, $statusResponse, $fileDetails, $context);
     }
 
     /**
-     * Handle failed content generation
+     * Handle failed content generation — mark as error in DB.
      */
     private function handleFailed($content, $statusResponse)
     {
         global $DB;
 
-        $errorMessage = $statusResponse['error'] ?? 'Unknown error from backend';
-        mtrace("  - Content generation failed: {$errorMessage}");
+        $errorMessage = $statusResponse['error'] ?? $statusResponse['message'] ?? 'Unknown error from backend';
+        mtrace("    Content generation failed: {$errorMessage}");
 
-        $content->status = 'error';
+        $content->status       = 'error';
         $content->errormessage = $errorMessage;
         $content->timemodified = time();
 
-        // Store the full status response in generation data for debugging
         $generationData = json_decode($content->generationdata, true) ?: [];
         $generationData['backend_error_response'] = $statusResponse;
         $content->generationdata = json_encode($generationData);
@@ -272,61 +298,67 @@ class poll_content_status_task extends \core\task\scheduled_task
         $DB->update_record('local_lecturebot_content', $content);
     }
 
+    /**
+     * Persist the updated generation data and bump timemodified.
+     */
     private function updateContentOnSuccess($content, $genData, $blobName, $resp, $fileDetails, $context)
     {
         global $DB, $CFG;
 
-        $fpath = $fileDetails['path'];
+        $fpath     = $fileDetails['path'];
         $localName = $fileDetails['name'];
-        $isVideo = $context['isVideo'];
-        $cid = $context['courseid'];
-        $sid = $context['sectionid'];
+        $isVideo   = $context['isVideo'];
+        $cid       = $context['courseid'];
+        $sid       = $context['sectionid'];
 
         $genDataUpdate = [
-            'completed_at' => time(),
-            'azure_blob_name' => $blobName,
-            'backend_status_response' => $resp,
+            'completed_at'           => time(),
+            'azure_blob_name'        => $blobName,
+            'backend_status_response'=> $resp,
         ];
 
         if ($isVideo) {
             $genDataUpdate['video_file'] = $localName;
             $genDataUpdate['video_path'] = $fpath;
             $genDataUpdate['video_size'] = filesize($fpath);
-            $genDataUpdate['result'] = [
-                'status' => 'success',
+            $genDataUpdate['result']     = [
+                'status'  => 'success',
                 'results' => [[
-                    'topic' => "Section " . $sid,
-                    'videoUrl' => "{$CFG->wwwroot}/local/lecturebot/api/stream_video.php?" .
-                                  "contentid={$content->id}&courseid={$cid}",
+                    'topic'         => "Section " . $sid,
+                    'videoUrl'      => "{$CFG->wwwroot}/local/lecturebot/api/stream_video.php?" .
+                                       "contentid={$content->id}&courseid={$cid}",
                     'videoDuration' => 0
                 ]]
             ];
         } else {
             $slideCount = \local_lecturebot\Utils::countSlidesInPptx($fpath);
-            $genDataUpdate['pptx_file'] = $localName;
-            $genDataUpdate['pptx_path'] = $fpath;
+            $genDataUpdate['pptx_file']   = $localName;
+            $genDataUpdate['pptx_path']   = $fpath;
             $genDataUpdate['slide_count'] = $slideCount;
-            $genDataUpdate['result'] = [
-                'status' => 'success',
+            $genDataUpdate['result']      = [
+                'status'  => 'success',
                 'results' => [[
-                    'topic' => "Section " . $sid,
+                    'topic'      => "Section " . $sid,
                     'slideCount' => $slideCount,
-                    'pptxFile' => $localName
+                    'pptxFile'   => $localName
                 ]]
             ];
-            mtrace("  - Slide count: {$slideCount}");
+            mtrace("    Slide count: {$slideCount}");
         }
 
-        $content->status = 'ready';
+        $content->status         = 'ready';
         $content->generationdata = json_encode(array_merge($genData, $genDataUpdate));
-        $content->timemodified = time();
+        $content->timemodified   = time();
         $DB->update_record('local_lecturebot_content', $content);
-        mtrace("  - Content {$content->id} marked as ready!");
+        mtrace("    Content {$content->id} marked as ready!");
     }
 
+    /**
+     * Determine which Azure blob to download from the status response.
+     */
     private function resolveBlobInfo($statusResponse, $isVideo, $folderName, $containerName, $courseid, $sectionid)
     {
-        $blobUrl = null;
+        $blobUrl  = null;
         $blobName = null;
 
         if ($isVideo) {
@@ -336,7 +368,7 @@ class poll_content_status_task extends \core\task\scheduled_task
         }
 
         if ($blobUrl) {
-            mtrace("  - Using URL from backend response: {$blobUrl}");
+            mtrace("    Using URL from backend response: {$blobUrl}");
             $blobName = \local_lecturebot\Utils::extractBlobNameFromUrl($blobUrl);
         } else {
             if (!$containerName || !$folderName) {
@@ -344,20 +376,20 @@ class poll_content_status_task extends \core\task\scheduled_task
                     "Missing Azure container/folder info in generation data and no URL in response"
                 );
             }
-            // Fallback construction
+            // Fallback: construct blob path from generation metadata
             $remoteFileName = $isVideo
                 ? "video_tutorial_{$courseid}_{$sectionid}.mp4"
                 : "slide_tutorial_{$courseid}_{$sectionid}.pptx";
 
             $blobName = $folderName . '/' . $remoteFileName;
-            mtrace("  - Constructed blob path: {$blobName}");
+            mtrace("    Constructed blob path: {$blobName}");
         }
 
         return ['name' => $blobName, 'url' => $blobUrl];
     }
 
     /**
-     * Update last checked timestamp and processing status
+     * Update last-checked timestamp and intermediate processing_status in generation data.
      */
     private function updateLastChecked($content, $status = null)
     {
@@ -369,12 +401,10 @@ class poll_content_status_task extends \core\task\scheduled_task
         }
 
         $DB->update_record('local_lecturebot_content', (object)[
-            'id' => $content->id,
+            'id'             => $content->id,
             'generationdata' => json_encode($generationData),
-            'timemodified' => time()
+            'timemodified'   => time()
         ]
     );
     }
-
-
 }

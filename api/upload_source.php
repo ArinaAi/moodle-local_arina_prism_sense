@@ -230,6 +230,9 @@ try {
             $startBatchUrl = LECTUREBOT_API_START_BATCH_UPLOAD . '?' . http_build_query($startBatchParams, '', '&');
             error_log("LectureBot: Starting batch upload for $expectedUploads files: " . $startBatchUrl);
             
+            // Get API Key from settings
+            $apiKey = get_config('local_lecturebot', 'api_key');
+            
             // Initialize cURL for start_batch_upload
             $chBatch = curl_init($startBatchUrl);
             curl_setopt_array($chBatch, [
@@ -239,7 +242,10 @@ try {
                 CURLOPT_TIMEOUT => 60,
                 CURLOPT_CONNECTTIMEOUT => 10,
                 CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_FOLLOWLOCATION => true
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTPHEADER => [
+                    'X-API-key: ' . $apiKey
+                ]
             ]);
             
             $batchResponse = curl_exec($chBatch);
@@ -318,6 +324,9 @@ try {
                     // Use CURLFile for proper multipart/form-data upload
                     $cfile = new CURLFile($tempFilePath, 'application/pdf', $storedfile->get_filename());
                     
+                    // Get API Key from settings
+                    $apiKey = get_config('local_lecturebot', 'api_key');
+                    
                     // Initialize cURL to upload to backend
                     $ch = curl_init($uploadApiUrl);
                     curl_setopt_array($ch, [
@@ -329,6 +338,9 @@ try {
                         CURLOPT_SSL_VERIFYPEER => false,
                         CURLOPT_FOLLOWLOCATION => true,
                         CURLOPT_POSTREDIR => 3,
+                        CURLOPT_HTTPHEADER => [
+                            'X-API-key: ' . $apiKey
+                        ]
                     ]);
                     
                     $backendResponse = curl_exec($ch);

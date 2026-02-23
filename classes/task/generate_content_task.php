@@ -191,6 +191,9 @@ class generate_content_task extends \core\task\adhoc_task
      */
     private function executeApiCall($apiUrl)
     {
+        // Get API Key from settings
+        $apiKey = get_config('local_lecturebot', 'api_key');
+
         $ch = curl_init($apiUrl);
         if ($ch === false) {
             throw new \local_lecturebot\exception\curl_init_exception('Failed to initialize cURL');
@@ -207,7 +210,8 @@ class generate_content_task extends \core\task\adhoc_task
             CURLOPT_TCP_KEEPINTVL => 15,
             CURLOPT_HTTPHEADER => [
                 'Accept: application/json',
-                'Content-Type: application/x-www-form-urlencoded'
+                'Content-Type: application/x-www-form-urlencoded',
+                'X-API-key: ' . $apiKey
             ],
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_SSL_VERIFYPEER => true,
