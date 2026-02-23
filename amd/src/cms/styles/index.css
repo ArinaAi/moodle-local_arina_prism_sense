@@ -1,0 +1,73 @@
+/* ─── Global Reset ─────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ─── Typography ───────────────────────────────────────────── */
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Aurora Gradient Background (Blueprint §3.8) ──────────── */
+body {
+  background:
+    radial-gradient(ellipse at 15% 20%, rgba(99,179,237,0.45) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 10%, rgba(154,117,234,0.35) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(99,210,174,0.3) 0%, transparent 50%),
+    radial-gradient(ellipse at 20% 85%, rgba(66,153,225,0.3) 0%, transparent 50%),
+    #DCE3EE !important;
+  background-attachment: fixed !important;
+}
+
+/* ─── CMS Root Container ──────────────────────────────────── */
+#lecturebot-cms-root {
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* ─── Smooth Scrolling ─────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ─── Custom Scrollbar ─────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(15,108,191,0.2);
+  border-radius: 4px;
+}
+
+/* ─── Accessibility: Reduced Motion ────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─── Glass Utility Class (for backdrop-filter cards) ──────── */
+.glass {
+  background: var(--paper) !important;
+  backdrop-filter: var(--blur) !important;
+  -webkit-backdrop-filter: var(--blur) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+/* ─── Focus Styles ─────────────────────────────────────────── */
+*:focus-visible {
+  outline: 2px solid rgba(15,108,191,0.25);
+  outline-offset: 2px;
+}

@@ -29,6 +29,9 @@ require_once(__DIR__ . '/configurator_azure.php');
 
 use local_lecturebot\Utils;
 
+define('LECTUREBOT_SCRIPT_START', '<script>');
+define('LECTUREBOT_SCRIPT_END', '</script>');
+
 /**
  * Generate JavaScript code for button creation and event handlers.
  *
@@ -249,16 +252,98 @@ function local_lecturebot_before_footer()
     }
 
     if ($jsToInject !== '') {
-        echo '<script>';
+        echo LECTUREBOT_SCRIPT_START;
         echo $jsToInject;
-        echo '</script>';
+        echo LECTUREBOT_SCRIPT_END;
+    }
+
+    // Inject Credit Management link for admins
+    if (is_siteadmin()) {
+        echo LECTUREBOT_SCRIPT_START;
+        echo local_lecturebot_get_cms_menu_js($CFG->wwwroot);
+        echo LECTUREBOT_SCRIPT_END;
     }
 
     // Modern Login Page Styling
     if (local_lecturebot_is_login_page()) {
         echo '<style>' . local_lecturebot_get_login_css() . '</style>';
-        echo '<script>' . local_lecturebot_get_login_js() . '</script>';
+        echo LECTUREBOT_SCRIPT_START . local_lecturebot_get_login_js() . LECTUREBOT_SCRIPT_END;
     }
+}
+
+/**
+ * Generate JavaScript to inject Credit Management link into user menu.
+ *
+ * @param string $wwwroot Moodle wwwroot
+ * @return string JavaScript code
+ */
+function local_lecturebot_get_cms_menu_js($wwwroot)
+{
+    return <<<JS
+        (function() {
+            function injectCMSLink() {
+                // Check if link already exists
+                if (document.querySelector('.lecturebot-cms-link')) {
+                    return;
+                }
+
+                // Try multiple strategies to find menu items
+                // Strategy 1: Find existing menu links and insert nearby
+                const profileLink = document.querySelector('a[href*="/user/profile.php"]');
+                const gradesLink = document.querySelector('a[href*="/grade/report"]');
+                const logoutLink = document.querySelector('a[href*="/login/logout.php"]');
+                
+                let targetLink = profileLink || gradesLink || logoutLink;
+                
+                if (!targetLink) {
+                    console.log('LectureBot CMS: Could not find reference menu items');
+                    return;
+                }
+
+                // Create the menu item
+                const menuItem = document.createElement('a');
+                menuItem.className = targetLink.className + ' lecturebot-cms-link';
+                menuItem.role = 'menuitem';
+                menuItem.href = '{$wwwroot}/local/lecturebot/cms.php';
+                menuItem.target = '_blank';
+                menuItem.rel = 'noopener noreferrer';
+                
+                // Clone the structure of existing items
+                const iconSpan = document.createElement('span');
+                iconSpan.className = 'menu-action-icon icon fa fa-tachometer-alt fa-fw';
+                iconSpan.setAttribute('aria-hidden', 'true');
+                
+                const textSpan = document.createElement('span');
+                textSpan.className = 'menu-action-text';
+                textSpan.textContent = 'Credit Management';
+                
+                menuItem.appendChild(iconSpan);
+                menuItem.appendChild(textSpan);
+
+                // Insert before logout if it exists, otherwise after profile
+                if (logoutLink) {
+                    logoutLink.parentNode.insertBefore(menuItem, logoutLink);
+                } else if (profileLink) {
+                    profileLink.parentNode.insertBefore(menuItem, profileLink.nextSibling);
+                } else {
+                    targetLink.parentNode.appendChild(menuItem);
+                }
+                
+                console.log('LectureBot CMS: Link injected into user menu');
+            }
+
+            // Try multiple times to catch dynamic loading
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', injectCMSLink);
+            } else {
+                injectCMSLink();
+            }
+            
+            setTimeout(injectCMSLink, 500);
+            setTimeout(injectCMSLink, 1500);
+            setTimeout(injectCMSLink, 3000);
+        })();
+JS;
 }
 
 /**
@@ -759,5 +844,37 @@ function local_lecturebot_get_login_js()
             setTimeout(fixLoginPage, 100);
         })();
 JS;
+}
+
+
+/**
+ * Extend navigation to add Credit Management link.
+ * This adds the link to the main navigation which will appear in user menu.
+ *
+ * @param global_navigation $navigation The navigation object
+ */
+function local_lecturebot_extend_navigation(global_navigation $navigation)
+{
+    global $USER, $PAGE;
+
+    // Only show for site admins
+    if (!is_siteadmin($USER)) {
+        return;
+    }
+
+    // Try to add to user menu
+    $usernode = $navigation->find('myprofile', navigation_node::TYPE_USER);
+    if ($usernode) {
+        $url = new moodle_url('/local/lecturebot/cms.php');
+        $node = $usernode->add(
+            get_string('creditmanagement', 'local_lecturebot'),
+            $url,
+            navigation_node::TYPE_SETTING,
+            null,
+            'creditmanagement',
+            new pix_icon('i/dashboard', get_string('creditmanagement', 'local_lecturebot'))
+        );
+        $node->showinflatnavigation = true;
+    }
 }
 

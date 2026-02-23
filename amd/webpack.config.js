@@ -3,7 +3,8 @@ const path = require('path');
 module.exports = {
   entry: {
     teacher: './src/index.ts',
-    student: './src/student/index.tsx'
+    student: './src/student/index.tsx',
+    cms: './src/cms/index.tsx'
   },
   output: {
     path: path.resolve(__dirname, 'build'),

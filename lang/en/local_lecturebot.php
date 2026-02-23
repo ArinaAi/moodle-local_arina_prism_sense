@@ -27,5 +27,7 @@ defined('MOODLE_INTERNAL') || die();
 $string['pluginname'] = 'LectureBot';
 $string['generatelecture'] = 'Generate AI Lecture';
 $string['generating'] = 'Generating Lecture...';
+$string['creditmanagement'] = 'Credit Management';
 $string['task:generate_content_task'] = 'Generate LectureBot Content';
 $string['task:poll_content_status'] = 'Poll Content Generation Status';
+$string['courseplayer'] = 'Start Course';
