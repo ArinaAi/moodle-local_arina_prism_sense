@@ -323,35 +323,20 @@ export const App: React.FC = () => {
                     const result = await response.json();
 
                     if (result.success && result.feedback_id && currentItem) {
-                      // Trigger regeneration - COMMENTED OUT AS BACKEND NOT READY
-                      /*
+                      // Trigger regeneration with feedback linked
                       const generationData = currentItem.generationdata ? JSON.parse(currentItem.generationdata) : {};
 
                       handleGenerateSlides(
-                        {} as any, // Curriculum fetched by backend
+                        {} as any, // Curriculum fetched by backend from section
                         generationData.content_strategy || 'standard',
                         currentItem.sectionid,
-                        generationData.video_length || 'standard',
-                        state.currentContentId,
+                        generationData.video_length || '30',
+                        state.currentContentId ?? undefined,
                         result.feedback_id
                       );
-                      */
-                      showNotification('Feedback saved successfully.', 'success');
                     } else if (!result.success) {
                       console.error('Failed to save feedback:', result.error);
                       showNotification('Failed to save feedback.', 'error');
-                      /*
-                      // Fallback: degenerate without feedback linkage if save fails
-                      if (currentItem) {
-                        handleGenerateSlides(
-                          {} as any,
-                          'standard',
-                          currentItem.sectionid,
-                          'standard',
-                          state.currentContentId
-                        );
-                      }
-                      */
                     }
                   } catch (error) {
                     console.error('Error in feedback submission flow:', error);

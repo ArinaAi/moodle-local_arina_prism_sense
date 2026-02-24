@@ -350,6 +350,9 @@ class poll_content_status_task extends \core\task\scheduled_task
         $content->timemodified   = time();
         $DB->update_record('local_lecturebot_content', $content);
         mtrace("    Content {$content->id} marked as ready!");
+
+        // Delete the parent content record now that the regenerated content is fully ready.
+        $this->deleteParentContent($content);
     }
 
     /**
@@ -405,5 +408,38 @@ class poll_content_status_task extends \core\task\scheduled_task
             'timemodified'   => time()
         ]
     );
+    }
+
+    /**
+     * Delete the parent content record once regenerated content is ready.
+     *
+     * Only fires when this content is a regeneration (has a parent_content_id).
+     * Feedback records in local_lecturebot_feedback are intentionally preserved.
+     * Azure files are NOT touched — they are needed for regen_count calculation.
+     *
+     * Chain behaviour: A→B→C
+     *   When B becomes ready  → A is deleted.
+     *   When C becomes ready  → B is deleted.
+     *
+     * @param object $content The newly-ready content record (the child/regeneration)
+     */
+    private function deleteParentContent($content)
+    {
+        global $DB;
+
+        if (empty($content->parent_content_id)) {
+            // Not a regeneration — nothing to delete.
+            return;
+        }
+
+        $parentId = (int)$content->parent_content_id;
+
+        if (!$DB->record_exists('local_lecturebot_content', ['id' => $parentId])) {
+            mtrace("    Parent content {$parentId} not found, skipping deletion.");
+            return;
+        }
+
+        $DB->delete_records('local_lecturebot_content', ['id' => $parentId]);
+        mtrace("    Deleted parent content record {$parentId} (superseded by content {$content->id}).");
     }
 }

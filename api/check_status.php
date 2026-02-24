@@ -77,7 +77,9 @@ try {
             'timeapproved' => $content->timeapproved,
             'approver' => $approver,
             // Add video_length for re-use
-            'video_length' => $generationData['video_length'] ?? null
+            'video_length' => $generationData['video_length'] ?? null,
+            // Needed by frontend to remove old card when regeneration completes
+            'parent_content_id' => $content->parent_content_id ?? null
         ];
     };
 

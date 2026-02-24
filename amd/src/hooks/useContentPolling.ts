@@ -72,14 +72,31 @@ const fetchStatusUpdates = async (
             const newContentItems = [...state.contentItems];
             let hasUpdates = false;
 
+            // Track parent IDs to remove (old cards superseded by a ready regeneration)
+            const parentIdsToRemove = new Set<number>();
+
             updates.forEach((updatedItem) => {
                 if (processUpdate(updatedItem, newContentItems, dispatch, showNotification)) {
                     hasUpdates = true;
+                    // If this item just became ready AND is a regeneration, mark its parent for removal
+                    const idx = newContentItems.findIndex((i) => i.id === updatedItem.id);
+                    if (
+                        idx !== -1 &&
+                        newContentItems[idx].status === 'ready' &&
+                        updatedItem.parent_content_id
+                    ) {
+                        parentIdsToRemove.add(updatedItem.parent_content_id);
+                    }
                 }
             });
 
-            if (hasUpdates) {
-                dispatch({ type: 'SET_CONTENT_ITEMS', payload: newContentItems });
+            // Remove superseded parent cards from the list
+            const filtered = parentIdsToRemove.size > 0
+                ? newContentItems.filter((i) => !parentIdsToRemove.has(i.id))
+                : newContentItems;
+
+            if (hasUpdates || parentIdsToRemove.size > 0) {
+                dispatch({ type: 'SET_CONTENT_ITEMS', payload: filtered });
             }
         }
     } catch (err) {

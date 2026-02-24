@@ -172,7 +172,7 @@ class generate_content_task extends \core\task\adhoc_task
                   '&content_strategy=' . urlencode($contentStrategy);
         } else {
              // Fallback to existing PPTX endpoint logic
-             return LECTUREBOT_API_GENERATE_PPTX .
+             $pptxUrl = LECTUREBOT_API_GENERATE_PPTX .
                   '?curriculum_text=' . urlencode(trim($curriculumText)) .
                   '&organization_id=' . urlencode($tenantId) .
                   '&course_id=' . $courseid .
@@ -180,6 +180,22 @@ class generate_content_task extends \core\task\adhoc_task
                   '&regen_count=' . $regenCount .
                   '&video_length=' . $videoLength .
                   '&content_strategy=' . urlencode($contentStrategy);
+
+             // Append feedback_json if feedback data is present (regeneration with feedback)
+             if (!empty($data->feedback)) {
+                 $fb = is_array($data->feedback) ? $data->feedback : (array)$data->feedback;
+                 $feedbackJson = json_encode([
+                     'topics_needing_depth' => $fb['topics_needing_depth'] ?? [],
+                     'topics_overexplained' => $fb['topics_overexplained'] ?? [],
+                     'extra_topics'         => $fb['extra_topics'] ?? [],
+                     'missing_subtopics'    => $fb['missing_subtopics'] ?? [],
+                     'reordered_flow'       => $fb['reordered_flow'] ?? [],
+                 ]);
+                 $pptxUrl .= '&feedback_json=' . urlencode($feedbackJson);
+                 mtrace("Appending feedback_json to PPTX API call for regeneration.");
+             }
+
+             return $pptxUrl;
         }
     }
 
