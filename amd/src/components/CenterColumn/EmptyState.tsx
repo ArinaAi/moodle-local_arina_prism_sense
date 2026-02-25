@@ -42,7 +42,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({ onOpenSourcesModal }) => {
                     fontSize: 'clamp(1rem, 2vw, 1.25rem)',
                 }}
             >
-                Get Started with LectureBot
+                Get Started with PRISM Sense
             </Typography>
             <Typography
                 variant="body1"

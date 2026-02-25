@@ -73,7 +73,7 @@ function local_lecturebot_get_button_js($wwwroot)
                                 window.MOODLE_CONTEXT.courseid;
                         } else {
                             console.error("❌ MOODLE_CONTEXT not available");
-                            alert("Unable to open LectureBot. Please refresh the page and try again.");
+                            alert("Unable to open PRISM Sense. Please refresh the page and try again.");
                         }
                     });
 

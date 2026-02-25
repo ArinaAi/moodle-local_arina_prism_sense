@@ -10,8 +10,8 @@
 defined('MOODLE_INTERNAL') || die;
 
 if ($hassiteconfig) {
-    // Create the settings page inside Site administration > Plugins > Local plugins > LectureBot
-    $settings = new admin_settingpage('local_lecturebot', 'LectureBot Settings');
+    // Create the settings page inside Site administration > Plugins > Local plugins > PRISM Sense
+    $settings = new admin_settingpage('local_lecturebot', 'PRISM Sense Settings');
 
     // Add the API Key text field
     $settings->add(new admin_setting_configtext(

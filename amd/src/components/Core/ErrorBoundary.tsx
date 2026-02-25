@@ -26,7 +26,7 @@ export const ErrorBoundary: React.FC<{ children: React.ReactNode }> = ({ childre
                     Something went wrong
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                    There was an error loading LectureBot. Please try refreshing the page.
+                    There was an error loading PRISM Sense. Please try refreshing the page.
                 </Typography>
                 <button
                     onClick={() => window.location.reload()}
