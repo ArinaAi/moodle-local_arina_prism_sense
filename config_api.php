@@ -51,6 +51,15 @@ define(
     'LECTUREBOT_API_DOWNLOAD_ASSET',
     'https://demo.arina.ai/dev2230/service/arina-url-gateway-service/api/v1/assets/download'
 );
+define(
+    'LECTUREBOT_FEEDBACK_SERVICE_URL',
+    'https://demo.arina.ai/dev2230/service/arina-customer-feedback-service/api/prism_sense/feedback'
+);
+define(
+    'LECTUREBOT_CONTENT_REGEN_FEEDBACK_URL',
+    'https://demo.arina.ai/dev2230/service/arina-customer-feedback-service' .
+    '/api/prism_sense/content-regeneration/feedback'
+);
 
 // Default video length (in minutes)
 define('LECTUREBOT_DEFAULT_VIDEO_LENGTH', 2);

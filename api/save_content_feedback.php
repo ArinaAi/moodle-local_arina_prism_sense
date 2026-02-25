@@ -1,15 +1,19 @@
 <?php
 /**
- * Save user feedback for generated content
+ * Save user feedback for content regeneration via Arina Feedback Service
+ *
+ * Forwards structured regeneration feedback to the external
+ * Arina Customer Feedback Service REST API.
  *
  * @package    local_lecturebot
- * @copyright  2025
+ * @copyright  2026
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 define('AJAX_SCRIPT', true);
 
 require_once __DIR__ . '/../../../config.php';
+require_once __DIR__ . '/../config_api.php';
 
 // User must be logged in
 require_login();
@@ -17,73 +21,164 @@ require_sesskey();
 
 header('Content-Type: application/json');
 
+/**
+ * Map a video_length value (string of minutes) to the API mode label.
+ *
+ * Values come from the CurriculumModal radio group:
+ *   '5'  → Express
+ *   '15' → Standard
+ *   '30' → Extensive
+ *   '45' → Deep Dive
+ *
+ * @param string|null $videoLength The stored video_length value
+ * @return string The corresponding mode label
+ */
+function mapVideoLengthToMode(?string $videoLength): string
+{
+    $map = [
+        '5'  => 'Express',
+        '15' => 'Standard',
+        '30' => 'Extensive',
+        '45' => 'Deep Dive',
+    ];
+    return $map[$videoLength] ?? 'Standard';
+}
+
 try {
-    $raw_input = file_get_contents('php://input');
-    $input = json_decode($raw_input, true);
+    $rawInput = file_get_contents('php://input');
+    $input    = json_decode($rawInput, true);
 
     if (!$input || !isset($input['contentid'])) {
         throw new invalid_parameter_exception('Invalid request: Missing content ID');
     }
 
     $contentid = (int)$input['contentid'];
+
+    // Load content record to get course info, video_length, and verify access
     $content = $DB->get_record('local_lecturebot_content', ['id' => $contentid], '*', MUST_EXIST);
 
-    // Verify user has access to this course
     $context = context_course::instance($content->courseid);
     require_capability('moodle/course:update', $context);
 
-    // Prepare feedback record
-    $feedback = new stdClass();
-    $feedback->contentid = $contentid;
-    $feedback->courseid = $content->courseid;
-    $feedback->userid = $USER->id;
-    $feedback->feedback_type = $input['feedback_type'] ?? 'structured';
-    
-    // Store JSON data
-    $feedback->selected_categories = isset(
-        $input['selected_categories']) ?
-        json_encode($input['selected_categories']) :
-        null;
-    $feedback->topics_needing_depth = isset(
-        $input['topics_needing_depth']) ?
-        json_encode($input['topics_needing_depth']) :
-        null;
-    $feedback->topics_overexplained = isset(
-        $input['topics_overexplained']) ?
-        json_encode($input['topics_overexplained']) :
-        null;
-    $feedback->extra_topics = isset(
-        $input['extra_topics']) ?
-        json_encode($input['extra_topics']) :
-        null;
-    $feedback->missing_subtopics = isset(
-        $input['missing_subtopics']) ?
-        json_encode($input['missing_subtopics']) :
-        null;
-    $feedback->reordered_flow = isset(
-        $input['reordered_flow']) ?
-        json_encode($input['reordered_flow']) :
-        null;
-    
-    // Rating/Comments (General feedback)
-    $feedback->rating = isset($input['rating']) ? (int)$input['rating'] : null;
-    $feedback->comments = isset($input['comments']) ? $input['comments'] : null;
-    
-    $feedback->timecreated = time();
+    // ----------------------------------------------------------------
+    // 1. Read all feedback fields
+    // ----------------------------------------------------------------
+    $selectedCategories  = $input['selected_categories']  ?? [];
+    $topicsNeedingDepth  = $input['topics_needing_depth']  ?? [];
+    $topicsOverexplained = $input['topics_overexplained']  ?? [];
+    $extraTopics         = $input['extra_topics']          ?? [];
+    $missingSubtopics    = $input['missing_subtopics']     ?? [];
+    $reorderedFlow       = $input['reordered_flow']        ?? [];
 
-    $feedbackid = $DB->insert_record('local_lecturebot_feedback', $feedback);
+    // feedback_type = comma-joined selected category IDs (e.g. "topics_need_depth,confusing_flow")
+    $feedbackType = !empty($selectedCategories)
+        ? implode(',', $selectedCategories)
+        : ($input['feedback_type'] ?? 'structured');
 
-    echo json_encode([
-        'success' => true,
-        'feedback_id' => $feedbackid,
-        'message' => 'Feedback saved successfully'
+    // mode = derived from video_length stored on the content record
+    // generationdata is JSON; video_length may also be a top-level column
+    $videoLength = null;
+    if (!empty($content->generationdata)) {
+        $genData     = json_decode($content->generationdata, true);
+        $videoLength = $genData['video_length'] ?? null;
+    }
+    // Fall back to direct column if available
+    if ($videoLength === null && isset($content->video_length)) {
+        $videoLength = $content->video_length;
+    }
+    // Also allow the caller to override it explicitly
+    if (!empty($input['video_length'])) {
+        $videoLength = $input['video_length'];
+    }
+
+    $mode = mapVideoLengthToMode($videoLength);
+
+    // ----------------------------------------------------------------
+    // 2. Build JSON payload for the Arina Content-Regen Feedback API
+    // ----------------------------------------------------------------
+    $payload = [
+        'tenant_id'           => (string)get_config('local_lecturebot', 'tenantid') ?:
+        getenv('LECTUREBOT_TENANT_ID') ?: '0',
+        'user_id'             => (string)$USER->id,
+        'contentid'           => (string)$contentid,
+        'feedback_type'       => $feedbackType,
+        'mode'                => $mode,
+        'generation_type'     => 'slide-regen',
+        'topics_needing_depth' => $topicsNeedingDepth,
+        'topics_overexplained' => $topicsOverexplained,
+        'extra_topics'        => $extraTopics,
+        'missing_subtopics'   => $missingSubtopics,
+        'reordered_flow'      => $reorderedFlow,
+        'selected_categories' => $selectedCategories,
+    ];
+
+    // ----------------------------------------------------------------
+    // 3. POST to Arina Feedback Service
+    // ----------------------------------------------------------------
+    $ch = curl_init(LECTUREBOT_CONTENT_REGEN_FEEDBACK_URL);
+
+    curl_setopt_array($ch, [
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => json_encode($payload),
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 30,
+        CURLOPT_CONNECTTIMEOUT => 10,
+        CURLOPT_HTTPHEADER     => [
+            'Content-Type: application/json',
+            'Accept: application/json',
+        ],
     ]);
 
+    $responseBody = curl_exec($ch);
+    $httpCode     = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError    = curl_error($ch);
+    curl_close($ch);
+
+    if ($curlError) {
+        error_log('Content Regen Feedback cURL error: ' . $curlError);
+        http_response_code(502);
+        echo json_encode([
+            'success' => false,
+            'error'   => 'Could not reach feedback service: ' . $curlError,
+        ]);
+        exit;
+    }
+
+    if ($httpCode === 201) {
+        $apiResponse = json_decode($responseBody, true);
+        $feedbackId  = $apiResponse['id'] ?? null;
+
+        error_log(sprintf(
+            'Content regen feedback saved. Service ID: %s, ContentID: %d, User: %d, Mode: %s',
+            $feedbackId,
+            $contentid,
+            $USER->id,
+            $mode
+        ));
+
+        echo json_encode([
+            'success'     => true,
+            'feedback_id' => $feedbackId,
+            'message'     => 'Feedback saved successfully',
+        ]);
+    } else {
+        error_log(sprintf(
+            'Content Regen Feedback Service returned HTTP %d. Body: %s',
+            $httpCode,
+            substr($responseBody, 0, 500)
+        ));
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'error'   => "Feedback service returned HTTP {$httpCode}.",
+        ]);
+    }
+
 } catch (Exception $e) {
-    error_log('LectureBot Feedback Error: ' . $e->getMessage());
+    error_log('LectureBot Content Feedback Error: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage()
+        'error'   => $e->getMessage(),
     ]);
 }

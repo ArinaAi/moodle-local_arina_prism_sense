@@ -1,6 +1,10 @@
 <?php
 /**
- * Save plugin feedback to PostgreSQL database
+ * Save plugin feedback via Arina Feedback Service
+ *
+ * Forwards the feedback (and optional screenshot) to the external
+ * Arina Feedback Service REST API instead of writing directly to
+ * PostgreSQL / Azure Blob Storage.
  *
  * @package    local_lecturebot
  * @copyright  2026
@@ -10,7 +14,7 @@
 define('AJAX_SCRIPT', true);
 
 require_once __DIR__ . '/../../../config.php';
-require_once __DIR__ . '/../lib_azure_storage.php';
+require_once __DIR__ . '/../config_api.php';
 
 use local_lecturebot\exception\ValidationException;
 
@@ -20,238 +24,208 @@ require_sesskey();
 
 header('Content-Type: application/json');
 
-// PostgreSQL credentials are now loaded from .env via configurator_azure.php
-// Constants: PG_HOST, PG_PORT, PG_DATABASE, PG_USER, PG_PASSWORD
-
 /**
- * Upload file to Azure Blob Storage
+ * Map frontend category IDs to the values expected by the Arina Feedback Service.
  *
- * @param array $file File from $_FILES
- * @param int $ownerId Owner/Tenant ID
- * @param int $userId User ID
- * @return array ['success' => bool, 'url' => string|null, 'filename' => string|null, 'error' => string|null]
+ * @param array $issueTypes Array of frontend category IDs
+ * @return array Remapped category values
  */
-function uploadToAzureBlob($file, $ownerId, $userId)
+function mapToApiCategories(array $issueTypes): array
 {
-    // Initialize default error result
-    $result = [
-        'success' => false,
-        'url' => null,
-        'filename' => null,
-        'error' => null
+    $map = [
+        'generation'       => 'content_creation_issue',
+        'workflow'         => 'usability_problem',
+        'feature_requests' => 'enhancement_idea',
+        'billing'          => 'subscription_and_billing',
     ];
-    
-    try {
-        // Validate file
-        if ($file['error'] !== UPLOAD_ERR_OK) {
-            $result['error'] = 'File upload error: ' . $file['error'];
+
+    $mapped = [];
+    foreach ($issueTypes as $type) {
+        if (isset($map[$type])) {
+            $mapped[] = $map[$type];
         } else {
-            // Validate file type (only images)
-            $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-            $finfo = finfo_open(FILEINFO_MIME_TYPE);
-            $mimeType = finfo_file($finfo, $file['tmp_name']);
-            finfo_close($finfo);
-            
-            if (!in_array($mimeType, $allowedTypes)) {
-                $result['error'] = 'Invalid file type. Only images are allowed.';
-            } elseif ($file['size'] > 5 * 1024 * 1024) {
-                // Validate file size (max 5MB)
-                $result['error'] = 'File too large. Maximum size is 5MB.';
-            } elseif (!defined('AZURE_STORAGE_ACCOUNT_NAME') || !defined('AZURE_STORAGE_ACCOUNT_KEY')) {
-                // Get Azure credentials from environment
-                $result['error'] = 'Azure credentials not configured';
-            } else {
-                // All validations passed, proceed with upload
-                $accountName = AZURE_STORAGE_ACCOUNT_NAME;
-                $accountKey = AZURE_STORAGE_ACCOUNT_KEY;
-                
-                // Use prism-feedback container with tenant-based folder structure
-                $containerName = 'prism-feedback';
-                
-                // Generate unique filename with pattern: {timestamp}_{owner_id}_{user_id}_{random}.{ext}
-                $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
-                $timestamp = time();
-                // Use cryptographically secure random bytes instead of MD5
-                $random = bin2hex(random_bytes(3)); // 3 bytes = 6 hex characters
-                $filename = "{$timestamp}_{$ownerId}_{$userId}_{$random}.{$extension}";
-                
-                // Organize by tenant: tenant-{owner_id}/{filename}
-                $blobName = "tenant-{$ownerId}/{$filename}";
-                
-                // Read file content
-                $content = file_get_contents($file['tmp_name']);
-                
-                // Upload to Azure using existing helper function
-                $uploadSuccess = upload_to_azure_blob(
-                    $accountName,
-                    $containerName,
-                    $accountKey,
-                    $blobName,
-                    $content,
-                    $mimeType
-                );
-                
-                if ($uploadSuccess) {
-                    $blobUrl = get_azure_blob_url($accountName, $containerName, $blobName);
-                    $result = [
-                        'success' => true,
-                        'url' => $blobUrl,
-                        'filename' => $filename,
-                        'error' => null
-                    ];
-                } else {
-                    $result['error'] = 'Failed to upload to Azure Blob Storage';
-                }
-            }
+            // Pass through unknown values so the API can validate them
+            $mapped[] = $type;
         }
-        
-    } catch (Exception $e) {
-        error_log('Azure Blob upload error: ' . $e->getMessage());
-        $result['error'] = 'Failed to upload screenshot: ' . $e->getMessage();
     }
-    
-    return $result;
+    return $mapped;
 }
 
 try {
-    // Parse form data (frontend always sends multipart/form-data)
-    $has_file = isset($_FILES['screenshot']) && $_FILES['screenshot']['error'] !== UPLOAD_ERR_NO_FILE;
-    
-    $user_id = isset($_POST['user_id']) ? (int)$_POST['user_id'] : null;
-    $owner_id = isset($_POST['owner_id']) ? (int)$_POST['owner_id'] : null;
-    $issue_types = isset($_POST['issue_types']) ? $_POST['issue_types'] : null;
-    $issue_description = isset($_POST['issue_description']) ? $_POST['issue_description'] : null;
-    
-    // Validate required fields
-    if (!$user_id) {
+    // ----------------------------------------------------------------
+    // 1. Parse & validate incoming form data
+    // ----------------------------------------------------------------
+    $hasFile        = isset($_FILES['screenshot']) && $_FILES['screenshot']['error'] !== UPLOAD_ERR_NO_FILE;
+    $userId         = isset($_POST['user_id'])         ? trim($_POST['user_id'])         : null;
+    $ownerId        = isset($_POST['owner_id'])         ? trim($_POST['owner_id'])         : null;
+    $issueTypes     = isset($_POST['issue_types'])     ? $_POST['issue_types']           : null;
+    $issueDesc      = isset($_POST['issue_description']) ? $_POST['issue_description']   : null;
+
+    if (!$userId) {
         throw new ValidationException('Missing required field: user_id');
     }
-    
-    if (!$issue_types) {
+    if (!$issueTypes) {
         throw new ValidationException('Missing required field: issue_types');
     }
-    
-    if (!$issue_description || trim($issue_description) === '') {
+    if (!$issueDesc || trim($issueDesc) === '') {
         throw new ValidationException('Missing required field: issue_description');
     }
-    
-    // Validate issue_types is an array
-    if (is_string($issue_types)) {
-        $issue_types = json_decode($issue_types, true);
+
+    // issue_types may arrive JSON-encoded (array sent as JSON string)
+    if (is_string($issueTypes)) {
+        $issueTypes = json_decode($issueTypes, true);
     }
-    
-    if (!is_array($issue_types) || empty($issue_types)) {
+    if (!is_array($issueTypes) || empty($issueTypes)) {
         throw new ValidationException('issue_types must be a non-empty array');
     }
-    
-    
-    // Handle screenshot upload if present
-    $screenshot_url = null;
-    $screenshot_filename = null;
-    
-    if ($has_file) {
-        $upload_result = uploadToAzureBlob($_FILES['screenshot'], $owner_id, $user_id);
-        
-        if ($upload_result['success']) {
-            $screenshot_url = $upload_result['url'];
-            $screenshot_filename = $upload_result['filename'];
-        } else {
-            // Log the error but don't fail the entire feedback submission
-            error_log('Screenshot upload failed: ' . $upload_result['error']);
-            // Continue without screenshot - feedback is more important than the image
+
+    // ----------------------------------------------------------------
+    // 2. Remap category IDs to API values
+    // ----------------------------------------------------------------
+    $reportCategories = mapToApiCategories($issueTypes);
+
+    // ----------------------------------------------------------------
+    // 3. Build multipart/form-data body for cURL
+    //    CURLFile handles proper multipart encoding for file uploads.
+    // ----------------------------------------------------------------
+    // 3. Validate optional screenshot up-front (before building body)
+    // ----------------------------------------------------------------
+    $screenshotTmpPath = null;
+    $screenshotMime    = null;
+    $screenshotName    = null;
+
+    if ($hasFile && $_FILES['screenshot']['error'] === UPLOAD_ERR_OK) {
+        $file     = $_FILES['screenshot'];
+        $finfo    = finfo_open(FILEINFO_MIME_TYPE);
+        $detectedMime = finfo_file($finfo, $file['tmp_name']);
+        finfo_close($finfo);
+
+        $allowedMimes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+        if (!in_array($detectedMime, $allowedMimes)) {
+            throw new ValidationException('Invalid screenshot type. Allowed: png, jpeg, jpg, webp.');
         }
+        if ($file['size'] > 5 * 1024 * 1024) {
+            throw new ValidationException('Screenshot too large. Maximum size is 5 MB.');
+        }
+
+        $screenshotTmpPath = $file['tmp_name'];
+        $screenshotMime    = $detectedMime;
+        $screenshotName    = $file['name'];
     }
-    
-    // Connect to PostgreSQL
-    $dsn = sprintf(
-        'pgsql:host=%s;port=%s;dbname=%s',
-        PG_HOST,
-        PG_PORT,
-        PG_DATABASE
-    );
-    
-    $pdo = new PDO($dsn, PG_USER, PG_PASSWORD, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+
+    // ----------------------------------------------------------------
+    // 4. Build a raw multipart/form-data body.
+    //
+    //    PHP's cURL cannot send repeated identical keys when using an
+    //    associative array for CURLOPT_POSTFIELDS, and FastAPI does NOT
+    //    understand the bracket notation (report_categories[0]=...).
+    //    The only correct approach is to construct the multipart body
+    //    manually so we can add one part per category.
+    // ----------------------------------------------------------------
+    $boundary = '----LectureBotBoundary' . bin2hex(random_bytes(8));
+    $eol      = "\r\n";
+    $body     = '';
+
+    // Helper closure to add a plain text field
+    $addField = function (string $name, string $value) use (&$body, $boundary, $eol): void {
+        $body .= "--{$boundary}{$eol}";
+        $body .= "Content-Disposition: form-data; name=\"{$name}\"{$eol}{$eol}";
+        $body .= "{$value}{$eol}";
+    };
+
+    $addField('tenant_id', $ownerId);
+    $addField('user_id', $userId);
+    $addField('description', trim($issueDesc));
+
+    // Repeat report_categories for each value — FastAPI reads them as a list
+    foreach ($reportCategories as $cat) {
+        $addField('report_categories', $cat);
+    }
+
+    // Add file part if present
+    if ($screenshotTmpPath !== null) {
+        $fileContents = file_get_contents($screenshotTmpPath);
+        $body .= "--{$boundary}{$eol}";
+        $body .= "Content-Disposition: form-data; name=\"screenshot\"; filename=\"{$screenshotName}\"{$eol}";
+        $body .= "Content-Type: {$screenshotMime}{$eol}{$eol}";
+        $body .= $fileContents . $eol;
+    }
+
+    $body .= "--{$boundary}--{$eol}";
+
+    // ----------------------------------------------------------------
+    // 5. Execute cURL request to Arina Feedback Service
+    // ----------------------------------------------------------------
+    $ch = curl_init(LECTUREBOT_FEEDBACK_SERVICE_URL);
+
+    curl_setopt_array($ch, [
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => $body,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 30,
+        CURLOPT_CONNECTTIMEOUT => 10,
+        CURLOPT_HTTPHEADER     => [
+            "Content-Type: multipart/form-data; boundary={$boundary}",
+            'Content-Length: ' . strlen($body),
+        ],
     ]);
-    
-    // Begin transaction
-    $pdo->beginTransaction();
-    
-    try {
-        // Prepare SQL statement
-        $sql = "INSERT INTO product_feedback (
-                    user_id,
-                    owner_id,
-                    product_name,
-                    issue_types,
-                    issue_description,
-                    screenshot_url,
-                    screenshot_filename
-                ) VALUES (
-                    :user_id,
-                    :owner_id,
-                    :product_name,
-                    :issue_types,
-                    :issue_description,
-                    :screenshot_url,
-                    :screenshot_filename
-                ) RETURNING id";
-        
-        $stmt = $pdo->prepare($sql);
-        
-        // Execute with parameters
-        $stmt->execute([
-            ':user_id' => $user_id,
-            ':owner_id' => $owner_id,
-            ':product_name' => 'PRISM_SENSE', // Hardcoded as per requirements
-            ':issue_types' => json_encode($issue_types),
-            ':issue_description' => trim($issue_description),
-            ':screenshot_url' => $screenshot_url,
-            ':screenshot_filename' => $screenshot_filename,
-        ]);
-        
-        // Get the inserted ID
-        $result = $stmt->fetch();
-        $feedback_id = $result['id'];
-        
-        // Commit transaction
-        $pdo->commit();
-        
-        // Log success
-        error_log(sprintf(
-            'Plugin feedback saved successfully. ID: %d, User: %d, Owner: %d',
-            $feedback_id,
-            $user_id,
-            $owner_id
-        ));
-        
-        // Return success response
+
+    $responseBody = curl_exec($ch);
+    $httpCode     = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError    = curl_error($ch);
+    curl_close($ch);
+
+    // ----------------------------------------------------------------
+    // 5. Handle response
+    // ----------------------------------------------------------------
+    if ($curlError) {
+        error_log('Feedback Service cURL error: ' . $curlError);
+        http_response_code(502);
         echo json_encode([
-            'success' => true,
-            'feedback_id' => $feedback_id,
-            'message' => 'Feedback submitted successfully'
+            'success' => false,
+            'error'   => 'Could not reach feedback service: ' . $curlError,
         ]);
-        
-    } catch (Exception $e) {
-        // Rollback transaction on error
-        $pdo->rollBack();
-        throw $e;
+        exit;
     }
-    
-} catch (PDOException $e) {
-    error_log('PostgreSQL Error in save_plugin_feedback: ' . $e->getMessage());
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'error' => 'Database error: ' . $e->getMessage()
-    ]);
-    
-} catch (Exception $e) {
-    error_log('Error in save_plugin_feedback: ' . $e->getMessage());
+
+    // 201 = Created (success), anything else is an error
+    if ($httpCode === 201) {
+        $apiResponse = json_decode($responseBody, true);
+        error_log(sprintf(
+            'Plugin feedback submitted successfully. Service ID: %s, User: %s, Tenant: %s',
+            $apiResponse['id'] ?? 'unknown',
+            $userId,
+            $ownerId
+        ));
+        echo json_encode([
+            'success'     => true,
+            'feedback_id' => $apiResponse['id'] ?? null,
+            'message'     => 'Feedback submitted successfully',
+        ]);
+    } else {
+        error_log(sprintf(
+            'Feedback Service returned HTTP %d. Body: %s',
+            $httpCode,
+            substr($responseBody, 0, 500)
+        ));
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'error'   => "Feedback service returned HTTP {$httpCode}.",
+        ]);
+    }
+
+} catch (ValidationException $e) {
     http_response_code(400);
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage()
+        'error'   => $e->getMessage(),
+    ]);
+} catch (Exception $e) {
+    error_log('Error in save_plugin_feedback: ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error'   => $e->getMessage(),
     ]);
 }

@@ -309,13 +309,15 @@ export const App: React.FC = () => {
                         },
                         body: JSON.stringify({
                           contentid: state.currentContentId,
-                          feedback_type: 'structured',
                           topics_needing_depth: feedback.topicsNeedingDepth,
                           topics_overexplained: feedback.topicsOverExplained,
                           extra_topics: feedback.extraTopics,
                           missing_subtopics: feedback.missingSubtopics,
                           reordered_flow: feedback.reorderedTopicFlow,
                           selected_categories: feedback.selectedCategories,
+                          // Pass video_length so PHP can map it to mode (Express/Standard/Extensive/Deep Dive)
+                          video_length: currentItem?.video_length
+                            ?? (currentItem?.generationdata ? JSON.parse(currentItem.generationdata).video_length : undefined),
                           sesskey: state.moodleContext.sesskey,
                         }),
                       }
