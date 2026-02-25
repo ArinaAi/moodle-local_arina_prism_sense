@@ -7,8 +7,9 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-require_once(__DIR__ . '/../../../config.php');
-require_once(__DIR__ . '/../configurator_azure.php');
+require_once __DIR__ . '/../../../config.php';
+require_once __DIR__ . '/../configurator_azure.php';
+require_once __DIR__ . '/../config_api.php';
 
 $contentid = required_param('contentid', PARAM_INT);
 require_login();
@@ -45,71 +46,52 @@ if (!empty($generationData['pdf_path']) && file_exists($generationData['pdf_path
 }
 
 try {
-    // Azure Storage Details
-    $accountName = AZURE_STORAGE_ACCOUNT_NAME;
-    $containerName = AZURE_BLOB_CONTAINER_NAME; // 'bot-storage'
-    $blobUrl = "https://{$accountName}.blob.core.windows.net/{$containerName}/{$blobName}";
-    
-    // Generate authorization header using Shared Key
-    $date = gmdate('D, d M Y H:i:s T');
-    $version = '2020-04-08';
-    
-    // Construct the string to sign
-    $stringToSign = "GET\n" .  // HTTP Verb
-                   "\n" .      // Content-Encoding
-                   "\n" .      // Content-Language
-                   "\n" .      // Content-Length
-                   "\n" .      // Content-MD5
-                   "\n" .      // Content-Type
-                   "\n" .      // Date
-                   "\n" .      // If-Modified-Since
-                   "\n" .      // If-Match
-                   "\n" .      // If-None-Match
-                   "\n" .      // If-Unmodified-Since
-                   "\n" .      // Range
-                   "x-ms-date:{$date}\n" .
-                   "x-ms-version:{$version}\n" .
-                   "/{$accountName}/{$containerName}/{$blobName}";
-    
-    // Sign the string
-    $signature = base64_encode(hash_hmac('sha256', $stringToSign, base64_decode(AZURE_STORAGE_ACCOUNT_KEY), true));
-    $authHeader = "SharedKey {$accountName}:{$signature}";
-    
-    // Download the blob using cURL
-    $ch = curl_init($blobUrl);
+    // BFF Connection Details
+    $apiKey = get_config('local_lecturebot', 'api_key');
+    $tenantId = defined('LECTUREBOT_TENANT_ID') ? LECTUREBOT_TENANT_ID : 1;
+    $containerName = strtolower('Blob-Tutorial-Gen-' . $tenantId);
+
+    if (empty($apiKey)) {
+        throw new moodle_exception('API key is not configured in settings.');
+    }
+
+    // Construct the BFF proxy URL (no api_key in query string — sent as header below)
+    $proxyUrl = LECTUREBOT_API_DOWNLOAD_ASSET .
+    '?blob_path=' . urlencode($blobName) .
+    '&container=' . urlencode($containerName);
+
+    // Fetch PDF from BFF via cURL, forwarding the X-Api-key header
+    $ch = curl_init($proxyUrl);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER => [
-            "x-ms-date: {$date}",
-            "x-ms-version: {$version}",
-            "Authorization: {$authHeader}"
-        ],
-        CURLOPT_TIMEOUT => 300,
+        CURLOPT_HTTPHEADER     => ["X-Api-key: {$apiKey}"],
+        CURLOPT_TIMEOUT        => 120,
         CURLOPT_CONNECTTIMEOUT => 30,
-        CURLOPT_SSL_VERIFYPEER => true,
-        CURLOPT_SSL_VERIFYHOST => 2,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => 0,
     ]);
-    
+
     $fileContent = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    
+
     if (curl_errno($ch)) {
-        throw new moodle_exception('error', 'moodle', '', 'cURL error: ' . curl_error($ch));
+        $curlError = curl_error($ch);
+        curl_close($ch);
+        throw new moodle_exception('cURL error connecting to BFF: ' . $curlError);
     }
-    
     curl_close($ch);
 
     if ($httpCode !== 200) {
-        http_response_code(404);
-        die("File not found in storage (HTTP $httpCode)");
+        http_response_code($httpCode);
+        $errorResponse = json_decode($fileContent, true);
+        $errorMsg = $errorResponse['detail'] ?? "File not found or access denied (HTTP {$httpCode})";
+        die('PDF proxy failed: ' . $errorMsg);
     }
 
-    // Output headers
     header('Content-Type: application/pdf');
     header('Content-Disposition: inline; filename="' . $blobName . '"');
     header('Content-Length: ' . strlen($fileContent));
     header('Cache-Control: public, max-age=3600');
-    
     echo $fileContent;
     exit;
 

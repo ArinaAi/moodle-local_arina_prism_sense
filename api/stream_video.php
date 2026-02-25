@@ -9,9 +9,10 @@
  */
 
 define('AJAX_SCRIPT', true);
-require_once(__DIR__ . '/../../../config.php');
-require_once(__DIR__ . '/../configurator_azure.php');
-require_once(__DIR__ . '/../lib_azure_storage.php');
+require_once __DIR__ . '/../../../config.php';
+require_once __DIR__ . '/../configurator_azure.php';
+require_once __DIR__ . '/../lib_azure_storage.php';
+require_once __DIR__ . '/../config_api.php';
 
 try {
     // Get parameters
@@ -50,23 +51,82 @@ try {
         throw new moodle_exception('Video file not found in content record');
     }
     
-    // Azure Credentials
-    $accountName = AZURE_STORAGE_ACCOUNT_NAME;
-    $accountKey = AZURE_STORAGE_ACCOUNT_KEY;
+    $apiKey = get_config('local_lecturebot', 'api_key');
     $tenantId = defined('LECTUREBOT_TENANT_ID') ? LECTUREBOT_TENANT_ID : 1;
     
     if (!$containerName) {
          $containerName = strtolower('Blob-Tutorial-Gen-' . $tenantId);
     }
     
-    // Generate SAS Token (Read Only, 60 minutes)
-    $sasToken = generate_blob_sas_token($accountName, $containerName, $blobName, $accountKey);
-    
-    // Construct URL
-    $azureUrl = get_azure_blob_url($accountName, $containerName, $blobName) . $sasToken;
-    
-    // Redirect to the signed URL using raw header to avoid Moodle's external redirect blocked in AJAX
-    header('Location: ' . $azureUrl);
+    // Construct Proxy URL (no api_key in query string — sent as header below)
+    $proxyUrl = LECTUREBOT_API_DOWNLOAD_ASSET .
+    '?blob_path=' . urlencode($blobName) .'&container=' . urlencode($containerName);
+
+    if (empty($apiKey)) {
+        throw new moodle_exception('API key is not configured in settings.');
+    }
+
+    // Build request headers — forward Range header if the browser sent one (needed for seeking)
+    $curlHeaders = ["X-Api-key: {$apiKey}"];
+    if (isset($_SERVER['HTTP_RANGE'])) {
+        $curlHeaders[] = 'Range: ' . $_SERVER['HTTP_RANGE'];
+    }
+
+    // Capture response headers from BFF
+    $responseHeaders = [];
+    $headersSet      = false;
+
+    $ch = curl_init($proxyUrl);
+    curl_setopt_array($ch, [
+        CURLOPT_HTTPHEADER     => $curlHeaders,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_MAXREDIRS      => 5,
+        CURLOPT_RETURNTRANSFER => false,
+
+        // Parse response headers out of every header line
+        CURLOPT_HEADERFUNCTION => function ($ch, $headerLine) use (&$responseHeaders) {
+            $trimmed = trim($headerLine);
+            if (strpos($trimmed, ':') !== false) {
+                [$name, $value] = explode(':', $trimmed, 2);
+                $responseHeaders[strtolower(trim($name))] = trim($value);
+            }
+            return strlen($headerLine);
+        },
+
+        // On the FIRST body chunk, emit all PHP response headers BEFORE any output.
+        // This is critical — PHP ignores header() calls once output has started.
+        CURLOPT_WRITEFUNCTION  => function ($ch, $data) use (&$headersSet, &$responseHeaders) {
+            if (!$headersSet) {
+                http_response_code(curl_getinfo($ch, CURLINFO_HTTP_CODE)); // 206 for range requests, 200 otherwise
+                header('Content-Type: video/mp4');
+                header('Accept-Ranges: bytes');
+                if (isset($responseHeaders['content-range'])) {
+                    header('Content-Range: ' . $responseHeaders['content-range']);
+                }
+                if (isset($responseHeaders['content-length'])) {
+                    header('Content-Length: ' . $responseHeaders['content-length']);
+                }
+                header('Cache-Control: no-store');
+                $headersSet = true;
+            }
+            echo $data;
+            return strlen($data);
+        },
+
+        CURLOPT_TIMEOUT        => 300,
+        CURLOPT_CONNECTTIMEOUT => 30,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => 0,
+    ]);
+
+    curl_exec($ch);
+    $curlErrNo = curl_errno($ch);
+    $curlErr   = curl_error($ch);
+    curl_close($ch);
+
+    if ($curlErrNo) {
+        throw new moodle_exception('cURL error connecting to BFF: ' . $curlErr);
+    }
     exit;
     
 } catch (Exception $e) {

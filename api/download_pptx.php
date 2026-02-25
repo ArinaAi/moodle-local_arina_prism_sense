@@ -45,63 +45,48 @@ if (!empty($generationData['pptx_path']) && file_exists($generationData['pptx_pa
 }
 
 try {
-    // Azure Storage Details
-    $accountName = AZURE_STORAGE_ACCOUNT_NAME;
-    $containerName = AZURE_BLOB_CONTAINER_NAME; // 'bot-storage'
-    $blobUrl = "https://{$accountName}.blob.core.windows.net/{$containerName}/{$blobName}";
+    $blobPath = $generationData['azure_blob_name'] ?? $blobName;
+    $containerName = $generationData['azure_container'] ?? AZURE_BLOB_CONTAINER_NAME;
     
-    // Generate authorization header using Shared Key
-    $date = gmdate('D, d M Y H:i:s T');
-    $version = '2020-04-08';
+    // Construct Proxy URL
+    $proxyUrl = LECTUREBOT_API_DOWNLOAD_ASSET .
+    '?blob_path=' . urlencode($blobPath) .
+    '&container=' . urlencode($containerName);
     
-    // Construct the string to sign
-    $stringToSign = "GET\n" .  // HTTP Verb
-                   "\n" .      // Content-Encoding
-                   "\n" .      // Content-Language
-                   "\n" .      // Content-Length
-                   "\n" .      // Content-MD5
-                   "\n" .      // Content-Type
-                   "\n" .      // Date
-                   "\n" .      // If-Modified-Since
-                   "\n" .      // If-Match
-                   "\n" .      // If-None-Match
-                   "\n" .      // If-Unmodified-Since
-                   "\n" .      // Range
-                   "x-ms-date:{$date}\n" .
-                   "x-ms-version:{$version}\n" .
-                   "/{$accountName}/{$containerName}/{$blobName}";
+    // Get the API key
+    $apiKey = get_config('local_lecturebot', 'api_key');
+    if (empty($apiKey)) {
+        throw new moodle_exception('API key is not configured in settings.');
+    }
     
-    // Sign the string
-    $signature = base64_encode(hash_hmac('sha256', $stringToSign, base64_decode(AZURE_STORAGE_ACCOUNT_KEY), true));
-    $authHeader = "SharedKey {$accountName}:{$signature}";
-    
-    // Download the blob using cURL
-    $ch = curl_init($blobUrl);
+    // Download the blob securely via the BFF proxy
+    $ch = curl_init($proxyUrl);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_HTTPHEADER => [
-            "x-ms-date: {$date}",
-            "x-ms-version: {$version}",
-            "Authorization: {$authHeader}"
+            "X-Api-key: {$apiKey}"
         ],
         CURLOPT_TIMEOUT => 300,
         CURLOPT_CONNECTTIMEOUT => 30,
-        CURLOPT_SSL_VERIFYPEER => true,
-        CURLOPT_SSL_VERIFYHOST => 2,
+        // Disable SSL verification for local testing on 127.0.0.1
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => 0,
     ]);
     
     $fileContent = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     
     if (curl_errno($ch)) {
-        throw new moodle_exception('error', 'moodle', '', 'cURL error: ' . curl_error($ch));
+        throw new moodle_exception('error', 'moodle', '', 'cURL error connecting to BFF: ' . curl_error($ch));
     }
     
     curl_close($ch);
 
     if ($httpCode !== 200) {
-        http_response_code(404);
-        die("File not found in storage (HTTP $httpCode)");
+        http_response_code($httpCode);
+        $errorResponse = json_decode($fileContent, true);
+        $errorMsg = $errorResponse['detail'] ?? "File not found or access denied (HTTP $httpCode)";
+        die("Download proxy failed: " . $errorMsg);
     }
 
     // Output headers
@@ -115,5 +100,5 @@ try {
 
 } catch (Exception $e) {
     http_response_code(500);
-    die('Error retrieving file: ' . $e->getMessage());
+    die('Error retrieving file via proxy: ' . $e->getMessage());
 }

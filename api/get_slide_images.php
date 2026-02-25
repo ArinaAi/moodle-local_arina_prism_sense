@@ -11,9 +11,10 @@
 define('NO_DEBUG_DISPLAY', true);
 define('AJAX_SCRIPT', true);
 define('REDIRECT_STDERR', ' 2>&1');
-require_once(__DIR__ . '/../../../config.php');
-require_once(__DIR__ . '/../configurator_azure.php');
-require_once(__DIR__ . '/../lib_azure_storage.php');
+require_once __DIR__ . '/../../../config.php';
+require_once __DIR__ . '/../configurator_azure.php';
+require_once __DIR__ . '/../lib_azure_storage.php';
+require_once __DIR__ . '/../config_api.php';
 
 // Developer Mode: Redirect to mock handler
 if (defined('DEVELOPER_MODE') && DEVELOPER_MODE) {
@@ -116,12 +117,9 @@ function extractImagesFromAzure($genData, $tenantId)
         strtolower($genData['azure_container']) :
         strtolower('Blob-Tutorial-Gen-' . $tenantId);
 
-    $accountName = AZURE_STORAGE_ACCOUNT_NAME;
-    $accountKey = AZURE_STORAGE_ACCOUNT_KEY;
-
     $slideCount = calculateAzureSlideCount($genData);
 
-    return generateAzureImageUrls($slideCount, $azureFolderId, $containerName, $accountName, $accountKey);
+    return generateAzureImageUrls($slideCount, $azureFolderId, $containerName);
 }
 
 /**
@@ -172,16 +170,15 @@ function calculateSlidesFromResult($genData)
 }
 
 /**
- * Generate Azure image URLs with SAS tokens
+ * Generate Azure image URLs via BFF Proxy
  * @param int $slideCount
  * @param string $azureFolderId
  * @param string $containerName
- * @param string $accountName
- * @param string $accountKey
  * @return array
  */
-function generateAzureImageUrls($slideCount, $azureFolderId, $containerName, $accountName, $accountKey)
+function generateAzureImageUrls($slideCount, $azureFolderId, $containerName)
 {
+    global $CFG;
     $images = [];
 
     for ($i = 0; $i < $slideCount; $i++) {
@@ -189,14 +186,15 @@ function generateAzureImageUrls($slideCount, $azureFolderId, $containerName, $ac
         $filename = 'slide_' . $i . '.png';
         $blobName = $azureFolderId . '/intermediate_chunks/slide_pngs/' . $filename;
 
-        // Generate SAS Token
-        $sasToken = generate_blob_sas_token($accountName, $containerName, $blobName, $accountKey);
-
-        $azureUrl = get_azure_blob_url($accountName, $containerName, $blobName) . $sasToken;
+        // Route through Moodle's proxy_asset.php so the X-Api-key header is added
+        // server-side. This keeps the API key out of the browser-visible URL.
+        $proxyUrl = $CFG->wwwroot . '/local/lecturebot/api/proxy_asset.php'
+            . '?blob_path=' . urlencode($blobName)
+            . '&container=' . urlencode($containerName);
 
         $images[] = [
-            'filename' => $filename,
-            'data' => $azureUrl,
+            'filename'    => $filename,
+            'data'        => $proxyUrl,
             'slideNumber' => $i + 1 // Frontend expects 1-based index
         ];
     }

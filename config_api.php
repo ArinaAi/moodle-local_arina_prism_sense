@@ -47,6 +47,10 @@ define(
 define('LECTUREBOT_API_START_BATCH_UPLOAD', LECTUREBOT_API_BASE_URL . '/start_batch_upload');
 define('LECTUREBOT_API_CHECK_BATCH_STATUS', LECTUREBOT_API_BASE_URL . '/check_batch_status');
 define('LECTUREBOT_API_DELETE_DOCUMENT', LECTUREBOT_API_BASE_URL . '/delete_document');
+define(
+    'LECTUREBOT_API_DOWNLOAD_ASSET',
+    'https://demo.arina.ai/dev2230/service/arina-url-gateway-service/api/v1/assets/download'
+);
 
 // Default video length (in minutes)
 define('LECTUREBOT_DEFAULT_VIDEO_LENGTH', 2);
