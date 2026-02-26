@@ -117,9 +117,7 @@ function extractImagesFromAzure($genData, $tenantId)
         strtolower($genData['azure_container']) :
         strtolower('Blob-Tutorial-Gen-' . $tenantId);
 
-    $slideCount = calculateAzureSlideCount($genData);
-
-    return generateAzureImageUrls($slideCount, $azureFolderId, $containerName);
+    return generateAzureImageUrls($azureFolderId, $containerName);
 }
 
 /**
@@ -171,36 +169,75 @@ function calculateSlidesFromResult($genData)
 
 /**
  * Generate Azure image URLs via BFF Proxy
- * @param int $slideCount
  * @param string $azureFolderId
  * @param string $containerName
  * @return array
  */
-function generateAzureImageUrls($slideCount, $azureFolderId, $containerName)
+function generateAzureImageUrls($azureFolderId, $containerName)
 {
-    global $CFG;
     $images = [];
+    $apiKey = get_config('local_lecturebot', 'api_key');
 
-    for ($i = 0; $i < $slideCount; $i++) {
-        // Actual format found in Azure: slide_0.png, slide_1.png (0-indexed, unpadded)
-        $filename = 'slide_' . $i . '.png';
-        $blobName = $azureFolderId . '/intermediate_chunks/slide_pngs/' . $filename;
-
-        // Route through Moodle's proxy_asset.php so the X-Api-key header is added
-        // server-side. This keeps the API key out of the browser-visible URL.
-        $proxyUrl = $CFG->wwwroot . '/local/lecturebot/api/proxy_asset.php'
-            . '?blob_path=' . urlencode($blobName)
-            . '&container=' . urlencode($containerName);
-
-        $images[] = [
-            'filename'    => $filename,
-            'data'        => $proxyUrl,
-            'slideNumber' => $i + 1 // Frontend expects 1-based index
-        ];
+    if (empty($apiKey)) {
+        throw new moodle_exception('API key not configured');
     }
+
+    // 1. Fetch all SAS URLs for the slide_pngs folder in one single call
+    $directoryPath = $azureFolderId . '/intermediate_chunks/slide_pngs/';
+    $authValidateUrl = 'https://demo.arina.ai/dev2230/service/arina_auth_service/validate' .
+        '?container=' . urlencode($containerName) .
+        '&blob_path=' . urlencode($directoryPath) .
+        '&list_folder=true';
+
+    $ch = curl_init($authValidateUrl);
+    curl_setopt_array($ch, [
+        CURLOPT_HTTPHEADER     => ["X-API-Key: {$apiKey}"],
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 30,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => 0,
+    ]);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlErr  = curl_error($ch);
+    curl_close($ch);
+
+    if ($httpCode !== 200 || empty($response)) {
+        error_log("LectureBot get_slide_images: Auth Service returned HTTP {$httpCode} Error: {$curlErr}");
+        return $images;
+    }
+
+    $responseData = json_decode($response, true);
+    if (!isset($responseData['files']) || !is_array($responseData['files'])) {
+        error_log("LectureBot get_slide_images: Auth Service response missing 'files' array");
+        return $images;
+    }
+
+    // 2. Parse the returned `files` array and extract the SAS URLs
+    foreach ($responseData['files'] as $fileData) {
+        $filename = $fileData['name'] ?? '';
+        $sasUrl = $fileData['url'] ?? '';
+
+        // Extract slide number from filename (e.g., "slide_10.png" -> 10)
+        // This is crucial because list APIs don't guarantee numeric sorting
+        if (!empty($filename) && !empty($sasUrl) && preg_match('/slide_(\d+)\.png/i', $filename, $matches)) {
+            $images[] = [
+                'filename'    => $filename,
+                'data'        => $sasUrl,
+                'slideNumber' => (int)$matches[1] + 1 // Frontend expects 1-based index (1-indexed rendering)
+            ];
+        }
+    }
+
+    // 3. Ensure images are explicitly sorted 1 to N, preventing unordered rendering
+    usort($images, function ($a, $b) {
+        return $a['slideNumber'] - $b['slideNumber'];
+    });
 
     return $images;
 }
+
 
 /**
  * Extract images from local PPTX zip file (Legacy/Fallback)
@@ -221,7 +258,7 @@ function extractImagesFromZip($pptxPath)
 
             if (!empty($extractedImages)) {
                 // Sort by slide number
-                usort($extractedImages, function($a, $b) {
+                usort($extractedImages, function ($a, $b) {
                     return $a['slideNumber'] - $b['slideNumber'];
                 });
                 return $extractedImages;

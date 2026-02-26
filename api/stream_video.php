@@ -58,75 +58,45 @@ try {
          $containerName = strtolower('Blob-Tutorial-Gen-' . $tenantId);
     }
     
-    // Construct Proxy URL (no api_key in query string — sent as header below)
-    $proxyUrl = LECTUREBOT_API_DOWNLOAD_ASSET .
-    '?blob_path=' . urlencode($blobName) .'&container=' . urlencode($containerName);
+    // Release session lock early — video streaming is long-running and
+    // holding the session lock blocks ALL other Moodle requests for this user.
+    \core\session\manager::write_close();
+
+    // Construct Auth Service Validate URL
+    $authValidateUrl = 'https://demo.arina.ai/dev2230/service/arina_auth_service/validate' .
+        '?container=' . urlencode($containerName) .
+        '&blob_path=' . urlencode($blobName);
 
     if (empty($apiKey)) {
         throw new moodle_exception('API key is not configured in settings.');
     }
 
-    // Build request headers — forward Range header if the browser sent one (needed for seeking)
-    $curlHeaders = ["X-Api-key: {$apiKey}"];
-    if (isset($_SERVER['HTTP_RANGE'])) {
-        $curlHeaders[] = 'Range: ' . $_SERVER['HTTP_RANGE'];
-    }
-
-    // Capture response headers from BFF
-    $responseHeaders = [];
-    $headersSet      = false;
-
-    $ch = curl_init($proxyUrl);
+    $ch = curl_init($authValidateUrl);
     curl_setopt_array($ch, [
-        CURLOPT_HTTPHEADER     => $curlHeaders,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_MAXREDIRS      => 5,
-        CURLOPT_RETURNTRANSFER => false,
-
-        // Parse response headers out of every header line
-        CURLOPT_HEADERFUNCTION => function ($ch, $headerLine) use (&$responseHeaders) {
-            $trimmed = trim($headerLine);
-            if (strpos($trimmed, ':') !== false) {
-                [$name, $value] = explode(':', $trimmed, 2);
-                $responseHeaders[strtolower(trim($name))] = trim($value);
-            }
-            return strlen($headerLine);
-        },
-
-        // On the FIRST body chunk, emit all PHP response headers BEFORE any output.
-        // This is critical — PHP ignores header() calls once output has started.
-        CURLOPT_WRITEFUNCTION  => function ($ch, $data) use (&$headersSet, &$responseHeaders) {
-            if (!$headersSet) {
-                http_response_code(curl_getinfo($ch, CURLINFO_HTTP_CODE)); // 206 for range requests, 200 otherwise
-                header('Content-Type: video/mp4');
-                header('Accept-Ranges: bytes');
-                if (isset($responseHeaders['content-range'])) {
-                    header('Content-Range: ' . $responseHeaders['content-range']);
-                }
-                if (isset($responseHeaders['content-length'])) {
-                    header('Content-Length: ' . $responseHeaders['content-length']);
-                }
-                header('Cache-Control: no-store');
-                $headersSet = true;
-            }
-            echo $data;
-            return strlen($data);
-        },
-
-        CURLOPT_TIMEOUT        => 300,
-        CURLOPT_CONNECTTIMEOUT => 30,
+        CURLOPT_HTTPHEADER     => ["X-API-Key: {$apiKey}"],
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 10,
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_SSL_VERIFYHOST => 0,
     ]);
 
-    curl_exec($ch);
-    $curlErrNo = curl_errno($ch);
-    $curlErr   = curl_error($ch);
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlErr  = curl_error($ch);
     curl_close($ch);
 
-    if ($curlErrNo) {
-        throw new moodle_exception('cURL error connecting to BFF: ' . $curlErr);
+    if ($httpCode !== 200 || empty($response)) {
+        throw new moodle_exception('Failed to fetch SAS URL from Auth Service. HTTP ' .
+        $httpCode . ' Error: ' . $curlErr);
     }
+
+    $responseData = json_decode($response, true);
+    if (!isset($responseData['url'])) {
+        throw new moodle_exception('Auth Service response did not contain a SAS URL.');
+    }
+
+    // Instantly redirect the browser to the secure Azure CDN URL
+    header("Location: " . $responseData['url'], true, 302);
     exit;
     
 } catch (Exception $e) {
