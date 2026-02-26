@@ -2,10 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Sidebar } from '../components/shared/Sidebar';
 import { AppHeader } from '../components/shared/AppHeader';
 import { THEMES, type ThemeName } from '../config/theme';
-import type { StaffMember } from '../config/mockData';
 
 import { OverviewView } from '../features/overview/OverviewView';
-import { StaffManagementView } from '../features/staff/StaffManagementView';
+import { StaffManagementView, type ApiStaffMember } from '../features/staff/StaffManagementView';
 import { StaffHistoryView } from '../features/staff/StaffHistoryView';
 import { FinancialsView } from '../features/financials/FinancialsView';
 import { AuditLedgerView } from '../features/audit/AuditLedgerView';
@@ -15,7 +14,7 @@ export const DashboardLayout: React.FC = () => {
     const [activeNav, setActiveNav] = useState('overview');
     const [collapsed, setCollapsed] = useState(false);
     const [themeName, setThemeName] = useState<ThemeName>('light');
-    const [viewingStaff, setViewingStaff] = useState<StaffMember | null>(null);
+    const [viewingStaff, setViewingStaff] = useState<ApiStaffMember | null>(null);
 
     // Apply CSS variables to root element when theme changes
     useEffect(() => {
@@ -78,7 +77,7 @@ export const DashboardLayout: React.FC = () => {
             }}
         >
             {/* Global Header */}
-            <AppHeader activeNav={activeNav} balance={12450} />
+            <AppHeader activeNav={activeNav} />
 
             {/* Sidebar + Content */}
             <div style={{ display: 'flex', flex: 1 }}>

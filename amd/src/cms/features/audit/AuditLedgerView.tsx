@@ -1,26 +1,86 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download } from 'lucide-react';
+import { Skeleton } from '@mui/material';
 import { stagger, fadeIn } from '../../config/animations';
 import { Badge } from '../../components/ui/Badge';
-import { MOCK_LEDGER } from '../../config/mockData';
 
-const TYPE_OPTIONS = ['All', 'CONSUMPTION', 'ALLOCATION', 'PURCHASE', 'RESERVATION'];
-const USER_OPTIONS = ['All', 'Prof. Sarah Smith', 'Dr. Ian Malcolm', 'Nurse Joy', 'Prof. Albus D.', 'Dr. John Watson'];
+export interface LedgerRow {
+    id: string;
+    ts: string;
+    type: string;
+    typeLabel: string;
+    meta: string;
+    amount: number;
+    balance: number;
+}
+
+const TYPE_LABELS: Record<string, string> = {
+    'All': 'Type: All',
+    'PURCHASE': 'Credit Purchase',
+    'CONSUMPTION': 'Credit Usage',
+    'ALLOCATION_OUT': 'Staff Allocation',
+    'ALLOCATION_IN': 'Credits Received',
+    'REFUND': 'Refund',
+    'ADMIN_ADJUSTMENT': 'Admin Adjustment',
+};
+
+const TYPE_OPTIONS = Object.keys(TYPE_LABELS);
 
 export const AuditLedgerView: React.FC = () => {
     const [typeFilter, setTypeFilter] = useState('All');
-    const [userFilter, setUserFilter] = useState('All');
+    const [ledger, setLedger] = useState<LedgerRow[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchLedger = async () => {
+        try {
+            const baseUrl = (window as any).MOODLE_CMS_CONTEXT?.wwwroot || '';
+            const res = await fetch(`${baseUrl}/local/lecturebot/api/cms/get_ledger.php`, {
+                credentials: 'include'
+            });
+            const data = await res.json();
+            if (data.success) {
+                setLedger(data.data);
+            }
+        } catch (e) {
+            console.error('Failed to fetch ledger:', e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchLedger();
+    }, []);
 
     const filtered = useMemo(
         () =>
-            MOCK_LEDGER.filter((r) => {
+            ledger.filter((r) => {
                 if (typeFilter !== 'All' && r.type !== typeFilter) { return false; }
-                if (userFilter !== 'All' && !r.meta.includes(userFilter)) { return false; }
                 return true;
             }),
-        [typeFilter, userFilter],
+        [typeFilter, ledger],
     );
+
+    const handleExportCSV = useCallback(() => {
+        if (filtered.length === 0) { return; }
+        const headers = ['Timestamp', 'Type', 'Description', 'Amount', 'Balance'];
+        const rows = filtered.map((r) => [
+            r.ts,
+            r.typeLabel || r.type,
+            `"${(r.meta || '').replace(/"/g, '""')}"`,
+            r.amount.toString(),
+            r.balance.toString(),
+        ]);
+        const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `audit_ledger_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }, [filtered]);
 
     const selectStyle: React.CSSProperties = {
         padding: '8px 12px',
@@ -40,17 +100,13 @@ export const AuditLedgerView: React.FC = () => {
             <motion.div variants={fadeIn} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                 <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} style={selectStyle}>
                     {TYPE_OPTIONS.map((o) => (
-                        <option key={o} value={o}>{o === 'All' ? 'Type: All' : o}</option>
-                    ))}
-                </select>
-                <select value={userFilter} onChange={(e) => setUserFilter(e.target.value)} style={selectStyle}>
-                    {USER_OPTIONS.map((o) => (
-                        <option key={o} value={o}>{o === 'All' ? 'User: All' : o}</option>
+                        <option key={o} value={o}>{TYPE_LABELS[o]}</option>
                     ))}
                 </select>
                 <div style={{ flex: 1 }} />
                 <motion.button
                     whileHover={{ color: '#0f6cbf' }}
+                    onClick={handleExportCSV}
                     style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -60,9 +116,11 @@ export const AuditLedgerView: React.FC = () => {
                         fontSize: '0.8125rem',
                         fontWeight: 500,
                         color: 'var(--ts)',
-                        cursor: 'pointer',
+                        cursor: filtered.length > 0 ? 'pointer' : 'not-allowed',
                         fontFamily: 'inherit',
+                        opacity: filtered.length > 0 ? 1 : 0.4,
                     }}
+                    disabled={filtered.length === 0}
                 >
                     <Download size={14} />Export CSV
                 </motion.button>
@@ -82,7 +140,7 @@ export const AuditLedgerView: React.FC = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'inherit' }}>
                     <thead>
                         <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                            {['Timestamp', 'Type', 'Metadata', 'Amount', 'Balance'].map((h) => (
+                            {['Timestamp', 'Type', 'Description', 'Amount', 'Balance'].map((h) => (
                                 <th
                                     key={h}
                                     style={{
@@ -102,49 +160,67 @@ export const AuditLedgerView: React.FC = () => {
                     </thead>
                     <tbody>
                         <AnimatePresence>
-                            {filtered.map((row, i) => (
-                                <motion.tr
-                                    key={`${row.ts}-${i}`}
-                                    initial={{ opacity: 0, y: 8 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -8 }}
-                                    transition={{ duration: 0.15, delay: i * 0.03 }}
-                                    style={{ borderBottom: '1px solid var(--border)' }}
-                                    onMouseEnter={(e) => {
-                                        (e.currentTarget as HTMLElement).style.background = 'var(--rh)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        (e.currentTarget as HTMLElement).style.background = 'transparent';
-                                    }}
-                                >
-                                    <td style={{ padding: '14px 16px', fontSize: '0.875rem', color: 'var(--ts)' }}>{row.ts}</td>
-                                    <td style={{ padding: '14px 16px' }}>
-                                        <Badge type={row.type} />
+                            {loading ? (
+                                Array.from({ length: 5 }).map((_, i) => (
+                                    <tr key={`skeleton-${i}`} style={{ borderBottom: '1px solid var(--border)' }}>
+                                        {Array.from({ length: 5 }).map((__, j) => (
+                                            <td key={`sk-${i}-${j}`} style={{ padding: '14px 16px' }}>
+                                                <Skeleton animation="wave" height={24} />
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))
+                            ) : filtered.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: 'var(--ts)' }}>
+                                        No transactions found.
                                     </td>
-                                    <td style={{ padding: '14px 16px', fontSize: '0.9375rem', color: 'var(--tp)' }}>{row.meta}</td>
-                                    <td
-                                        style={{
-                                            padding: '14px 16px',
-                                            fontSize: '0.9375rem',
-                                            fontWeight: 600,
-                                            fontVariantNumeric: 'tabular-nums',
-                                            color: row.amount < 0 ? '#dc3545' : '#28a745',
+                                </tr>
+                            ) : (
+                                filtered.map((row) => (
+                                    <motion.tr
+                                        key={row.id}
+                                        initial={{ opacity: 0, y: 8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -8 }}
+                                        transition={{ duration: 0.15 }}
+                                        style={{ borderBottom: '1px solid var(--border)' }}
+                                        onMouseEnter={(e) => {
+                                            (e.currentTarget as HTMLElement).style.background = 'var(--rh)';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            (e.currentTarget as HTMLElement).style.background = 'transparent';
                                         }}
                                     >
-                                        {row.amount > 0 ? '+' : ''}{row.amount.toLocaleString()}
-                                    </td>
-                                    <td
-                                        style={{
-                                            padding: '14px 16px',
-                                            fontSize: '0.9375rem',
-                                            fontVariantNumeric: 'tabular-nums',
-                                            color: 'var(--tp)',
-                                        }}
-                                    >
-                                        {row.balance.toLocaleString()}
-                                    </td>
-                                </motion.tr>
-                            ))}
+                                        <td style={{ padding: '14px 16px', fontSize: '0.875rem', color: 'var(--ts)' }}>{row.ts}</td>
+                                        <td style={{ padding: '14px 16px' }}>
+                                            <Badge type={row.type} label={row.typeLabel} />
+                                        </td>
+                                        <td style={{ padding: '14px 16px', fontSize: '0.9375rem', color: 'var(--tp)' }}>{row.meta}</td>
+                                        <td
+                                            style={{
+                                                padding: '14px 16px',
+                                                fontSize: '0.9375rem',
+                                                fontWeight: 600,
+                                                fontVariantNumeric: 'tabular-nums',
+                                                color: row.amount < 0 ? '#dc3545' : '#28a745',
+                                            }}
+                                        >
+                                            {row.amount > 0 ? '+' : ''}{row.amount.toLocaleString()}
+                                        </td>
+                                        <td
+                                            style={{
+                                                padding: '14px 16px',
+                                                fontSize: '0.9375rem',
+                                                fontVariantNumeric: 'tabular-nums',
+                                                color: 'var(--tp)',
+                                            }}
+                                        >
+                                            {row.balance.toLocaleString()}
+                                        </td>
+                                    </motion.tr>
+                                ))
+                            )}
                         </AnimatePresence>
                     </tbody>
                 </table>

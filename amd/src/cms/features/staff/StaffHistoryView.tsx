@@ -3,10 +3,11 @@ import { motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 import { stagger, fadeIn, spring } from '../../config/animations';
 import { Badge } from '../../components/ui/Badge';
-import { MOCK_STAFF_HISTORY, type StaffMember } from '../../config/mockData';
+import { MOCK_STAFF_HISTORY } from '../../config/mockData';
+import type { ApiStaffMember } from './StaffManagementView';
 
 interface StaffHistoryViewProps {
-    staff: StaffMember;
+    staff: ApiStaffMember;
     onBack: () => void;
 }
 
@@ -41,8 +42,8 @@ export const StaffHistoryView: React.FC<StaffHistoryViewProps> = ({ staff, onBac
         {/* 3 info cards */}
         <motion.div variants={fadeIn} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
             <InfoCard label="Current Balance" value={staff.balance.toLocaleString()} accent="#0f6cbf" />
-            <InfoCard label="Department" value={staff.dept} accent="#28a745" />
-            <InfoCard label="External ID" value={staff.id} accent="#6f42c1" />
+            <InfoCard label="Department" value={staff.department} accent="#28a745" />
+            <InfoCard label="Email" value={staff.email} accent="#6f42c1" />
         </motion.div>
 
         {/* History table */}

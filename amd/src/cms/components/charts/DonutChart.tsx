@@ -13,7 +13,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({ data }) => {
     return (
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
             <div style={{ width: '100%', height: 220 }}>
-                <ResponsiveContainer>
+                <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={100}>
                     <PieChart>
                         <Pie
                             data={data}

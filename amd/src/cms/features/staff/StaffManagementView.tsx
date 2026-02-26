@@ -1,37 +1,91 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search } from 'lucide-react';
+import { Search, AlertCircle } from 'lucide-react';
+import { Skeleton, Snackbar, Alert } from '@mui/material';
 import { stagger, fadeIn } from '../../config/animations';
 import { Badge } from '../../components/ui/Badge';
 import { CreditAllocationModal } from '../../components/shared/CreditAllocationModal';
-import { MOCK_STAFF, type StaffMember } from '../../config/mockData';
+
+export interface ApiStaffMember {
+    id: number;
+    uuid: string | null;
+    wallet_id: string | null;
+    name: string;
+    email: string;
+    department: string;
+    status: 'active' | 'pending';
+    balance: number;
+}
 
 interface StaffManagementViewProps {
-    onViewStaff: (staff: StaffMember) => void;
+    onViewStaff: (staff: ApiStaffMember) => void;
 }
 
 export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ onViewStaff }) => {
     const [search, setSearch] = useState('');
-    const [modal, setModal] = useState<{ open: boolean; mode: 'distribute' | 'recall'; staff: StaffMember | null }>({
+    const [staffList, setStaffList] = useState<ApiStaffMember[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const [modal, setModal] = useState<{ open: boolean; mode: 'distribute' | 'recall'; staff: ApiStaffMember | null }>({
         open: false,
         mode: 'distribute',
         staff: null,
     });
+    const [toast, setToast] = useState<{ open: boolean; message: string; type: 'success' | 'error' }>({
+        open: false,
+        message: '',
+        type: 'success',
+    });
+
+    const fetchStaff = async () => {
+        try {
+            const baseUrl = (window as any).MOODLE_CMS_CONTEXT?.wwwroot || '';
+            const response = await fetch(`${baseUrl}/local/lecturebot/api/cms/get_staff.php`, {
+                credentials: 'include'
+            });
+            const result = await response.json();
+            if (result.success && result.data) {
+                setStaffList(result.data);
+            } else {
+                setError(result.message || 'Failed to load staff list');
+            }
+        } catch (err) {
+            console.error(err);
+            setError('Network error: Unable to load staff list');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchStaff();
+    }, []);
 
     const filtered = useMemo(
         () =>
-            MOCK_STAFF.filter(
+            staffList.filter(
                 (s) =>
                     s.name.toLowerCase().includes(search.toLowerCase()) ||
-                    s.id.toLowerCase().includes(search.toLowerCase()) ||
-                    s.dept.toLowerCase().includes(search.toLowerCase()),
+                    s.email.toLowerCase().includes(search.toLowerCase()) ||
+                    s.department.toLowerCase().includes(search.toLowerCase()),
             ),
-        [search],
+        [search, staffList],
     );
 
-    const openModal = (mode: 'distribute' | 'recall', staff: StaffMember) =>
+    const openModal = (mode: 'distribute' | 'recall', staff: ApiStaffMember) =>
         setModal({ open: true, mode, staff });
-    const closeModal = () => setModal({ open: false, mode: 'distribute', staff: null });
+    const closeModal = (didUpdate?: boolean) => {
+        const modeDesc = modal.mode === 'distribute' ? 'distributed to' : 'recalled from';
+        const stName = modal.staff?.name;
+
+        setModal({ open: false, mode: 'distribute', staff: null });
+        if (didUpdate) {
+            setToast({ open: true, message: `Successfully ${modeDesc} ${stName}`, type: 'success' });
+            setLoading(true);
+            fetchStaff(); // refresh after allocation
+        }
+    };
 
     return (
         <motion.div initial="initial" animate="animate" variants={stagger.cards} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -83,6 +137,14 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ onView
                 </div>
             </motion.div>
 
+            {/* Error Banner */}
+            {error && (
+                <div style={{ padding: '12px 16px', background: '#ffebee', color: '#c62828', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <AlertCircle size={18} />
+                    <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{error}</span>
+                </div>
+            )}
+
             {/* Table */}
             <motion.div
                 variants={fadeIn}
@@ -122,54 +184,70 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ onView
                     </thead>
                     <tbody>
                         <AnimatePresence>
-                            {filtered.map((s) => (
-                                <motion.tr
-                                    key={s.id}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -10 }}
-                                    transition={{ duration: 0.2 }}
-                                    style={{
-                                        borderBottom: '1px solid var(--border)',
-                                        cursor: 'default',
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        (e.currentTarget as HTMLElement).style.background = 'var(--rh)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        (e.currentTarget as HTMLElement).style.background = 'transparent';
-                                    }}
-                                >
-                                    <td style={{ padding: '14px 16px' }}>
-                                        <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--tp)' }}>{s.name}</div>
-                                        <div style={{ fontSize: '0.75rem', color: 'var(--ts)', marginTop: 2 }}>{s.id}</div>
+                            {loading ? (
+                                Array.from({ length: 5 }).map((_, i) => (
+                                    <tr key={`skeleton-${i}`}>
+                                        <td colSpan={5} style={{ padding: '14px 16px' }}>
+                                            <Skeleton animation="wave" height={24} />
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : filtered.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--ts)' }}>
+                                        No active teaching staff found.
                                     </td>
-                                    <td style={{ padding: '14px 16px', fontSize: '0.9375rem', color: 'var(--tp)' }}>
-                                        {s.dept}
-                                    </td>
-                                    <td
+                                </tr>
+                            ) : (
+                                filtered.map((s) => (
+                                    <motion.tr
+                                        key={s.id}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -10 }}
+                                        transition={{ duration: 0.2 }}
                                         style={{
-                                            padding: '14px 16px',
-                                            fontSize: '0.9375rem',
-                                            fontWeight: 600,
-                                            fontVariantNumeric: 'tabular-nums',
-                                            color: 'var(--tp)',
+                                            borderBottom: '1px solid var(--border)',
+                                            cursor: 'default',
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            (e.currentTarget as HTMLElement).style.background = 'var(--rh)';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            (e.currentTarget as HTMLElement).style.background = 'transparent';
                                         }}
                                     >
-                                        {s.balance.toLocaleString()}
-                                    </td>
-                                    <td style={{ padding: '14px 16px' }}>
-                                        <Badge type={s.status} />
-                                    </td>
-                                    <td style={{ padding: '14px 16px' }}>
-                                        <div style={{ display: 'flex', gap: 8 }}>
-                                            <ActionLink label="History" onClick={() => onViewStaff(s)} />
-                                            <ActionLink label="Distribute" onClick={() => openModal('distribute', s)} />
-                                            <ActionLink label="Recall" onClick={() => openModal('recall', s)} />
-                                        </div>
-                                    </td>
-                                </motion.tr>
-                            ))}
+                                        <td style={{ padding: '14px 16px' }}>
+                                            <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--tp)' }}>{s.name}</div>
+                                            <div style={{ fontSize: '0.75rem', color: 'var(--ts)', marginTop: 2 }}>{s.email}</div>
+                                        </td>
+                                        <td style={{ padding: '14px 16px', fontSize: '0.9375rem', color: 'var(--tp)' }}>
+                                            {s.department}
+                                        </td>
+                                        <td
+                                            style={{
+                                                padding: '14px 16px',
+                                                fontSize: '0.9375rem',
+                                                fontWeight: 600,
+                                                fontVariantNumeric: 'tabular-nums',
+                                                color: 'var(--tp)',
+                                            }}
+                                        >
+                                            {s.balance.toLocaleString()}
+                                        </td>
+                                        <td style={{ padding: '14px 16px' }}>
+                                            <Badge type={s.status === 'active' ? 'Active' : 'Ready'} />
+                                        </td>
+                                        <td style={{ padding: '14px 16px' }}>
+                                            <div style={{ display: 'flex', gap: 8 }}>
+                                                <ActionLink label="History" onClick={() => onViewStaff(s)} />
+                                                <ActionLink label="Distribute" onClick={() => openModal('distribute', s)} />
+                                                {s.status === 'active' && <ActionLink label="Recall" onClick={() => openModal('recall', s)} />}
+                                            </div>
+                                        </td>
+                                    </motion.tr>
+                                ))
+                            )}
                         </AnimatePresence>
                     </tbody>
                 </table>
@@ -182,9 +260,21 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ onView
                     onClose={closeModal}
                     mode={modal.mode}
                     staffName={modal.staff.name}
+                    staffId={modal.staff.id}
                     currentBalance={modal.staff.balance}
                 />
             )}
+
+            <Snackbar
+                open={toast.open}
+                autoHideDuration={4000}
+                onClose={() => setToast({ ...toast, open: false })}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert onClose={() => setToast({ ...toast, open: false })} severity={toast.type} sx={{ width: '100%' }}>
+                    {toast.message}
+                </Alert>
+            </Snackbar>
         </motion.div>
     );
 };
