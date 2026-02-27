@@ -1,5 +1,5 @@
 import React from 'react';
-import { ThemeProvider, CssBaseline } from '@mui/material';
+import { ThemeProvider } from '@mui/material';
 import { createCMSTheme } from './config/theme';
 import { DashboardLayout } from './layouts/DashboardLayout';
 
@@ -10,7 +10,6 @@ export const App: React.FC = () => {
 
     return (
         <ThemeProvider theme={theme}>
-            <CssBaseline />
             <DashboardLayout />
         </ThemeProvider>
     );

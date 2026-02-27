@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { DollarSign, Users, Zap, AlertCircle, ShoppingCart } from 'lucide-react';
+import { DollarSign, Users, Zap, AlertCircle } from 'lucide-react';
 import { Skeleton } from '@mui/material';
 import { stagger } from '../../config/animations';
 import { StatCard } from '../../components/ui/StatCard';
 import { DonutChart } from '../../components/charts/DonutChart';
 import { BreakdownPanel } from '../../components/charts/BreakdownPanel';
-import { PurchaseCreditsModal } from '../../components/shared/PurchaseCreditsModal';
 
 // Service Overview Card
 const ServiceOverviewCard: React.FC = () => (
@@ -49,7 +48,7 @@ export const OverviewView: React.FC = () => {
     const [usageData, setUsageData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [purchaseOpen, setPurchaseOpen] = useState(false);
+
 
     const fetchDashboardData = async () => {
         try {
@@ -83,13 +82,7 @@ export const OverviewView: React.FC = () => {
         fetchDashboardData();
     }, []);
 
-    const handlePurchaseClose = (purchased?: boolean) => {
-        setPurchaseOpen(false);
-        if (purchased) {
-            setLoading(true);
-            fetchDashboardData();
-        }
-    };
+
 
     // Empty state: balance loaded successfully but is zero
     const isEmpty = !loading && !error && balanceData && balanceData.current_balance === 0;
@@ -124,28 +117,7 @@ export const OverviewView: React.FC = () => {
                     <p style={{ margin: 0, fontSize: '0.9rem', color: '#1565c0' }}>
                         Get started by purchasing a credit package to fuel your institution&apos;s AI generation.
                     </p>
-                    <motion.button
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.97 }}
-                        onClick={() => setPurchaseOpen(true)}
-                        style={{
-                            marginTop: 8,
-                            padding: '10px 22px',
-                            borderRadius: 10,
-                            border: 'none',
-                            background: '#0d47a1',
-                            color: '#fff',
-                            fontWeight: 700,
-                            fontSize: '0.875rem',
-                            cursor: 'pointer',
-                            fontFamily: 'inherit',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6,
-                        }}
-                    >
-                        <ShoppingCart size={16} /> Buy Credits Now
-                    </motion.button>
+
                 </motion.div>
             )}
 
@@ -232,8 +204,7 @@ export const OverviewView: React.FC = () => {
                 )}
             </motion.div>
 
-            {/* Purchase Modal */}
-            <PurchaseCreditsModal open={purchaseOpen} onClose={handlePurchaseClose} />
+
         </motion.div>
     );
 };
