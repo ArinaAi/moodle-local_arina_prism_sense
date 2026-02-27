@@ -60,6 +60,10 @@ define(
     'https://demo.arina.ai/dev2230/service/arina-customer-feedback-service' .
     '/api/prism_sense/content-regeneration/feedback'
 );
+define(
+    'LECTUREBOT_CREDIT_SERVICE_URL',
+    getenv('LECTUREBOT_CREDIT_SERVICE_URL') ?: 'https://demo.arina.ai/dev2230/service/arina-credit-service'
+);
 
 // Default video length (in minutes)
 define('LECTUREBOT_DEFAULT_VIDEO_LENGTH', 2);
