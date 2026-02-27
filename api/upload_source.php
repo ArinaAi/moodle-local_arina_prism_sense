@@ -258,7 +258,11 @@ try {
             }
             curl_close($chBatch);
             
-            if ($batchHttpCode !== 200) {
+            if ($batchHttpCode === 401) {
+                error_log('LectureBot: Start batch failed (HTTP 401): API key missing or incorrect');
+                throw new \local_lecturebot\exception\api_http_exception('API key is missing or incorrect.
+                Please check your settings.');
+            } elseif ($batchHttpCode !== 200) {
                 error_log(
                     'LectureBot: Start batch failed (HTTP ' .
                     $batchHttpCode .
@@ -368,6 +372,9 @@ try {
                             "LectureBot: Successfully uploaded
                              file $index to backend and saved to DB (ID: $dbId)"
                              );
+                    } elseif ($httpCode === 401) {
+                        throw new \local_lecturebot\exception\api_http_exception('API key is missing or incorrect.
+                        Please check your settings.');
                     } else {
                         $backendData = json_decode($backendResponse, true);
                         $errorMsg = 'Backend returned HTTP ' . $httpCode;
@@ -396,10 +403,13 @@ try {
                 $fileData['file']->delete();
             }
             
-            http_response_code(500);
+            $errorMessage = $backendError->getMessage();
+            $isApiKeyError = strpos($errorMessage, 'API key is missing or incorrect') !== false;
+            
+            http_response_code($isApiKeyError ? 401 : 500);
             echo json_encode([
                 'status' => 'error',
-                'error' => 'Failed to create batch upload: ' . $backendError->getMessage()
+                'error' => $isApiKeyError ? $errorMessage : 'Failed to create batch upload: ' . $errorMessage
             ]);
             exit;
         }

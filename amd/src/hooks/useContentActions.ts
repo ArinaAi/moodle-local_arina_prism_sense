@@ -119,6 +119,9 @@ export const useContentActions = (
             });
 
             if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('API key is missing or incorrect. Please check your settings.');
+                }
                 const errorText = await response.text();
                 try {
                     const errorData = JSON.parse(errorText);
@@ -253,6 +256,9 @@ export const useContentActions = (
             });
 
             if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('API key is missing or incorrect. Please check your settings.');
+                }
                 const errorText = await response.text();
                 try {
                     const errorData = JSON.parse(errorText);

@@ -251,10 +251,10 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
     >
       <FolderOpen size={64} color="#ced4da" strokeWidth={1.5} />
       <Typography variant="h6" sx={{ mt: 2, mb: 1, fontWeight: 600, color: 'text.secondary' }}>
-        No Sections with Sources
+        No sources are uploaded yet
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Upload PDFs to sections before generating slides
+        Please upload sources first before generating slides.
       </Typography>
       <Button
         variant="outlined"

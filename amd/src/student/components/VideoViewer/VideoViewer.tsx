@@ -28,8 +28,19 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title: _title }) =>
     const [speedAnchorEl, setSpeedAnchorEl] = useState<null | HTMLElement>(null);
     const [playbackSpeed, setPlaybackSpeed] = useState(1);
     const [isLoading, setIsLoading] = useState(true);
+    const [hasError, setHasError] = useState(false);
 
     const playbackSpeeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
+
+    // Reset speed when video changes
+    useEffect(() => {
+        setPlaybackSpeed(1);
+        setHasError(false);
+        setIsLoading(true);
+        if (videoRef.current) {
+            videoRef.current.playbackRate = 1;
+        }
+    }, [videoUrl]);
 
     useEffect(() => {
         const video = videoRef.current;
@@ -39,17 +50,20 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title: _title }) =>
         const handleDurationChange = () => setDuration(video.duration);
         const handleEnded = () => setIsPlaying(false);
         const handleLoadedMetadata = () => setIsLoading(false);
+        const handleError = () => { setIsLoading(false); setHasError(true); };
 
         video.addEventListener('timeupdate', handleTimeUpdate);
         video.addEventListener('durationchange', handleDurationChange);
         video.addEventListener('ended', handleEnded);
         video.addEventListener('loadedmetadata', handleLoadedMetadata);
+        video.addEventListener('error', handleError);
 
         return () => {
             video.removeEventListener('timeupdate', handleTimeUpdate);
             video.removeEventListener('durationchange', handleDurationChange);
             video.removeEventListener('ended', handleEnded);
             video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+            video.removeEventListener('error', handleError);
         };
     }, []);
 
@@ -158,7 +172,7 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title: _title }) =>
     const exitFullscreenMode = async () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const doc = document as any;
-        
+
         if (document.exitFullscreen) {
             await document.exitFullscreen();
         } else if (doc.webkitExitFullscreen) {
@@ -175,7 +189,7 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title: _title }) =>
             msRequestFullscreen?: () => Promise<void>;
         }
         const el = container as FullscreenElement;
-        
+
         if (el.requestFullscreen) {
             await el.requestFullscreen();
         } else if (el.webkitRequestFullscreen) {
@@ -212,7 +226,7 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title: _title }) =>
             setIsFullscreen(true);
             return;
         }
-        
+
         // Desktop: try native Fullscreen API
         const container = containerRef.current;
         if (!container) {
@@ -323,6 +337,34 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title: _title }) =>
         </Box>
     );
 
+    // Error overlay component
+    const renderErrorOverlay = () => (
+        <Box
+            sx={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: 'rgba(0, 0, 0, 0.9)',
+                zIndex: 10,
+                p: 3,
+                textAlign: 'center'
+            }}
+        >
+            <Typography variant="h6" sx={{ color: '#ef4444', mb: 1 }}>
+                Video failed to load
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#9ca3af' }}>
+                The video stream could not be loaded. This might be a temporary issue or your API key is missing/incorrect.
+            </Typography>
+        </Box>
+    );
+
     // Center play button component
     const renderCenterPlayButton = () => (
         <Box
@@ -401,7 +443,8 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title: _title }) =>
             onMouseLeave={() => setShowControls(!isPlaying)}
             sx={getContainerStyles()}
         >
-            {isLoading && renderLoadingOverlay()}
+            {isLoading && !hasError && renderLoadingOverlay()}
+            {hasError && renderErrorOverlay()}
 
             <video
                 ref={videoRef}
@@ -508,7 +551,7 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title: _title }) =>
 
     // Always render inline - the native Fullscreen API or CSS-based fullscreen will handle the overlay
     return (
-        <Box 
+        <Box
             sx={{
                 width: '100%',
                 maxWidth: '100%',

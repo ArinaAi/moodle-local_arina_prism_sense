@@ -466,7 +466,12 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
       // Only reload sources when ALL uploads succeeded
       await reloadSourcesAfterUpload();
       return data;
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Upload failed. Please try again.';
+      const displayError = errorMessage.includes('API key')
+        ? 'API key is missing or incorrect. Please check your settings.'
+        : 'Upload failed. Please try again.';
+
       // Mark all files as errored
       setBoxes((prevBoxes) => {
         const newBoxes = [...prevBoxes] as [BoxState, BoxState, BoxState];
@@ -474,7 +479,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
           newBoxes[index] = {
             type: 'error',
             file: box.file,
-            error: 'Upload failed. Please try again.',
+            error: displayError,
             title: box.title,
             author: box.author,
             isScanned: box.isScanned,

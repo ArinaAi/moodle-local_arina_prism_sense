@@ -16,7 +16,8 @@ const updateContentItem = (
             dispatch({ type: 'SET_SLIDES_APPROVED', payload: updatedItem.approved || false });
         }
     } else if (updatedItem.status === 'error') {
-        showNotification(`Generation failed for "${updatedItem.sectionname}"`, 'error');
+        const errorMsg = updatedItem.errormessage || 'Generation failed. Please try again.';
+        showNotification(`Generation failed for "${updatedItem.sectionname}": ${errorMsg}`, 'error');
     }
 };
 

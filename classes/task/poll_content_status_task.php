@@ -144,6 +144,16 @@ class poll_content_status_task extends \core\task\scheduled_task
 
         if ($curlErrno) {
             mtrace("  - cURL error on batch request: " . $curlError);
+        } elseif ($httpCode === 401) {
+            mtrace("  - API authentication failed: HTTP 401 (API key is missing or incorrect)");
+            // Create a pseudo-response that applies this error to all requested IDs
+            $result = [];
+            foreach ($requestIds as $id) {
+                $result[$id] = [
+                    'status' => 'error',
+                    'error' => 'API key is missing or incorrect. Please check your settings.'
+                ];
+            }
         } elseif ($httpCode !== 200) {
             mtrace("  - HTTP error on batch request: {$httpCode}");
         } elseif (empty($response)) {

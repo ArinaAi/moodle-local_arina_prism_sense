@@ -28,6 +28,9 @@ export const useContentSlides = (selectedContent: any, isVideo: boolean) => {
                 const response = await fetch(`${wwwroot}/local/lecturebot/api/get_slide_images.php?contentid=${selectedContent.id}`);
 
                 if (!response.ok) {
+                    if (response.status === 401) {
+                        throw new Error('API key is missing or incorrect. Please check your settings.');
+                    }
                     throw new Error('Failed to load slides');
                 }
 
@@ -38,9 +41,13 @@ export const useContentSlides = (selectedContent: any, isVideo: boolean) => {
                 } else {
                     setError('No slides found');
                 }
-            } catch (err) {
+            } catch (err: any) {
                 console.error(err);
-                setError('Error loading presentation');
+                if (err && err.message === 'API key is missing or incorrect. Please check your settings.') {
+                    setError(err.message);
+                } else {
+                    setError('Error loading presentation');
+                }
             } finally {
                 setIsLoading(false);
             }

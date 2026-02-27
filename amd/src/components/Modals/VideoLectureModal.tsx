@@ -84,7 +84,7 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
     // Filter and group slide decks by section
     const sectionGroups = useMemo(() => {
         const slideDecks = contentItems.filter(
-            (item) => item.contenttype === 'slide-deck' && item.status === 'ready'
+            (item) => item.contenttype === 'slide-deck' && (item.status === 'ready' || item.status === 'published')
         );
 
         const grouped = new Map<number, ContentItem[]>();

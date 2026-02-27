@@ -246,6 +246,12 @@ class generate_content_task extends \core\task\adhoc_task
 
         mtrace("API response code: $httpCode");
 
+        if ($httpCode === 401) {
+            mtrace("API authentication failed: HTTP 401 (API key is missing or incorrect)");
+            throw new \local_lecturebot\exception\api_http_exception('API key is missing or incorrect.
+            Please check your settings.');
+        }
+
         if ($httpCode === 200 && !empty($response)) {
             return json_decode($response, true);
         }

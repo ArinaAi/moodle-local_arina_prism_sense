@@ -183,11 +183,19 @@ const ContentFeedbackModal: React.FC<ContentFeedbackModalProps> = ({
 
   // Memoized callback handlers for feedback data updates
   const handleTopicsNeedingDepthChange = useCallback((selected: string[]) => {
-    setFeedbackData((prev) => ({ ...prev, topicsNeedingDepth: selected }));
+    setFeedbackData((prev) => ({
+      ...prev,
+      topicsNeedingDepth: selected,
+      topicsOverExplained: prev.topicsOverExplained.filter((t) => !selected.includes(t)),
+    }));
   }, []);
 
   const handleTopicsOverExplainedChange = useCallback((selected: string[]) => {
-    setFeedbackData((prev) => ({ ...prev, topicsOverExplained: selected }));
+    setFeedbackData((prev) => ({
+      ...prev,
+      topicsOverExplained: selected,
+      topicsNeedingDepth: prev.topicsNeedingDepth.filter((t) => !selected.includes(t)),
+    }));
   }, []);
 
   const handleExtraTopicsChange = useCallback((selected: string[]) => {
@@ -225,13 +233,13 @@ const ContentFeedbackModal: React.FC<ContentFeedbackModalProps> = ({
 
       case 'curriculum_mismatch':
         return (
-            <TopicPillSelector
-                topics={topicTitles}
-                selectedTopics={feedbackData.extraTopics}
-                onSelectionChange={handleExtraTopicsChange}
-                loading={tocLoading}
-                emptyMessage="Loading topics..."
-              />
+          <TopicPillSelector
+            topics={topicTitles}
+            selectedTopics={feedbackData.extraTopics}
+            onSelectionChange={handleExtraTopicsChange}
+            loading={tocLoading}
+            emptyMessage="Loading topics..."
+          />
         );
 
       case 'missing_subtopics':
@@ -317,7 +325,7 @@ const ContentFeedbackModal: React.FC<ContentFeedbackModalProps> = ({
                 variant={isMobile ? 'subtitle1' : 'h6'}
                 component="h2"
                 sx={{ fontWeight: 700, color: '#1a1a1a', lineHeight: 1.2 }}
-              > 
+              >
                 Improve Content
               </Typography>
               <Typography variant="caption" sx={{ color: '#6c757d' }}>

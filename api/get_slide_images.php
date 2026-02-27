@@ -62,9 +62,17 @@ try {
 
 } catch (Exception $e) {
     error_log('LectureBot get_slide_images error: ' . $e->getMessage());
+    
+    $errorMessage = $e->getMessage();
+    if (strpos($errorMessage, 'API key is missing or incorrect') !== false) {
+        http_response_code(401);
+    } else {
+        http_response_code(500);
+    }
+    
     echo json_encode([
         'status' => 'error',
-        'error' => $e->getMessage(),
+        'error' => $errorMessage,
         'images' => []
     ]);
 }
@@ -203,7 +211,11 @@ function generateAzureImageUrls($azureFolderId, $containerName)
     $curlErr  = curl_error($ch);
     curl_close($ch);
 
-    if ($httpCode !== 200 || empty($response)) {
+    if ($httpCode === 401) {
+        error_log("LectureBot get_slide_images: Auth Service returned HTTP 401(API key is missing or incorrect)");
+        throw new \local_lecturebot\exception\api_http_exception('API key is missing or incorrect.
+        Please check your settings.');
+    } elseif ($httpCode !== 200 || empty($response)) {
         error_log("LectureBot get_slide_images: Auth Service returned HTTP {$httpCode} Error: {$curlErr}");
         return $images;
     }
