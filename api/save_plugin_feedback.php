@@ -104,8 +104,8 @@ try {
         if (!in_array($detectedMime, $allowedMimes)) {
             throw new ValidationException('Invalid screenshot type. Allowed: png, jpeg, jpg, webp.');
         }
-        if ($file['size'] > 5 * 1024 * 1024) {
-            throw new ValidationException('Screenshot too large. Maximum size is 5 MB.');
+        if ($file['size'] > 1 * 1024 * 1024) {
+            throw new ValidationException('Screenshot too large. Maximum size is 1 MB.');
         }
 
         $screenshotTmpPath = $file['tmp_name'];

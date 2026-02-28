@@ -70,6 +70,7 @@ const PluginFeedbackModal: React.FC<PluginFeedbackModalProps> = ({
   const [attachments, setAttachments] = useState<File[]>([]);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
 
   // Auto-detect context
   const [context, setContext] = useState<PluginFeedbackContext>({
@@ -124,8 +125,16 @@ const PluginFeedbackModal: React.FC<PluginFeedbackModalProps> = ({
   }, []);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setFileError(null);
     if (attachments.length === 0 && event.target.files && event.target.files.length > 0) {
       const file = event.target.files[0];
+
+      if (file.size > 1 * 1024 * 1024) {
+        setFileError('Screenshot exceeds the 1MB maximum limit.');
+        event.target.value = '';
+        return;
+      }
+
       setAttachments([file]);
 
       // Create image preview
@@ -141,6 +150,7 @@ const PluginFeedbackModal: React.FC<PluginFeedbackModalProps> = ({
   const removeAttachment = (index: number) => {
     setAttachments((prev) => prev.filter((_, i) => i !== index));
     setImagePreview(null);
+    setFileError(null);
   };
 
   const handleSubmit = async () => {
@@ -183,6 +193,7 @@ const PluginFeedbackModal: React.FC<PluginFeedbackModalProps> = ({
     setAdditionalDetails('');
     setAttachments([]);
     setImagePreview(null);
+    setFileError(null);
     setIsSubmitting(false);
     onClose();
   };
@@ -199,6 +210,7 @@ const PluginFeedbackModal: React.FC<PluginFeedbackModalProps> = ({
     setAdditionalDetails('');
     setAttachments([]);
     setImagePreview(null);
+    setFileError(null);
     onClose();
   }, [isSubmitting, onClose]);
 
@@ -461,6 +473,12 @@ const PluginFeedbackModal: React.FC<PluginFeedbackModalProps> = ({
                 onChange={handleFileChange}
               />
             </Button>
+
+            {fileError && (
+              <Typography color="error" variant="caption" sx={{ display: 'block', mt: 1 }}>
+                {fileError}
+              </Typography>
+            )}
 
             {attachments.length > 0 && (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 2 }}>
