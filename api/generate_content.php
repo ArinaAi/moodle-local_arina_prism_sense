@@ -30,6 +30,19 @@ session_write_close();
 
 header('Content-Type: application/json');
 
+// Validate API key early — before queuing any task.
+// get_config() reads from the database in a fresh web-request context, so this
+// bypasses any stale in-process cache that a long-running cron process might hold.
+$apiKey = get_config('local_lecturebot', 'api_key');
+if (empty($apiKey)) {
+    http_response_code(401);
+    echo json_encode([
+        'status' => 'error',
+        'error'  => 'API key is not configured. Please add your API key in the plugin settings.'
+    ]);
+    exit;
+}
+
 // Enable high memory limit for any lightweight overhead
 ini_set('memory_limit', '512M');
 
@@ -130,43 +143,43 @@ try {
 
     // If no source content or text not found, fetch live from section
     if (empty($curriculumText)) {
-        // Get curriculum from first Page activity or Label (text and media area) in the section
+        // Only read the activity named exactly "Curriculum" (case-insensitive).
+        // This can be either a Text and Media Area (label) or a Page activity.
         $cms = $sectioninfo->modinfo->get_cms();
-        
+
         foreach ($cms as $cm) {
-            // Check if this module is in our section
-            if ($cm->sectionnum == $sectioninfo->section) {
-                // Check for Page activity
-                if ($cm->modname == 'page') {
-                    $page = $DB->get_record('page', ['id' => $cm->instance]);
-                    if ($page) {
-                        $curriculumText = strip_tags($page->content);
-                        $curriculumText = trim($curriculumText);
-                        break;
-                    }
-                } else if ($cm->modname == 'label') {
-                    $label = $DB->get_record('label', ['id' => $cm->instance]);
-                    if ($label && !empty($label->intro)) {
-                        $curriculumText = strip_tags($label->intro);
-                        $curriculumText = trim($curriculumText);
-                        break;
-                    }
+            // Must be in this section and named "Curriculum"
+            if ($cm->sectionnum != $sectioninfo->section) {
+                continue;
+            }
+            if (strcasecmp(trim($cm->name), 'Curriculum') !== 0) {
+                continue;
+            }
+
+            if ($cm->modname == 'label') {
+                $label = $DB->get_record('label', ['id' => $cm->instance]);
+                if ($label && !empty($label->intro)) {
+                    $curriculumText = trim(strip_tags($label->intro));
+                    error_log("LectureBot: Found 'Curriculum' label (id:{$cm->id}) in section $sectionid");
+                    break;
+                }
+            } elseif ($cm->modname == 'page') {
+                $page = $DB->get_record('page', ['id' => $cm->instance]);
+                if ($page && !empty($page->content)) {
+                    $curriculumText = trim(strip_tags($page->content));
+                    error_log("LectureBot: Found 'Curriculum' page (id:{$cm->id}) in section $sectionid");
+                    break;
                 }
             }
         }
-        
-        // If no page found, check section summary as fallback
-        if (empty($curriculumText) && !empty($sectioninfo->summary)) {
-            $curriculumText = strip_tags($sectioninfo->summary);
-            $curriculumText = trim($curriculumText);
-        }
     }
-    
-    // If still empty, throw error
+
+    // If still empty, throw error with actionable instructions
     if (empty($curriculumText)) {
         throw new \local_lecturebot\exception\curriculum_not_found_exception(
-            'No curriculum content found in section. ' .
-            'Please add a Page activity or section summary with curriculum content.'
+            'No "Curriculum" activity found in this section. ' .
+            'Please add a Text and Media Area (or Page) titled exactly "Curriculum" ' .
+            'under this section in the course, then try again.'
         );
     }
 

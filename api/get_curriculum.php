@@ -39,47 +39,35 @@ try {
         throw new moodle_exception('Section not found');
     }
     
-    // Get curriculum from first Page activity or Label (text and media area) in the section
+    // Only read a Text and Media Area (label) whose title is exactly "Curriculum"
+    // (case-insensitive). Pages and the section summary are intentionally ignored.
     $curriculumContent = '';
-    
-    // Get section number for comparison
-    $sectionnumber = $sectioninfo->section;
-    
-    // Get all course modules in this section
+
     if (!empty($sectioninfo->sequence)) {
         $cmids = explode(',', $sectioninfo->sequence);
-        
+
         foreach ($cmids as $cmid) {
             $cm = $modinfo->get_cm($cmid);
-            
-            // Check for Page activity
-            if ($cm->modname == 'page' && $cm->uservisible) {
-                $page = $DB->get_record('page', ['id' => $cm->instance]);
-                if ($page && !empty($page->content)) {
-                    $curriculumContent = strip_tags($page->content);
-                    $curriculumContent = trim($curriculumContent);
-                    break;
-                }
-            }elseif ($cm->modname == 'label' && $cm->uservisible) {
-                $label = $DB->get_record('label', ['id' => $cm->instance]);
-                if ($label && !empty($label->intro)) {
-                    $curriculumContent = strip_tags($label->intro);
-                    $curriculumContent = trim($curriculumContent);
-                    break;
-                }
+
+            // Must be a label AND named "Curriculum"
+            if ($cm->modname !== 'label' || !$cm->uservisible) {
+                continue;
+            }
+            if (strcasecmp(trim($cm->name), 'Curriculum') !== 0) {
+                continue;
+            }
+
+            $label = $DB->get_record('label', ['id' => $cm->instance]);
+            if ($label && !empty($label->intro)) {
+                $curriculumContent = trim(strip_tags($label->intro));
+                break;
             }
         }
     }
-    
-    // If no page found, check section summary as fallback
-    if (empty($curriculumContent) && !empty($sectioninfo->summary)) {
-        $curriculumContent = strip_tags($sectioninfo->summary);
-        $curriculumContent = trim($curriculumContent);
-    }
-    
-    // Return the curriculum even if empty (let frontend handle the message)
+
+    // Return the curriculum (empty string if not found — frontend handles the message)
     echo json_encode([
-        'status' => 'success',
+        'status'     => 'success',
         'curriculum' => $curriculumContent
     ]);
     

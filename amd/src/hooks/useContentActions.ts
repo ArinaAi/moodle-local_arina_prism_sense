@@ -157,7 +157,9 @@ export const useContentActions = (
         } catch (error: any) {
             console.error('Slide generation error:', error);
             const errorMsg = error?.message?.toLowerCase() || '';
-            if (errorMsg.includes('curriculum')) {
+            if (errorMsg.includes('api key') || errorMsg.includes('unauthorized') || errorMsg.includes('not configured')) {
+                showNotification(error.message, 'error');
+            } else if (errorMsg.includes('curriculum')) {
                 showNotification('No curriculum found for this section. Please upload curriculum first.', 'error');
             } else {
                 showNotification('Something went wrong while generating slides. Please try again.', 'error');
@@ -280,7 +282,12 @@ export const useContentActions = (
 
         } catch (error: any) {
             console.error('Video generation failed:', error);
-            showNotification('Something went wrong while generating the video. Please try again.', 'error');
+            const videoErrorMsg = error?.message?.toLowerCase() || '';
+            if (videoErrorMsg.includes('api key') || videoErrorMsg.includes('unauthorized') || videoErrorMsg.includes('not configured')) {
+                showNotification(error.message, 'error');
+            } else {
+                showNotification('Something went wrong while generating the video. Please try again.', 'error');
+            }
             // Remove temp item from state directly (avoid loadContentState which triggers self-healing cleanup)
             dispatch({
                 type: 'SET_CONTENT_ITEMS',
