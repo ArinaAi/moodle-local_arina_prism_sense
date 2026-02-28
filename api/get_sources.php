@@ -44,6 +44,9 @@ try {
     if ($sectionid !== null) {
         $result = [];
         foreach ($sources as $source) {
+            // Generate secure view URL
+            $view_url = new moodle_url('/local/lecturebot/view_pdf.php', ['id' => $source->id]);
+            
             $result[] = [
                 'id' => $source->id,
                 'filename' => $source->filename,
@@ -51,6 +54,7 @@ try {
                 'title' => $source->title,
                 'author' => $source->author,
                 'fileitemid' => $source->fileitemid,
+                'view_url' => $view_url->out(false),
                 'is_scanned' => isset($source->is_scanned) ? (int)$source->is_scanned : null,
                 'timecreated' => $source->timecreated
             ];
@@ -64,6 +68,9 @@ try {
         // Return flat array with section info (for LeftColumn)
         $result = [];
         foreach ($sources as $source) {
+            // Generate secure view URL
+            $view_url = new moodle_url('/local/lecturebot/view_pdf.php', ['id' => $source->id]);
+            
             $result[] = [
                 'id' => $source->id,
                 'filename' => $source->filename,
@@ -73,6 +80,7 @@ try {
                 'fileitemid' => $source->fileitemid,
                 'sectionid' => $source->sectionid,
                 'sectionname' => $section_names[$source->sectionid] ?? "Unknown Section",
+                'view_url' => $view_url->out(false),
                 'is_scanned' => isset($source->is_scanned) ? (int)$source->is_scanned : null,
                 'timecreated' => $source->timecreated
             ];

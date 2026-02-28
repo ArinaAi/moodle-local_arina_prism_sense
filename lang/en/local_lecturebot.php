@@ -31,3 +31,9 @@ $string['creditmanagement'] = 'Credit Management';
 $string['task:generate_content_task'] = 'Generate PRISM Sense Content';
 $string['task:poll_content_status'] = 'Poll Content Generation Status';
 $string['courseplayer'] = 'Start Course';
+
+// PDF viewing errors
+$string['errorviewingpdf'] = 'Error viewing PDF';
+$string['filenotfound'] = 'PDF file not found';
+$string['invalidfiletype'] = 'File is not a valid PDF';
+

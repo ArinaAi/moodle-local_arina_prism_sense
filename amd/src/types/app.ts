@@ -10,6 +10,9 @@ export interface SourceFile {
   sectionname: string;
   is_scanned?: number | null;
   timecreated: number;
+  title?: string;
+  author?: string;
+  view_url?: string;
 }
 
 export interface CurriculumSubtopic {

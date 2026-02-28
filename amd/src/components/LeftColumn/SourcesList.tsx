@@ -8,12 +8,14 @@ import {
     List,
     ListItem,
     Tooltip,
+    IconButton,
 } from '@mui/material';
-import { Description, ExpandMore } from '@mui/icons-material';
+import { Description, ExpandMore, Visibility } from '@mui/icons-material';
 import { FileText } from 'lucide-react';
 import { formatFileSize } from '../../utils/helpers';
 import { accordionStyles } from '../../styles/accordionStyles';
 import type { SourceFile } from '../../types/app';
+import PDFPreviewModal from '../Modals/PDFPreviewModal';
 
 interface SourcesListProps {
     sources: SourceFile[];
@@ -29,6 +31,7 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources }) => {
     };
 
     const [expandedSections, setExpandedSections] = useState<Set<number>>(() => getInitialExpanded(sources));
+    const [previewPdf, setPreviewPdf] = useState<{ open: boolean; source: SourceFile | null }>({ open: false, source: null });
 
     // Update expanded sections if sources change significantly (optional, but good for refresh)
     useEffect(() => {
@@ -141,12 +144,32 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources }) => {
                                                     lineHeight: 1.2,
                                                 }}
                                             >
-                                                {file.filename}
+                                                {file.title || file.filename}
                                             </Typography>
-                                            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 'clamp(0.6rem, 1.2vw + 0.2rem, 0.75rem)' }}>
-                                                {formatFileSize(file.filesize)}
+                                            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 'clamp(0.6rem, 1.2vw + 0.2rem, 0.75rem)', display: 'block' }}>
+                                                {file.author && `By: ${file.author} • `}{formatFileSize(file.filesize)}
                                             </Typography>
                                         </Box>
+                                        {file.view_url && (
+                                            <Tooltip title="Preview PDF" arrow placement="top">
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setPreviewPdf({ open: true, source: file });
+                                                    }}
+                                                    sx={{
+                                                        flexShrink: 0,
+                                                        color: '#0D5CA2',
+                                                        '&:hover': {
+                                                            backgroundColor: 'rgba(13, 92, 162, 0.08)',
+                                                        },
+                                                    }}
+                                                >
+                                                    <Visibility sx={{ fontSize: 18 }} />
+                                                </IconButton>
+                                            </Tooltip>
+                                        )}
                                     </ListItem>
                                 ))}
                             </List>
@@ -154,6 +177,16 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources }) => {
                     </Accordion>
                 ))}
             </Box>
+
+            {/* PDF Preview Modal */}
+            <PDFPreviewModal
+                open={previewPdf.open && previewPdf.source !== null}
+                onClose={() => setPreviewPdf({ open: false, source: null })}
+                pdfUrl={previewPdf.source?.view_url || ''}
+                title={previewPdf.source?.title || previewPdf.source?.filename || ''}
+                author={previewPdf.source?.author}
+                filesize={previewPdf.source?.filesize}
+            />
         </Box>
     );
 };
