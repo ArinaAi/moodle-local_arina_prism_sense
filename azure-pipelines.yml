@@ -418,9 +418,7 @@ stages:
                         echo "Cloning repository: ${REPO_NAME}"
                         git clone "https://${USER_NAME}:${AZURE_PAT}@dev.azure.com/Arina-AI/NextGenChatBot/_git/arina-ai-devops"
 
-                        cd arina-ai-devops/kubernetes/prism
-                        rm -rf values.yaml values-stag.yaml
-
+                        cd arina-ai-devops/kubernetes/prism                        
                         sed -i "s|arinactrregistry.azurecr.io/arina-moodle:amd-[0-9]*|arinactrregistry.azurecr.io/arina-moodle:amd-$BUILD_NO|g" values-prod.yaml
 
                         # Verify the changes
