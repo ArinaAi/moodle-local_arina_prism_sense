@@ -14,6 +14,7 @@ require_once($CFG->libdir . '/filelib.php');
 require_once(__DIR__ . '/../lib_azure_storage.php');
 require_once(__DIR__ . '/../classes/exception/curl_execution_exception.php');
 require_once(__DIR__ . '/../classes/exception/api_http_exception.php');
+require_once(__DIR__ . '/cms/CreditServiceClient.php');
 
 header('Content-Type: application/json');
 
@@ -205,6 +206,15 @@ try {
     // while we wait for the potentially slow backend upload
     \core\session\manager::write_close();
     
+    // Get user's owner UUID for credit tracking
+    $userUuid = null;
+    try {
+        $client = new \local_lecturebot\cms\CreditServiceClient();
+        $userUuid = $client->getUserOwnerUuid($USER->id);
+    } catch (\Exception $e) {
+        // Continue anyway, backend will return appropriate error if UUID is required
+    }
+    
     // ===== UPLOAD PDFs TO BACKEND API (if enabled) =====
     $uploadResults = [];
     
@@ -317,6 +327,11 @@ try {
                         'author' => $author,
                         'title' => $title
                     ];
+                    
+                    // Add user_id for credit tracking
+                    if ($userUuid) {
+                        $queryParams['user_id'] = $userUuid;
+                    }
                     
                     $uploadApiUrl = LECTUREBOT_API_UPLOAD_PDF . '?' . http_build_query($queryParams, '', '&');
                     error_log("LectureBot: Uploading PDF $index to backend: " . $storedfile->get_filename());

@@ -306,7 +306,8 @@ try {
         'avtar_video_needed' => $avatarVideoNeeded,
         'content_type' => $contentType,
         'feedback' => $feedbackDetails,
-        'parent_content_id' => $parentContentId
+        'parent_content_id' => $parentContentId,
+        'user_id' => $USER->id  // Pass Moodle user ID for UUID lookup in task
     ];
 
     if (defined('DEVELOPER_MODE') && DEVELOPER_MODE) {

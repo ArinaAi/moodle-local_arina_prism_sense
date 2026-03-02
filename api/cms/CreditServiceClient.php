@@ -105,6 +105,25 @@ class CreditServiceClient
     }
 
     /**
+     * Get user's owner UUID (not wallet_id) for content generation APIs.
+     * Returns the UUID stored in user preferences.
+     * @param int $userId Moodle user ID
+     * @return string The owner UUID
+     * @throws \Exception if UUID not found
+     */
+    public function getUserOwnerUuid($userId)
+    {
+        $uuid = get_user_preferences('lecturebot_wallet_sub_user_id', null, $userId);
+        if (empty($uuid)) {
+            throw new CreditServiceException(
+                "User {$userId} does not have a wallet UUID. ".
+                "Admin must allocate credits to this user first via CMS dashboard."
+            );
+        }
+        return $uuid;
+    }
+
+    /**
      * Resolve an owner UUID to its actual wallet ID.
      * @param string $ownerUuid The owner UUID
      * @return string The wallet ID

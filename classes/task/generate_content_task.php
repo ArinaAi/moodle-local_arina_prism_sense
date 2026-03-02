@@ -5,6 +5,7 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once(__DIR__ . '/../../config_api.php');
 require_once(__DIR__ . '/../../configurator_azure.php');
+require_once(__DIR__ . '/../../api/cms/CreditServiceClient.php');
 
 /**
  * Adhoc task to initiate content generation asynchronously via Kafka
@@ -41,6 +42,9 @@ class generate_content_task extends \core\task\adhoc_task
         $contentType = isset($data->content_type) ? $data->content_type : 'slides';
         $avatarVideoNeeded = isset($data->avtar_video_needed) ? $data->avtar_video_needed : 'no';
 
+        // Get user's owner UUID for credit tracking
+        $userUuid = $this->getUserUuidForCredit($data);
+
         mtrace("Starting content generation for content ID: $contentId. Type: $contentType");
 
         try {
@@ -52,7 +56,7 @@ class generate_content_task extends \core\task\adhoc_task
             }
 
             // 1. Build API URL
-            $apiUrl = $this->getApiUrl($data, $contentType, $avatarVideoNeeded);
+            $apiUrl = $this->getApiUrl($data, $contentType, $avatarVideoNeeded, $userUuid);
             mtrace("Calling API URL: $apiUrl");
 
             // 2. Execute API Call (now returns immediately with request_id)
@@ -143,8 +147,12 @@ class generate_content_task extends \core\task\adhoc_task
 
     /**
      * Construct the API URL based on content type and parameters
+     * @param object $data Task data
+     * @param string $contentType Content type (video/slides)
+     * @param string $avatarVideoNeeded Avatar video flag
+     * @param string|null $userUuid User's owner UUID for credit tracking
      */
-    private function getApiUrl($data, $contentType, $avatarVideoNeeded)
+    private function getApiUrl($data, $contentType, $avatarVideoNeeded, $userUuid = null)
     {
         $tenantId = $data->tenant_id;
         $courseid = $data->course_id;
@@ -161,7 +169,7 @@ class generate_content_task extends \core\task\adhoc_task
         // Check if Video Generation is requested
         if ($contentType === 'video' || $avatarVideoNeeded === 'yes') {
              $baseUrl = LECTUREBOT_API_GENERATE_VIDEO;
-             return $baseUrl .
+             $videoUrl = $baseUrl .
                   '?course_id=' . $courseid .
                   '&organization_id=' . $tenantId .
                   '&chapter_id=' . $sectionid .
@@ -170,6 +178,13 @@ class generate_content_task extends \core\task\adhoc_task
                   '&voice_gender=' . urlencode($voiceGender) .
                   '&avatar_strategy=' . urlencode($avatarStrategy) .
                   '&content_strategy=' . urlencode($contentStrategy);
+             
+             // Add user_id for credit tracking
+             if ($userUuid) {
+                 $videoUrl .= '&user_id=' . urlencode($userUuid);
+             }
+             
+             return $videoUrl;
         } else {
              // Fallback to existing PPTX endpoint logic
              $pptxUrl = LECTUREBOT_API_GENERATE_PPTX .
@@ -180,6 +195,11 @@ class generate_content_task extends \core\task\adhoc_task
                   '&regen_count=' . $regenCount .
                   '&video_length=' . $videoLength .
                   '&content_strategy=' . urlencode($contentStrategy);
+             
+             // Add user_id for credit tracking
+             if ($userUuid) {
+                 $pptxUrl .= '&user_id=' . urlencode($userUuid);
+             }
 
              // Append feedback_json if feedback data is present (regeneration with feedback)
              if (!empty($data->feedback)) {
@@ -409,5 +429,25 @@ class generate_content_task extends \core\task\adhoc_task
         );
     }
 
+    /**
+     * Get user's owner UUID for credit tracking
+     *
+     * @param object $data Task custom data
+     * @return string|null User's owner UUID or null if not available
+     */
+    private function getUserUuidForCredit($data)
+    {
+        if (!isset($data->user_id)) {
+            return null;
+        }
+
+        try {
+            $client = new \local_lecturebot\cms\CreditServiceClient();
+            return $client->getUserOwnerUuid($data->user_id);
+        } catch (\Exception $e) {
+            mtrace("Warning: Could not retrieve user UUID: " . $e->getMessage());
+            return null;
+        }
+    }
 
 }
