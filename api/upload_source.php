@@ -189,6 +189,7 @@ try {
         $record->fileitemid = $itemid;
         $record->filesize = $storedfile->get_filesize();
         $record->is_scanned = ($isPhotograph === 'true') ? 1 : 0;
+        $record->batch_id = null; // Will be set after batch creation
         $record->timecreated = time();
         $record->timemodified = time();
         
@@ -209,10 +210,22 @@ try {
     // Get user's owner UUID for credit tracking
     $userUuid = null;
     try {
-        $client = new \local_lecturebot\cms\CreditServiceClient();
-        $userUuid = $client->getUserOwnerUuid($USER->id);
+        // First try to get user's personal wallet UUID
+        $userUuid = get_user_preferences('lecturebot_wallet_sub_user_id', null, $USER->id);
+        
+        if (empty($userUuid)) {
+            // If no personal wallet, check if user is admin and use organization wallet
+            $context = \context_system::instance();
+            if (has_capability('moodle/site:config', $context, $USER->id)) {
+                $userUuid = get_config('local_lecturebot', 'org_wallet_owner_id');
+                if (!empty($userUuid)) {
+                    error_log("LectureBot: User is admin, using organization wallet UUID for upload");
+                }
+            }
+        }
     } catch (\Exception $e) {
         // Continue anyway, backend will return appropriate error if UUID is required
+        error_log("LectureBot: Failed to get user UUID: " . $e->getMessage());
     }
     
     // ===== UPLOAD PDFs TO BACKEND API (if enabled) =====
@@ -379,13 +392,14 @@ try {
                     
                     // Check success
                     if ($httpCode === 200 || $httpCode === 201) {
-                        // Backend upload succeeded - insert DB record
+                        // Backend upload succeeded - add batch_id and insert DB record
+                        $fileData['record']->batch_id = $batchId;
                         $dbId = $DB->insert_record('local_lecturebot_sources', $fileData['record']);
                         $uploadResult['success'] = true;
                         $uploadResult['db_id'] = $dbId;
                         error_log(
                             "LectureBot: Successfully uploaded
-                             file $index to backend and saved to DB (ID: $dbId)"
+                             file $index to backend and saved to DB (ID: $dbId, Batch: $batchId)"
                              );
                     } elseif ($httpCode === 401) {
                         throw new \local_lecturebot\exception\api_http_exception('API key is missing or incorrect.

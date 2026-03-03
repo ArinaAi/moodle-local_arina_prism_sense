@@ -44,6 +44,8 @@ class generate_content_task extends \core\task\adhoc_task
 
         // Get user's owner UUID for credit tracking
         $userUuid = $this->getUserUuidForCredit($data);
+        mtrace("User UUID for credit tracking: " .
+        ($userUuid ? $userUuid : 'NULL - user may not have wallet allocated'));
 
         mtrace("Starting content generation for content ID: $contentId. Type: $contentType");
 
@@ -55,24 +57,40 @@ class generate_content_task extends \core\task\adhoc_task
                 return;
             }
 
-            // 1. Build API URL
+            // 1. Trigger generation with polling (new workflow)
+            // This ensures PDFs are processed before starting generation
+            $requestId = $this->triggerGenerationWithPolling($data, $userUuid);
+            
+            if ($requestId) {
+                mtrace("Generation triggered successfully. Request ID: $requestId");
+                // Store request_id in database for polling
+                $this->storeRequestId($contentId, $requestId, $data, $contentType, $avatarVideoNeeded);
+                mtrace("Content $contentId queued for async generation. " .
+                    "Polling task will check for completion.");
+                return;
+            }
+
+            // Fallback to old workflow if trigger_generation is not used
+            mtrace("Trigger generation returned no request_id, falling back to old workflow...");
+
+            // 2. Build API URL (old workflow)
             $apiUrl = $this->getApiUrl($data, $contentType, $avatarVideoNeeded, $userUuid);
             mtrace("Calling API URL: $apiUrl");
 
-            // 2. Execute API Call (now returns immediately with request_id)
+            // 3. Execute API Call (returns immediately with request_id)
             $apiResponse = $this->executeApiCall($apiUrl);
 
-            // 3. Process Response - NEW: Handle async/Kafka response
+            // 4. Process Response - Handle async/Kafka response
             if ($this->isAsyncResponse($apiResponse)) {
                 // Extract request_id from response
-                $requestId = $apiResponse['request_id'] ?? $apiResponse['content_request_id'] ?? null;
+                $requestIdOld = $apiResponse['request_id'] ?? $apiResponse['content_request_id'] ?? null;
                 
-                if ($requestId) {
-                    mtrace("Backend accepted request. Request ID: $requestId, Status: " .
+                if ($requestIdOld) {
+                    mtrace("Backend accepted request. Request ID: $requestIdOld, Status: " .
                         ($apiResponse['status'] ?? 'unknown'));
                     
                     // Store request_id in database for polling
-                    $this->storeRequestId($contentId, $requestId, $data, $contentType, $avatarVideoNeeded);
+                    $this->storeRequestId($contentId, $requestIdOld, $data, $contentType, $avatarVideoNeeded);
                     
                     mtrace("Content $contentId queued for async generation. " .
                         "Polling task will check for completion.");
@@ -109,6 +127,238 @@ class generate_content_task extends \core\task\adhoc_task
         // Check for Kafka-style response with status: "processing"
         $status = $apiResponse['status'] ?? '';
         return $status === 'processing' || $status === 'queued' || $status === 'pending';
+    }
+
+    /**
+     * Trigger generation with polling to ensure PDFs are processed
+     *
+     * This method calls the /trigger_generation endpoint which checks if PDFs
+     * are processed before starting generation. Polls until content_request_id
+     * is received or max attempts reached.
+     *
+     * @param object $data Task custom data
+     * @param string|null $userUuid User's owner UUID for credit tracking
+     * @return string|null The content_request_id or null if failed
+     */
+    private function triggerGenerationWithPolling($data, $userUuid = null)
+    {
+        $batchId = $this->getBatchIdFromSources($data->course_id, $data->section_id);
+        if (empty($batchId)) {
+            return null;
+        }
+        
+        mtrace("Found batch_id: $batchId");
+        
+        $apiKey = get_config('local_lecturebot', 'api_key');
+        if (empty($apiKey)) {
+            throw new \local_lecturebot\exception\api_http_exception('API key is not configured');
+        }
+        
+        // Polling configuration - PDF processing can take several minutes
+        $maxAttempts = 60; // Max 60 attempts (60 × 30s = 30 minutes)
+        $pollInterval = 30; // 30 seconds between polls
+        
+        mtrace("Starting trigger_generation polling (max $maxAttempts attempts, {$pollInterval}s interval, total ~" .
+            ($maxAttempts * $pollInterval / 60) . " minutes)");
+        
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            mtrace("Attempt $attempt/$maxAttempts: Calling trigger_generation...");
+            
+            $params = $this->buildTriggerParams($data, $batchId, $userUuid);
+            $responseData = $this->callTriggerGenerationApi($params, $apiKey);
+            
+            if ($responseData === null) {
+                sleep($pollInterval);
+                continue;
+            }
+            
+            $result = $this->processTriggerResponse($responseData, $pollInterval);
+            if ($result !== false) {
+                return $result;
+            }
+        }
+        
+        mtrace("✗ Failed to get content_request_id after $maxAttempts attempts");
+        return null;
+    }
+    
+    /**
+     * Get batch_id from sources table
+     *
+     * @param int $courseid Course ID
+     * @param int $sectionid Section ID
+     * @return string|null Batch ID or null if not found
+     */
+    private function getBatchIdFromSources($courseid, $sectionid)
+    {
+        global $DB;
+        
+        $sources = $DB->get_records('local_lecturebot_sources', [
+            'courseid' => $courseid,
+            'sectionid' => $sectionid
+        ]);
+        
+        if (empty($sources)) {
+            mtrace("No sources found for course $courseid section $sectionid");
+            return null;
+        }
+        
+        foreach ($sources as $source) {
+            if (!empty($source->batch_id)) {
+                return $source->batch_id;
+            }
+        }
+        
+        mtrace("No batch_id found in sources. Skipping trigger_generation workflow.");
+        return null;
+    }
+    
+    /**
+     * Build parameters for trigger_generation API call
+     *
+     * @param object $data Task custom data
+     * @param string $batchId Batch ID
+     * @param string|null $userUuid User's owner UUID
+     * @return array API parameters
+     */
+    private function buildTriggerParams($data, $batchId, $userUuid)
+    {
+        $params = [
+            'batch_id' => $batchId,
+            'curriculum_text' => $data->curriculum_text,
+            'regen_count' => $data->regen_count,
+            'video_length' => $data->video_length,
+            'content_strategy' => $data->content_strategy
+        ];
+        
+        if ($userUuid) {
+            $params['user_id'] = $userUuid;
+        }
+        
+        return $params;
+    }
+    
+    /**
+     * Call trigger_generation API
+     *
+     * @param array $params API parameters
+     * @param string $apiKey API key
+     * @return array|null Response data or null on error
+     */
+    private function callTriggerGenerationApi($params, $apiKey)
+    {
+        $apiUrl = LECTUREBOT_API_TRIGGER_GENERATION . '?' . http_build_query($params);
+        
+        $ch = curl_init($apiUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => '',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 60,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_HTTPHEADER => [
+                'X-Api-Key: ' . $apiKey,
+                'Content-Type: application/json'
+            ],
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_FOLLOWLOCATION => true
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+        
+        if ($curlError) {
+            mtrace("cURL error: $curlError");
+            return null;
+        }
+        
+        // Validate HTTP response and parse JSON
+        $responseData = null;
+        if ($httpCode !== 200) {
+            mtrace("HTTP $httpCode response: $response");
+        } else {
+            $responseData = json_decode($response, true);
+            if (!$responseData) {
+                mtrace("Failed to parse JSON response");
+            } else {
+                mtrace("Response: " . json_encode($responseData));
+            }
+        }
+        
+        return $responseData;
+    }
+    
+    /**
+     * Process trigger_generation API response
+     *
+     * @param array $responseData API response data
+     * @param int $pollInterval Polling interval in seconds
+     * @return string|null|false Content request ID on success, null to retry, false to continue polling
+     */
+    private function processTriggerResponse($responseData, $pollInterval)
+    {
+        $status = $responseData['status'] ?? 'unknown';
+        $contentRequestId = $responseData['content_request_id'] ?? null;
+        
+        // Check for successful generation trigger
+        if ($status === 'generation_triggered' && !empty($contentRequestId)) {
+            $this->logSuccessfulTrigger($contentRequestId, $responseData);
+            return $contentRequestId;
+        }
+        
+        // Handle failed status
+        if ($status === 'failed' || $status === 'error') {
+            $errorMsg = $responseData['message'] ?? $responseData['error'] ?? 'Generation failed';
+            mtrace("✗ FAILED: $errorMsg");
+            throw new \local_lecturebot\exception\api_response_exception($errorMsg);
+        }
+        
+        // Check upload status
+        $this->logUploadStatus($responseData, $status, $pollInterval);
+        return false; // Continue polling
+    }
+    
+    /**
+     * Log successful trigger
+     *
+     * @param string $contentRequestId Content request ID
+     * @param array $responseData Response data
+     */
+    private function logSuccessfulTrigger($contentRequestId, $responseData)
+    {
+        mtrace("✓ SUCCESS! Generation triggered with content_request_id: $contentRequestId");
+        mtrace("  - all_uploads_completed: " .
+            ($responseData['all_uploads_completed'] ? 'true' : 'false'));
+        mtrace("  - should_trigger_generation: " .
+            ($responseData['should_trigger_generation'] ? 'true' : 'false'));
+        mtrace("  - message: " . ($responseData['message'] ?? 'N/A'));
+    }
+    
+    /**
+     * Log upload status and sleep
+     *
+     * @param array $responseData Response data
+     * @param string $status Status
+     * @param int $pollInterval Polling interval
+     */
+    private function logUploadStatus($responseData, $status, $pollInterval)
+    {
+        $allUploadsCompleted = $responseData['all_uploads_completed'] ?? false;
+        $shouldTrigger = $responseData['should_trigger_generation'] ?? false;
+        
+        mtrace("  - all_uploads_completed: " . ($allUploadsCompleted ? 'true' : 'false'));
+        mtrace("  - should_trigger_generation: " . ($shouldTrigger ? 'true' : 'false'));
+        mtrace("  - status: $status");
+        
+        if (!$allUploadsCompleted) {
+            mtrace("  ⏳ PDFs still being processed. Waiting {$pollInterval}s...");
+        } elseif (!$shouldTrigger) {
+            mtrace("  ⚠️ Uploads complete but generation not triggered");
+        } else {
+            mtrace("  ⚠️ Unexpected state - retrying...");
+        }
     }
 
     /**
@@ -438,12 +688,42 @@ class generate_content_task extends \core\task\adhoc_task
     private function getUserUuidForCredit($data)
     {
         if (!isset($data->user_id)) {
+            mtrace("No user_id in task data");
             return null;
         }
 
+        mtrace("Looking up UUID for user_id: " . $data->user_id);
+
         try {
-            $client = new \local_lecturebot\cms\CreditServiceClient();
-            return $client->getUserOwnerUuid($data->user_id);
+            $result = null;
+            
+            // First try to get user's personal wallet UUID
+            $userUuid = get_user_preferences('lecturebot_wallet_sub_user_id', null, $data->user_id);
+            
+            if (!empty($userUuid)) {
+                mtrace("Found personal wallet UUID: " . $userUuid);
+                $result = $userUuid;
+            } else {
+                // If no personal wallet, check if user is admin and use organization wallet
+                mtrace("No personal wallet found, checking if user is admin...");
+                
+                // Check if user has admin/manager role (can access site administration)
+                $context = \context_system::instance();
+                if (has_capability('moodle/site:config', $context, $data->user_id)) {
+                    $orgUuid = get_config('local_lecturebot', 'org_wallet_owner_id');
+                    if (!empty($orgUuid)) {
+                        mtrace("User is admin, using organization wallet UUID: " . $orgUuid);
+                        $result = $orgUuid;
+                    }
+                }
+                
+                if (empty($result)) {
+                    mtrace("No wallet UUID found for user");
+                }
+            }
+            
+            return $result;
+            
         } catch (\Exception $e) {
             mtrace("Warning: Could not retrieve user UUID: " . $e->getMessage());
             return null;
