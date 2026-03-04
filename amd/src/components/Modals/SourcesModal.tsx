@@ -1230,7 +1230,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
               value={selectedSection?.toString() || ''}
               label="Select Topic"
               onChange={(e) => handleSectionChange(Number(e.target.value))}
-              disabled={loading}
+              disabled={loading || isAnyUploading}
               MenuProps={{
                 sx: {
                   zIndex: 100002,
@@ -1245,9 +1245,9 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
             </Select>
           </FormControl>
 
-          {/* Done Button - more compact on mobile */}
           <Button
             onClick={handleDoneClick}
+            disabled={isAnyUploading}
             variant="contained"
             // Full width on mobile since footer is stacked
             fullWidth={isMobile}
