@@ -33,7 +33,7 @@ export const FinancialsView: React.FC = () => {
 
     const fetchData = async () => {
         try {
-            const baseUrl = (window as any).MOODLE_CMS_CONTEXT?.wwwroot || '';
+            const baseUrl = (globalThis as any).MOODLE_CMS_CONTEXT?.wwwroot || '';
             const [acqRes, couponRes] = await Promise.all([
                 fetch(`${baseUrl}/local/lecturebot/api/cms/get_acquisitions.php`, { credentials: 'include' }),
                 fetch(`${baseUrl}/local/lecturebot/api/cms/get_coupons.php`, { credentials: 'include' })
@@ -82,7 +82,7 @@ export const FinancialsView: React.FC = () => {
                     background: 'var(--paper)',
                     border: '1px solid var(--border)',
                     borderRadius: 20,
-                    overflow: 'hidden',
+                    // No overflow:hidden — was causing white corner clipping on rounded card
                     boxShadow: 'var(--shadow)',
                 }}
             >
@@ -123,9 +123,9 @@ export const FinancialsView: React.FC = () => {
                     <tbody>
                         {loading ? (
                             Array.from({ length: 3 }).map((_, i) => (
-                                <tr key={`skeleton-${i}`} style={{ borderBottom: '1px solid var(--border)' }}>
-                                    {Array.from({ length: 5 }).map((__, j) => (
-                                        <td key={j} style={{ padding: '14px 16px' }}>
+                                <tr key={`financials-skeleton-${i}`} style={{ borderBottom: '1px solid var(--border)' }}>
+                                    {Array.from({ length: 5 }).map((__un, j) => (
+                                        <td key={`financials-sk-${i}-${j}`} style={{ padding: '14px 16px' }}>
                                             <Skeleton animation="wave" height={24} />
                                         </td>
                                     ))}

@@ -162,6 +162,21 @@ export const createCMSTheme = (mode: 'light' | 'dark' = 'light') => createTheme(
                 },
             },
         },
+        // Skeleton: visible in both light and dark mode (blueprint §6.11)
+        MuiSkeleton: {
+            styleOverrides: {
+                root: ({ _ownerState, theme: t }: any) => ({
+                    backgroundColor: t.palette.mode === 'dark'
+                        ? 'rgba(255,255,255,0.07)'
+                        : 'rgba(15,40,80,0.06)',
+                    '&::after': {
+                        background: t.palette.mode === 'dark'
+                            ? 'linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)'
+                            : 'linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)',
+                    },
+                }),
+            },
+        },
     },
 });
 

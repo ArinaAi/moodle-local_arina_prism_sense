@@ -45,12 +45,14 @@ export const Modal: React.FC<ModalProps> = ({
         width: isMobile ? '100%' : `clamp(400px, 90vw, ${maxWidth}px)`,
         maxHeight: isMobile ? '100dvh' : '85vh',
         height: isMobile ? '100dvh' : 'auto',
-        borderRadius: isMobile ? 0 : '16px',
-        boxShadow: isMobile ? 'none' : '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-        bgcolor: 'background.paper',
+        // Blueprint §5.4: border-radius 20px
+        borderRadius: isMobile ? 0 : '20px',
+        boxShadow: isMobile ? 'none' : '0 16px 48px rgba(0, 0, 0, 0.16)',
+        bgcolor: 'var(--paper)',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
+        backgroundColor: 'var(--paper)',
     };
 
     return (
@@ -64,9 +66,9 @@ export const Modal: React.FC<ModalProps> = ({
             disableEscapeKeyDown={disableEscapeKeyDown}
             sx={{
                 zIndex: 100000,
+                // Blueprint §5.4: flat dark backdrop, no blur (no glassmorphism §1.1)
                 '& .MuiBackdrop-root': {
-                    backdropFilter: 'blur(4px)',
-                    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
                 },
             }}
         >
@@ -74,11 +76,12 @@ export const Modal: React.FC<ModalProps> = ({
                 {/* Header matching PluginFeedbackModal */}
                 <Box sx={{
                     p: 'clamp(16px, 2vh, 24px)',
-                    borderBottom: '1px solid #f1f5f9',
+                    // Blueprint §3.1 divider token — dark mode aware
+                    borderBottom: '1px solid var(--border)',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    backgroundColor: '#ffffff',
+                    backgroundColor: 'var(--paper)',
                     flexShrink: 0,
                 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>

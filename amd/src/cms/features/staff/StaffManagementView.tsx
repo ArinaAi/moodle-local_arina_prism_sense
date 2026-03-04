@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, AlertCircle } from 'lucide-react';
+import { Search, AlertCircle, Users } from 'lucide-react';
 import { Skeleton, Snackbar, Alert } from '@mui/material';
 import { stagger, fadeIn } from '../../config/animations';
 import { Badge } from '../../components/ui/Badge';
@@ -40,7 +40,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ onView
 
     const fetchStaff = async () => {
         try {
-            const baseUrl = (window as any).MOODLE_CMS_CONTEXT?.wwwroot || '';
+            const baseUrl = (globalThis as any).MOODLE_CMS_CONTEXT?.wwwroot || '';
             const response = await fetch(`${baseUrl}/local/lecturebot/api/cms/get_staff.php`, {
                 credentials: 'include'
             });
@@ -152,105 +152,165 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ onView
                     background: 'var(--paper)',
                     border: '1px solid var(--border)',
                     borderRadius: 20,
-                    overflow: 'hidden',
                     boxShadow: 'var(--shadow)',
                 }}
             >
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'inherit' }}>
-                    <thead>
-                        <tr
-                            style={{
-                                borderBottom: '1px solid var(--border)',
-                            }}
-                        >
-                            {['Sub-User Name / ID', 'Department', 'Balance', 'Status', 'Actions'].map((h) => (
-                                <th
-                                    key={h}
-                                    style={{
-                                        padding: '12px 16px',
-                                        fontSize: '0.75rem',
-                                        fontWeight: 600,
-                                        textTransform: 'uppercase',
-                                        letterSpacing: '0.05em',
-                                        color: 'var(--ts)',
-                                        textAlign: 'left',
-                                        background: 'transparent',
-                                    }}
-                                >
-                                    {h}
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <AnimatePresence>
-                            {loading ? (
-                                Array.from({ length: 5 }).map((_, i) => (
-                                    <tr key={`skeleton-${i}`}>
-                                        <td colSpan={5} style={{ padding: '14px 16px' }}>
-                                            <Skeleton animation="wave" height={24} />
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : filtered.length === 0 ? (
-                                <tr>
-                                    <td colSpan={5} style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--ts)' }}>
-                                        No active teaching staff found.
-                                    </td>
-                                </tr>
-                            ) : (
-                                filtered.map((s) => (
-                                    <motion.tr
-                                        key={s.id}
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -10 }}
-                                        transition={{ duration: 0.2 }}
+                <div style={{ maxHeight: '65vh', overflowY: 'auto', borderRadius: 20 }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'inherit' }}>
+                        <thead>
+                            <tr>
+                                {[
+                                    { label: 'Staff Member', width: '30%' },
+                                    { label: 'Department', width: '18%' },
+                                    { label: 'Balance', width: '15%' },
+                                    { label: 'Status', width: '12%' },
+                                    { label: 'Actions', width: '25%' },
+                                ].map((h) => (
+                                    <th
+                                        key={h.label}
                                         style={{
-                                            borderBottom: '1px solid var(--border)',
-                                            cursor: 'default',
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            (e.currentTarget as HTMLElement).style.background = 'var(--rh)';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            (e.currentTarget as HTMLElement).style.background = 'transparent';
+                                            padding: '14px 20px',
+                                            fontSize: '0.6875rem',
+                                            fontWeight: 700,
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.08em',
+                                            color: 'var(--ts)',
+                                            textAlign: 'left',
+                                            width: h.width,
+                                            position: 'sticky',
+                                            top: 0,
+                                            zIndex: 1,
+                                            background: 'var(--paper)',
+                                            borderBottom: '2px solid var(--border)',
                                         }}
                                     >
-                                        <td style={{ padding: '14px 16px' }}>
-                                            <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--tp)' }}>{s.name}</div>
-                                            <div style={{ fontSize: '0.75rem', color: 'var(--ts)', marginTop: 2 }}>{s.email}</div>
-                                        </td>
-                                        <td style={{ padding: '14px 16px', fontSize: '0.9375rem', color: 'var(--tp)' }}>
-                                            {s.department}
-                                        </td>
-                                        <td
-                                            style={{
-                                                padding: '14px 16px',
-                                                fontSize: '0.9375rem',
-                                                fontWeight: 600,
-                                                fontVariantNumeric: 'tabular-nums',
-                                                color: 'var(--tp)',
-                                            }}
-                                        >
-                                            {s.balance.toLocaleString()}
-                                        </td>
-                                        <td style={{ padding: '14px 16px' }}>
-                                            <Badge type={s.status === 'active' ? 'Active' : 'Ready'} />
-                                        </td>
-                                        <td style={{ padding: '14px 16px' }}>
-                                            <div style={{ display: 'flex', gap: 8 }}>
-                                                <ActionLink label="History" onClick={() => onViewStaff(s)} />
-                                                <ActionLink label="Distribute" onClick={() => openModal('distribute', s)} />
-                                                {s.status === 'active' && <ActionLink label="Recall" onClick={() => openModal('recall', s)} />}
+                                        {h.label}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <AnimatePresence>
+                                {loading ? (
+                                    Array.from({ length: 5 }).map((_, i) => (
+                                        <tr key={`staff-skeleton-${i}`} style={{ borderBottom: '1px solid var(--border)' }}>
+                                            {[30, 18, 15, 12, 25].map((pct, j) => (
+                                                <td key={`staff-sk-${i}-${j}`} style={{ padding: '16px 20px', width: `${pct}%` }}>
+                                                    <Skeleton animation="wave" height={20} />
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))
+                                ) : filtered.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={5}>
+                                            <div style={{ padding: '48px 24px', textAlign: 'center' }}>
+                                                <Users size={48} style={{ color: 'var(--td)', margin: '0 auto 16px' }} />
+                                                <div style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--tp)', marginBottom: 6 }}>
+                                                    No staff members found
+                                                </div>
+                                                <div style={{ fontSize: '0.875rem', color: 'var(--ts)' }}>
+                                                    {search ? 'Try a different search term.' : 'Staff members will appear here once added.'}
+                                                </div>
                                             </div>
                                         </td>
-                                    </motion.tr>
-                                ))
-                            )}
-                        </AnimatePresence>
-                    </tbody>
-                </table>
+                                    </tr>
+                                ) : (
+                                    filtered.map((s, idx) => (
+                                        <motion.tr
+                                            key={s.id}
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -10 }}
+                                            transition={{ duration: 0.2, delay: idx * 0.03 }}
+                                            style={{
+                                                borderBottom: '1px solid var(--border)',
+                                                cursor: 'default',
+                                                // Alternating rows — subtle stripe
+                                                background: idx % 2 === 1 ? 'rgba(15,108,191,0.02)' : 'transparent',
+                                                transition: 'background 0.15s',
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                (e.currentTarget as HTMLElement).style.background = 'rgba(15,108,191,0.05)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                (e.currentTarget as HTMLElement).style.background = idx % 2 === 1 ? 'rgba(15,108,191,0.02)' : 'transparent';
+                                            }}
+                                        >
+                                            {/* Staff member — avatar + name + email */}
+                                            <td style={{ padding: '16px 20px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                    <div style={{
+                                                        width: 36,
+                                                        height: 36,
+                                                        borderRadius: 10,
+                                                        background: 'linear-gradient(135deg, #0f6cbf 0%, #3d8fd1 100%)',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        flexShrink: 0,
+                                                        color: '#fff',
+                                                        fontWeight: 700,
+                                                        fontSize: '0.75rem',
+                                                        letterSpacing: '-0.02em',
+                                                    }}>
+                                                        {(s.name || 'U').slice(0, 2).toUpperCase()}
+                                                    </div>
+                                                    <div>
+                                                        <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--tp)', lineHeight: 1.3 }}>{s.name}</div>
+                                                        <div style={{ fontSize: '0.75rem', color: 'var(--ts)', marginTop: 1 }}>{s.email}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            {/* Department */}
+                                            <td style={{ padding: '16px 20px' }}>
+                                                <span style={{
+                                                    display: 'inline-block',
+                                                    padding: '3px 10px',
+                                                    borderRadius: 6,
+                                                    background: 'rgba(15,108,191,0.06)',
+                                                    color: 'var(--tp)',
+                                                    fontSize: '0.8125rem',
+                                                    fontWeight: 500,
+                                                }}>
+                                                    {s.department}
+                                                </span>
+                                            </td>
+                                            {/* Balance */}
+                                            <td style={{
+                                                padding: '16px 20px',
+                                                fontSize: '0.9375rem',
+                                                fontWeight: 700,
+                                                fontVariantNumeric: 'tabular-nums',
+                                                color: '#0f6cbf',
+                                            }}>
+                                                {s.balance.toLocaleString()}
+                                            </td>
+                                            {/* Status */}
+                                            <td style={{ padding: '16px 20px' }}>
+                                                <Badge type={s.status === 'active' ? 'Active' : 'Ready'} />
+                                            </td>
+                                            {/* Actions */}
+                                            <td style={{ padding: '16px 20px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                    <ActionLink label="History" onClick={() => onViewStaff(s)} />
+                                                    <ActionDot />
+                                                    <ActionLink label="Distribute" onClick={() => openModal('distribute', s)} />
+                                                    {s.status === 'active' && (
+                                                        <>
+                                                            <ActionDot />
+                                                            <ActionLink label="Recall" onClick={() => openModal('recall', s)} />
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </motion.tr>
+                                    ))
+                                )}
+                            </AnimatePresence>
+                        </tbody>
+                    </table>
+                </div> {/* end scrollable wrapper */}
             </motion.div>
 
             {/* Modal */}
@@ -279,23 +339,29 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ onView
     );
 };
 
-// ── Action link ──────────────────────────────────────────────
+// ── Action link — blueprint §5.2: always #0f6cbf weight 600, hover underline ──
 const ActionLink: React.FC<{ label: string; onClick: () => void }> = ({ label, onClick }) => (
     <motion.button
-        whileHover={{ color: '#0f6cbf' }}
+        whileHover={{ textDecoration: 'underline', color: '#0a5a9d' }}
         whileTap={{ scale: 0.97 }}
         onClick={onClick}
         style={{
             background: 'none',
             border: 'none',
             fontSize: '0.8125rem',
-            fontWeight: 500,
-            color: 'var(--ts)',
+            fontWeight: 600,
+            color: '#0f6cbf',
             cursor: 'pointer',
-            padding: '2px 4px',
+            padding: '2px 0',
             fontFamily: 'inherit',
+            textDecoration: 'none',
         }}
     >
         {label}
     </motion.button>
+);
+
+// Dot separator between action links (blueprint §5.2)
+const ActionDot: React.FC = () => (
+    <span style={{ color: 'var(--td)', fontSize: '0.75rem', userSelect: 'none' }}>·</span>
 );

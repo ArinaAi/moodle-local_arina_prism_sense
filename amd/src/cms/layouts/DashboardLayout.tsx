@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { ThemeProvider } from '@mui/material/styles';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Sidebar } from '../components/shared/Sidebar';
 import { AppHeader } from '../components/shared/AppHeader';
-import { THEMES, type ThemeName } from '../config/theme';
+import { THEMES, createCMSTheme, type ThemeName } from '../config/theme';
 
 import { OverviewView } from '../features/overview/OverviewView';
 import { StaffManagementView, type ApiStaffMember } from '../features/staff/StaffManagementView';
@@ -15,6 +17,10 @@ export const DashboardLayout: React.FC = () => {
     const [collapsed, setCollapsed] = useState(false);
     const [themeName, setThemeName] = useState<ThemeName>('light');
     const [viewingStaff, setViewingStaff] = useState<ApiStaffMember | null>(null);
+
+    // Reactive MUI theme — re-creates when themeName changes so Skeleton,
+    // Snackbar, Alert, TextField etc. all switch correctly in dark mode
+    const cmsTheme = useMemo(() => createCMSTheme(themeName), [themeName]);
 
     // Apply CSS variables to root element when theme changes
     useEffect(() => {
@@ -67,40 +73,57 @@ export const DashboardLayout: React.FC = () => {
     };
 
     return (
-        <div
-            style={{
-                display: 'flex',
-                flexDirection: 'column',
-                minHeight: '100vh',
-                background: 'var(--bg)',
-                fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
-            }}
-        >
-            {/* Global Header */}
-            <AppHeader activeNav={activeNav} />
+        <ThemeProvider theme={cmsTheme}>
+            {/* prism-cms-app: scoped ID for Moodle CSS isolation (Boost theme reset) */}
+            <div
+                id="prism-cms-app"
+                style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minHeight: '100vh',
+                    background: 'var(--bg)',
+                    fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
+                }}
+            >
+                {/* Global Header */}
+                <AppHeader activeNav={activeNav} />
 
-            {/* Sidebar + Content */}
-            <div style={{ display: 'flex', flex: 1 }}>
-                <Sidebar
-                    activeNav={activeNav}
-                    onNavChange={handleNavChange}
-                    collapsed={collapsed}
-                    onCollapse={handleToggleCollapse}
-                    themeName={themeName}
-                    setTheme={setThemeName}
-                />
+                {/* Sidebar + Content */}
+                <div style={{ display: 'flex', flex: 1 }}>
+                    <Sidebar
+                        activeNav={activeNav}
+                        onNavChange={handleNavChange}
+                        collapsed={collapsed}
+                        onCollapse={handleToggleCollapse}
+                        themeName={themeName}
+                        setTheme={setThemeName}
+                    />
 
-                {/* Scrollable content area */}
-                <main
-                    style={{
-                        flex: 1,
-                        padding: '14px 22px',
-                        overflow: 'auto',
-                    }}
-                >
-                    {renderContent()}
-                </main>
+                    {/* Scrollable content area with page transition */}
+                    <main
+                        style={{
+                            flex: 1,
+                            padding: '14px 22px',
+                            overflow: 'auto',
+                            minWidth: 0,
+                        }}
+                    >
+                        {/* AnimatePresence: blueprint §6.2 — fade+slide on nav change, mode='wait' */}
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={viewingStaff ? `staff-history-${viewingStaff.id}` : activeNav}
+                                initial={{ opacity: 0, y: -6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -6 }}
+                                transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
+                                style={{ height: '100%' }}
+                            >
+                                {renderContent()}
+                            </motion.div>
+                        </AnimatePresence>
+                    </main>
+                </div>
             </div>
-        </div>
+        </ThemeProvider>
     );
 };

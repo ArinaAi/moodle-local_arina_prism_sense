@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     LayoutDashboard, Users, DollarSign, BookOpen, Tag,
-    ChevronLeft, Sun, Moon, LogOut,
+    ChevronLeft, Sun, Moon,
 } from 'lucide-react';
-import { spring, tween } from '../../config/animations';
+import { tween } from '../../config/animations';
 import { LogoToggle } from '../ui/LogoToggle';
 import type { ThemeName } from '../../config/theme';
 
@@ -16,6 +16,8 @@ const navItems = [
     { id: 'audit', label: 'Audit Ledger', icon: BookOpen },
     { id: 'pricing', label: 'Pricing Info', icon: Tag },
 ];
+
+const SPRING = { type: 'spring' as const, stiffness: 500, damping: 35, mass: 0.8 };
 
 interface SidebarProps {
     activeNav: string;
@@ -34,8 +36,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     themeName,
     setTheme,
 }) => {
-    const [settingsOpen, setSettingsOpen] = useState(false);
-
     return (
         <div
             style={{
@@ -44,15 +44,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 display: 'flex',
                 alignItems: 'stretch',
                 alignSelf: 'flex-start',
-                height: 'calc(100vh - 61px)',
+                height: 'calc(100vh - 76px - 24px)',
+                maxHeight: 'calc(100vh - 76px - 24px)',
                 position: 'sticky',
-                top: 61,
+                top: 76,
             }}
         >
             <motion.aside
                 initial={false}
                 animate={{ width: collapsed ? 64 : 232 }}
-                transition={spring.smooth}
+                transition={SPRING}
                 style={{
                     background: 'var(--paper)',
                     borderRadius: 20,
@@ -62,22 +63,47 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     overflow: 'hidden',
                     boxShadow: 'var(--shadow)',
                     height: '100%',
-                    position: 'relative',
                 }}
             >
-                {/* Collapsed: LogoToggle */}
+                {/* Collapsed: PRISM P mark */}
                 {collapsed && (
                     <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}>
                         <LogoToggle onCollapse={onCollapse} />
                     </div>
                 )}
 
-                {/* Expanded: collapse toggle */}
+                {/* Expanded: brand label + collapse button together */}
                 {!collapsed && (
-                    <div style={{ padding: '10px 10px 4px', display: 'flex', justifyContent: 'flex-end' }}>
+                    <div style={{
+                        padding: '14px 12px 8px 16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                    }}>
+                        {/* PRISM brand */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: 8,
+                                background: 'linear-gradient(135deg, #0f6cbf 0%, #084C86 100%)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                                boxShadow: '0 2px 6px rgba(15,108,191,0.3)',
+                            }}>
+                                <span style={{ color: '#fff', fontWeight: 800, fontSize: '0.875rem', lineHeight: 1 }}>P</span>
+                            </div>
+                            <span style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--tp)', letterSpacing: '-0.01em' }}>
+                                PRISM
+                            </span>
+                        </div>
+
+                        {/* Collapse button — sits next to brand, natural position */}
                         <motion.button
                             onClick={onCollapse}
-                            whileHover={{ scale: 1.08 }}
+                            whileHover={{ scale: 1.08, backgroundColor: 'var(--rh)' }}
                             whileTap={{ scale: 0.92 }}
                             style={{
                                 width: 26,
@@ -91,218 +117,137 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 flexShrink: 0,
+                                transition: 'background 0.15s',
                             }}
+                            title="Collapse sidebar"
                         >
-                            <ChevronLeft size={14} />
+                            <ChevronLeft size={13} />
                         </motion.button>
                     </div>
                 )}
 
                 {/* Nav */}
-                <nav style={{ flex: 1, padding: '8px 8px' }}>
-                    <LayoutGroup>
-                        {navItems.map(({ id, label, icon: Icon }) => {
-                            const active = activeNav === id;
-                            return (
-                                <motion.button
-                                    key={id}
-                                    onClick={() => onNavChange(id)}
-                                    whileTap={{ scale: 0.97 }}
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 10,
-                                        padding: '10px 12px',
-                                        width: '100%',
-                                        borderRadius: 10,
-                                        border: 'none',
-                                        background: active ? '#ffffff' : 'transparent',
-                                        color: active ? '#0f6cbf' : 'var(--ts)',
-                                        fontWeight: active ? 600 : 400,
-                                        fontSize: '0.9375rem',
-                                        cursor: 'pointer',
-                                        position: 'relative',
-                                        fontFamily: 'inherit',
-                                        zIndex: 1,
-                                    }}
-                                >
-                                    {active && (
-                                        <motion.div
-                                            layoutId="activeIndicator"
-                                            layout="size"
-                                            transition={{ type: 'spring', stiffness: 500, damping: 35, mass: 0.8 }}
-                                            style={{
-                                                position: 'absolute',
-                                                inset: 0,
-                                                borderRadius: 10,
-                                                border: '1px solid #0f6cbf',
-                                                background: 'transparent',
-                                                zIndex: -1,
-                                            }}
-                                        />
+                <nav style={{ flex: 1, padding: '6px 8px', overflow: 'hidden' }}>
+                    {navItems.map(({ id, label, icon: Icon }) => {
+                        const active = activeNav === id;
+                        return (
+                            <motion.button
+                                key={id}
+                                onClick={() => onNavChange(id)}
+                                whileTap={{ scale: 0.97 }}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 10,
+                                    padding: collapsed ? '11px 0' : '11px 14px',
+                                    justifyContent: collapsed ? 'center' : 'flex-start',
+                                    width: '100%',
+                                    borderRadius: 10,
+                                    border: 'none',
+                                    background: 'transparent',
+                                    color: active ? '#0f6cbf' : 'var(--ts)',
+                                    fontWeight: active ? 600 : 400,
+                                    fontSize: '0.9375rem',
+                                    cursor: 'pointer',
+                                    position: 'relative',
+                                    fontFamily: 'inherit',
+                                    marginBottom: 2,
+                                    transition: 'background 0.15s, color 0.15s',
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (!active) { (e.currentTarget as HTMLElement).style.background = 'var(--rh)'; }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (!active) { (e.currentTarget as HTMLElement).style.background = 'transparent'; }
+                                }}
+                            >
+                                {/* Full border indicator — layoutId only (no layout="size" to avoid stutter) */}
+                                {active && (
+                                    <motion.div
+                                        layoutId="activeIndicator"
+                                        transition={SPRING}
+                                        style={{
+                                            position: 'absolute',
+                                            inset: 0,
+                                            borderRadius: 10,
+                                            border: '1.5px solid rgba(15,108,191,0.35)',
+                                            background: 'rgba(15,108,191,0.08)',
+                                            zIndex: 0,
+                                            pointerEvents: 'none' as const,
+                                        }}
+                                    />
+                                )}
+                                <Icon size={18} style={{ flexShrink: 0 }} />
+                                <AnimatePresence>
+                                    {!collapsed && (
+                                        <motion.span
+                                            initial={{ opacity: 0, x: -10 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: -10 }}
+                                            transition={tween.fast}
+                                            style={{ whiteSpace: 'nowrap' }}
+                                        >
+                                            {label}
+                                        </motion.span>
                                     )}
-                                    <Icon size={18} />
-                                    <AnimatePresence>
-                                        {!collapsed && (
-                                            <motion.span
-                                                initial={{ opacity: 0, x: -10 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                exit={{ opacity: 0, x: -10 }}
-                                                transition={tween.fast}
-                                                style={{ whiteSpace: 'nowrap' }}
-                                            >
-                                                {label}
-                                            </motion.span>
-                                        )}
-                                    </AnimatePresence>
-                                </motion.button>
-                            );
-                        })}
-                    </LayoutGroup>
+                                </AnimatePresence>
+                            </motion.button>
+                        );
+                    })}
                 </nav>
 
-                {/* Profile footer */}
-                <div style={{ padding: '10px 8px', borderTop: '1px solid var(--border)' }}>
+                {/* Footer: just a subtle theme toggle — no user info */}
+                <div style={{
+                    padding: '8px 10px 10px',
+                    borderTop: '1px solid var(--border)',
+                    display: 'flex',
+                    justifyContent: collapsed ? 'center' : 'flex-start',
+                    alignItems: 'center',
+                    gap: 4,
+                }}>
                     <motion.button
-                        whileHover={{ backgroundColor: 'rgba(15,108,191,0.04)' }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setSettingsOpen((o) => !o)}
+                        onClick={() => setTheme(themeName === 'dark' ? 'light' : 'dark')}
+                        whileHover={{ scale: 1.08 }}
+                        whileTap={{ scale: 0.92 }}
+                        title={themeName === 'dark' ? 'Switch to light' : 'Switch to dark'}
                         style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 10,
-                            padding: '8px 10px',
-                            width: '100%',
-                            borderRadius: 12,
-                            border: 'none',
+                            width: 30,
+                            height: 30,
+                            borderRadius: 8,
+                            border: '1px solid var(--border)',
                             background: 'transparent',
                             cursor: 'pointer',
-                            fontFamily: 'inherit',
+                            color: 'var(--ts)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'background 0.15s, border-color 0.15s',
                         }}
+                        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--rh)'; }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                     >
-                        <div
-                            style={{
-                                width: 34,
-                                height: 34,
-                                borderRadius: 9999,
-                                background: 'linear-gradient(135deg, #0f6cbf, #084C86)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                flexShrink: 0,
-                            }}
-                        >
-                            <span style={{ color: '#fff', fontWeight: 700, fontSize: '0.8125rem' }}>CA</span>
-                        </div>
-                        <AnimatePresence>
-                            {!collapsed && (
-                                <motion.div
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -10 }}
-                                    transition={tween.fast}
-                                    style={{ textAlign: 'left' }}
-                                >
-                                    <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--tp)', whiteSpace: 'nowrap' }}>
-                                        College Admin
-                                    </div>
-                                    <div style={{ fontSize: '0.6875rem', color: 'var(--ts)', whiteSpace: 'nowrap' }}>
-                                        admin@prism.edu
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                        {themeName === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
                     </motion.button>
+                    <AnimatePresence>
+                        {!collapsed && (
+                            <motion.span
+                                initial={{ opacity: 0, x: -6 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -6 }}
+                                transition={tween.fast}
+                                style={{
+                                    fontSize: '0.6875rem',
+                                    color: 'var(--td)',
+                                    fontWeight: 500,
+                                    whiteSpace: 'nowrap',
+                                }}
+                            >
+                                {themeName === 'dark' ? 'Light mode' : 'Dark mode'}
+                            </motion.span>
+                        )}
+                    </AnimatePresence>
                 </div>
             </motion.aside>
-
-            {/* Settings Popover — outside aside (no overflow clip) */}
-            <AnimatePresence>
-                {settingsOpen && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95, ...(collapsed ? { x: -8 } : { y: 8 }) }}
-                        animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, ...(collapsed ? { x: -8 } : { y: 8 }) }}
-                        transition={spring.snappy}
-                        style={{
-                            position: 'absolute',
-                            ...(collapsed
-                                ? { left: 'calc(100% - 12px)', bottom: 12, width: 200 }
-                                : { bottom: 12, left: 12, right: 0 }),
-                            background: 'var(--paper)',
-                            border: '1px solid var(--border)',
-                            borderRadius: 20,
-                            padding: 14,
-                            boxShadow: '0 8px 24px rgba(0,0,0,0.14)',
-                            zIndex: 100,
-                        }}
-                    >
-                        {/* Collapsed: show user info */}
-                        {collapsed && (
-                            <div style={{ marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
-                                <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--tp)' }}>College Admin</div>
-                                <div style={{ fontSize: '0.6875rem', color: 'var(--ts)', marginTop: 2 }}>admin@prism.edu</div>
-                            </div>
-                        )}
-
-                        <div style={{ fontSize: '0.6875rem', color: 'var(--ts)', textTransform: 'uppercase', marginBottom: 10, fontWeight: 600 }}>
-                            Appearance
-                        </div>
-
-                        {/* Theme toggle */}
-                        <div style={{ display: 'flex', gap: 3, background: 'rgba(0,0,0,0.04)', borderRadius: 10, padding: 3, marginBottom: 10 }}>
-                            {([['Light', Sun], ['Dark', Moon]] as const).map(([lbl, Icon]) => (
-                                <motion.button
-                                    key={lbl}
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={() => { setTheme(lbl.toLowerCase() as ThemeName); setSettingsOpen(false); }}
-                                    style={{
-                                        flex: 1,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: 5,
-                                        padding: '7px 8px',
-                                        borderRadius: 8,
-                                        border: 'none',
-                                        background: themeName === lbl.toLowerCase() ? 'var(--paper)' : 'transparent',
-                                        color: 'var(--tp)',
-                                        fontSize: '0.8125rem',
-                                        fontWeight: 600,
-                                        cursor: 'pointer',
-                                        boxShadow: themeName === lbl.toLowerCase() ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
-                                        fontFamily: 'inherit',
-                                    }}
-                                >
-                                    <Icon size={13} />{lbl}
-                                </motion.button>
-                            ))}
-                        </div>
-
-                        {/* Sign out */}
-                        <motion.button
-                            whileHover={{ borderColor: 'var(--ts)' }}
-                            style={{
-                                width: '100%',
-                                padding: '8px 10px',
-                                borderRadius: 8,
-                                border: '1px solid var(--border)',
-                                background: 'transparent',
-                                color: 'var(--ts)',
-                                fontSize: '0.8125rem',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 7,
-                                fontFamily: 'inherit',
-                            }}
-                        >
-                            <LogOut size={14} />Sign out
-                        </motion.button>
-                    </motion.div>
-                )}
-            </AnimatePresence>
         </div>
     );
 };

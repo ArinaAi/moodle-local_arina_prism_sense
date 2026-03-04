@@ -15,13 +15,40 @@
   box-sizing: border-box;
 }
 
+/* ─── App root: match main plugin background ────────────────── */
+#prism-cms-app {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%) fixed;
+  min-height: 100vh;
+}
+
+/* ─── Dark mode background ──────────────────────────────────── */
+/* Applied via CSS var — DashboardLayout sets --bg on :root */
+#prism-cms-app[data-theme="dark"] {
+  background: #060d1a;
+}
+
 /* ─── Custom Scrollbar (scoped to CMS) ─────────────────────── */
 #lecturebot-cms-root ::-webkit-scrollbar {
   width: 5px;
 }
 #lecturebot-cms-root ::-webkit-scrollbar-thumb {
-  background: rgba(15,108,191,0.2);
+  background: rgba(15,108,191,0.25);
   border-radius: 4px;
+}
+#lecturebot-cms-root ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ─── Crisp card/table borders (GPU layer, prevents fringing) ── */
+#prism-cms-app table {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* ─── Table rows: smooth hover transition ───────────────────── */
+#prism-cms-app tbody tr {
+  transition: background 0.12s ease;
+  cursor: default;
 }
 
 /* ─── Accessibility: Reduced Motion ────────────────────────── */
@@ -35,17 +62,9 @@
   }
 }
 
-/* ─── Glass Utility Class (for backdrop-filter cards) ──────── */
-#lecturebot-cms-root .glass {
-  background: var(--paper) !important;
-  backdrop-filter: var(--blur) !important;
-  -webkit-backdrop-filter: var(--blur) !important;
-  border: 1px solid var(--border) !important;
-  box-shadow: var(--shadow) !important;
-}
-
 /* ─── Focus Styles ─────────────────────────────────────────── */
 #lecturebot-cms-root *:focus-visible {
-  outline: 2px solid rgba(15,108,191,0.25);
+  outline: 2px solid rgba(15,108,191,0.35);
   outline-offset: 2px;
+  border-radius: 4px;
 }

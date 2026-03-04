@@ -23,69 +23,91 @@ export const StatCard: React.FC<StatCardProps> = ({
 }) => (
     <motion.div
         variants={{
-            initial: { opacity: 0, y: 20, scale: 0.97 },
+            initial: { opacity: 0, y: 24, scale: 0.96 },
             animate: { opacity: 1, y: 0, scale: 1 },
         }}
-        whileHover={{ y: -2, boxShadow: '0 6px 20px rgba(0,0,0,0.1)' }}
+        whileHover={{ y: -3, boxShadow: `0 8px 28px rgba(0,0,0,0.10), inset 0 -70px 50px -30px ${color}0a` }}
         transition={spring.snappy}
         style={{
             background: 'var(--paper)',
             border: '1px solid var(--border)',
             borderTop: `3px solid ${color}`,
             borderRadius: 20,
-            padding: '18px 20px',
-            boxShadow: 'var(--shadow)',
+            padding: '20px 22px 18px',
+            boxShadow: `var(--shadow), inset 0 -60px 40px -30px ${color}07`,
             display: 'flex',
             flexDirection: 'column',
+            position: 'relative',
+            overflow: 'hidden',
         }}
     >
-        {/* Top row: label + icon */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--ts)' }}>{label}</span>
+        {/* Subtle ambient gradient wash in the card bottom */}
+        <div
+            style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 80,
+                background: `linear-gradient(to top, ${color}08 0%, transparent 100%)`,
+                pointerEvents: 'none',
+                borderRadius: '0 0 20px 20px',
+            }}
+        />
+
+        {/* Top row: label + icon badge */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+            <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--ts)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                {label}
+            </span>
             <div
                 style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 10,
-                    background: `${color}14`,
+                    width: 42,
+                    height: 42,
+                    borderRadius: 12,
+                    background: `${color}1a`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
+                    boxShadow: `0 2px 8px ${color}20`,
                 }}
             >
-                <Icon size={18} color={color} />
+                <Icon size={20} color={color} />
             </div>
         </div>
 
-        {/* Value */}
-        <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--tp)', letterSpacing: '-0.02em' }}>
+        {/* Big value */}
+        <div style={{
+            fontSize: '2.25rem',
+            fontWeight: 800,
+            color: 'var(--tp)',
+            letterSpacing: '-0.03em',
+            lineHeight: 1,
+        }}>
             <AnimatedNumber value={value} />
         </div>
-        <div style={{ fontSize: '0.8125rem', color: 'var(--ts)', marginTop: 3 }}>{subtitle}</div>
+        <div style={{ fontSize: '0.8125rem', color: 'var(--ts)', marginTop: 5 }}>{subtitle}</div>
 
-        {/* Insight footer */}
+        {/* Insight pill — blueprint §2.c */}
         {insight && (
-            <div
-                style={{
-                    marginTop: 14,
-                    paddingTop: 12,
-                    borderTop: '1px solid var(--border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                }}
-            >
-                <div
+            <div style={{ marginTop: 16 }}>
+                <span
                     style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: 9999,
-                        background: color,
-                        flexShrink: 0,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        background: `${color}12`,
+                        color: color,
+                        borderRadius: 20,
+                        padding: '3px 10px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
                     }}
-                />
-                <span style={{ fontSize: '0.75rem', color: 'var(--ts)' }}>{insight}</span>
+                >
+                    <span style={{ width: 6, height: 6, borderRadius: 9999, background: color, flexShrink: 0, display: 'inline-block' }} />
+                    {insight}
+                </span>
             </div>
         )}
     </motion.div>

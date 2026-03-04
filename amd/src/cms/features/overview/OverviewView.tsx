@@ -145,7 +145,7 @@ export const OverviewView: React.FC = () => {
                             subtitle="Ready to use or allocate"
                             color="#6f42c1"
                             icon={Zap}
-                            insight={`${balanceData && balanceData.current_balance > 0 ? Math.round((balanceData.available_balance / balanceData.current_balance) * 100) : 0}% of pool available`}
+                            insight={`${balanceData && balanceData.current_balance > 0 ? Math.floor((balanceData.available_balance / balanceData.current_balance) * 100) : 0}% of pool available`}
                         />
                         <StatCard
                             label="Reserved Credits"

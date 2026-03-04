@@ -86,30 +86,34 @@ export const theme = createTheme({
     },
     shadows: [
         'none',
-        '0 2px 4px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.03)', // 1
-        '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02)', // 2
-        '0 10px 15px -3px rgba(0,0,0,0.03), 0 4px 6px -2px rgba(0,0,0,0.01)', // 3
-        '0 20px 25px -5px rgba(0,0,0,0.03), 0 10px 10px -5px rgba(0,0,0,0.01)', // 4
-        '0 25px 50px -12px rgba(0,0,0,0.08)', // 5
-        '0 25px 50px -12px rgba(0,0,0,0.08)', // 6 (Repeat for now or customize)
-        '0 25px 50px -12px rgba(0,0,0,0.08)', // 7
-        '0 25px 50px -12px rgba(0,0,0,0.08)', // 8
-        '0 25px 50px -12px rgba(0,0,0,0.08)', // 9
-        '0 25px 50px -12px rgba(0,0,0,0.08)', // 10
-        '0 25px 50px -12px rgba(0,0,0,0.08)', // 11
-        '0 25px 50px -12px rgba(0,0,0,0.08)', // 12
-        '0 25px 50px -12px rgba(0,0,0,0.08)', // 13
-        '0 25px 50px -12px rgba(0,0,0,0.08)', // 14
-        '0 25px 50px -12px rgba(0,0,0,0.08)', // 15
-        '0 25px 50px -12px rgba(0,0,0,0.08)', // 16
-        '0 25px 50px -12px rgba(0,0,0,0.08)', // 17
-        '0 25px 50px -12px rgba(0,0,0,0.08)', // 18
-        '0 25px 50px -12px rgba(0,0,0,0.08)', // 19
-        '0 25px 50px -12px rgba(0,0,0,0.08)', // 20
-        '0 25px 50px -12px rgba(0,0,0,0.08)', // 21
-        '0 25px 50px -12px rgba(0,0,0,0.08)', // 22
-        '0 25px 50px -12px rgba(0,0,0,0.08)', // 23
-        '0 25px 50px -12px rgba(0,0,0,0.08)', // 24
+        // Level 1 — Cards at rest (blueprint §3.4)
+        '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
+        // Level 2 — Cards on hover
+        '0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04)',
+        // Level 3 — Dropdowns, popovers
+        '0 8px 24px rgba(0,0,0,0.12)',
+        // Level 4 — Modals (used for all elevations 4+)
+        '0 16px 48px rgba(0,0,0,0.16)',
+        '0 16px 48px rgba(0,0,0,0.16)', // 5
+        '0 16px 48px rgba(0,0,0,0.16)', // 6
+        '0 16px 48px rgba(0,0,0,0.16)', // 7
+        '0 16px 48px rgba(0,0,0,0.16)', // 8
+        '0 16px 48px rgba(0,0,0,0.16)', // 9
+        '0 16px 48px rgba(0,0,0,0.16)', // 10
+        '0 16px 48px rgba(0,0,0,0.16)', // 11
+        '0 16px 48px rgba(0,0,0,0.16)', // 12
+        '0 16px 48px rgba(0,0,0,0.16)', // 13
+        '0 16px 48px rgba(0,0,0,0.16)', // 14
+        '0 16px 48px rgba(0,0,0,0.16)', // 15
+        '0 16px 48px rgba(0,0,0,0.16)', // 16
+        '0 16px 48px rgba(0,0,0,0.16)', // 17
+        '0 16px 48px rgba(0,0,0,0.16)', // 18
+        '0 16px 48px rgba(0,0,0,0.16)', // 19
+        '0 16px 48px rgba(0,0,0,0.16)', // 20
+        '0 16px 48px rgba(0,0,0,0.16)', // 21
+        '0 16px 48px rgba(0,0,0,0.16)', // 22
+        '0 16px 48px rgba(0,0,0,0.16)', // 23
+        '0 16px 48px rgba(0,0,0,0.16)', // 24
     ],
     components: {
         MuiCard: {

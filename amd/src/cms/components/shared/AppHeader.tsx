@@ -8,14 +8,13 @@ import { PurchaseCreditsModal } from './PurchaseCreditsModal';
 
 interface AppHeaderProps {
     activeNav: string;
-    balance?: number; // kept for backwards compat but ignored
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
-    const moodleContext = (window as any).MOODLE_CMS_CONTEXT || {};
+    const moodleContext = (globalThis as any).MOODLE_CMS_CONTEXT || {};
 
     const [balance, setBalance] = useState<number>(0);
     const [purchaseOpen, setPurchaseOpen] = useState(false);
@@ -49,10 +48,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
             <Box
                 component="header"
                 sx={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                    backdropFilter: 'blur(8px)',
-                    borderBottom: '1px solid',
-                    borderColor: 'divider',
+                    backgroundColor: 'var(--paper)',
+                    borderBottom: '1px solid var(--border)',
                     px: { xs: 1.5, sm: 2, md: 3 },
                     py: { xs: 1, sm: 1.5, md: 2 },
                     display: 'flex',
@@ -64,7 +61,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
                     top: 0,
                     gap: { xs: 1, sm: 2 },
                     height: { xs: '56px', sm: '64px', md: '76px' },
-                    boxShadow: '0 1px 0 rgba(255,255,255,0.5), var(--shadow)'
                 }}
             >
                 {/* Left — Back Button + Titles */}
@@ -76,11 +72,13 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
                         style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             width: isMobile ? '28px' : '32px', height: isMobile ? '28px' : '32px',
-                            backgroundColor: '#f8f9fa', border: '1px solid #e9ecef', borderRadius: '20px',
+                            backgroundColor: 'var(--paper)', border: '1px solid var(--border)', borderRadius: '20px',
                             cursor: 'pointer', transition: 'all 0.2s', padding: 0, flexShrink: 0,
                         }}
-                        onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#e9ecef'; e.currentTarget.style.borderColor = '#dee2e6'; }}
-                        onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#f8f9fa'; e.currentTarget.style.borderColor = '#e9ecef'; }}
+                        onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'var(--rh)'; e.currentTarget.style.borderColor = 'var(--ts)'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'var(--paper)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+                        onFocus={(e) => { e.currentTarget.style.backgroundColor = 'var(--rh)'; e.currentTarget.style.borderColor = 'var(--ts)'; }}
+                        onBlur={(e) => { e.currentTarget.style.backgroundColor = 'var(--paper)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
                         title="Back to Settings"
                     >
                         <svg width={isMobile ? "18" : "20"} height={isMobile ? "18" : "20"} viewBox="0 0 24 24" fill="none" stroke="#0f6cbf" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
