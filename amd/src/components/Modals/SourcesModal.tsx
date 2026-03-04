@@ -133,6 +133,8 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
   const [loading, setLoading] = useState(true);
   const [sectionSources, setSectionSources] = useState<Record<number, ExistingSource[]>>({});
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ open: boolean; boxIndex: number | null; sourceId: number | null }>({ open: false, boxIndex: null, sourceId: null });
+  // Tracks which sourceId's delete button is currently doing a status check (shows spinner)
+  const [checkingDeleteId, setCheckingDeleteId] = useState<number | null>(null);
 
   // Load sections when modal opens
   useEffect(() => {
@@ -487,8 +489,35 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
     }
   };
 
-  const openDeleteConfirmation = (boxIndex: number, sourceId: number) => {
-    setDeleteConfirmation({ open: true, boxIndex, sourceId });
+  // Called when user clicks the delete icon. Checks batch status first;
+  // if still processing shows a warning; if done opens the confirmation dialog.
+  const handleDeleteIconClick = async (boxIndex: number, sourceId: number) => {
+    setCheckingDeleteId(sourceId);
+    try {
+      const res = await fetch(
+        `${moodleContext.wwwroot}/local/lecturebot/api/check_source_status.php` +
+        `?courseid=${moodleContext.courseid}&sourceid=${sourceId}`,
+        { method: 'GET', credentials: 'include' }
+      );
+      const data: { processed?: boolean } = await res.json();
+
+      if (data.processed === false) {
+        // Still processing — show a warning instead of the delete dialog
+        setErrors((prev) => ({
+          ...prev,
+          deleteBlocked: 'This PDF is still being processed by the backend. Please wait a moment before deleting.',
+        }));
+        return;
+      }
+
+      // Processing done (or no batch) — open the normal confirmation dialog
+      setDeleteConfirmation({ open: true, boxIndex, sourceId });
+    } catch {
+      // Fail-safe: if the check itself errors, allow deletion
+      setDeleteConfirmation({ open: true, boxIndex, sourceId });
+    } finally {
+      setCheckingDeleteId(null);
+    }
   };
 
   const closeDeleteConfirmation = () => {
@@ -692,7 +721,15 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
             </Alert>
           )}
 
-
+          {!loading && errors.deleteBlocked && (
+            <Alert
+              severity="warning"
+              sx={{ mb: 3 }}
+              onClose={() => setErrors((prev) => ({ ...prev, deleteBlocked: '' }))}
+            >
+              {errors.deleteBlocked}
+            </Alert>
+          )}
 
           {!loading && sections.length === 0 && (
             <Alert severity="warning">
@@ -1018,8 +1055,9 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
                             <IconButton
                               onClick={(e) => {
                                 e.stopPropagation();
-                                openDeleteConfirmation(boxIndex, box.existingSource!.id);
+                                void handleDeleteIconClick(boxIndex, box.existingSource!.id);
                               }}
+                              disabled={checkingDeleteId === box.existingSource!.id}
                               size="small"
                               sx={{
                                 position: 'absolute',
@@ -1027,10 +1065,12 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
                                 right: 8,
                                 color: '#dc3545',
                                 backgroundColor: 'rgba(255,255,255,0.8)',
-                                '&:hover': { backgroundColor: '#fff', color: '#bd2130' }
+                                '&:hover': { backgroundColor: '#fff', color: '#bd2130' },
                               }}
                             >
-                              <Delete fontSize="small" />
+                              {checkingDeleteId === box.existingSource!.id
+                                ? <CircularProgress size={14} thickness={4} sx={{ color: '#dc3545' }} />
+                                : <Delete fontSize="small" />}
                             </IconButton>
                           </>
                         )}

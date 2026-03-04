@@ -45,7 +45,10 @@ define(
     'https://demo.arina.ai/dev2230/agents/arina-message-bus-status-service/status/batch'
 );
 define('LECTUREBOT_API_START_BATCH_UPLOAD', LECTUREBOT_API_BASE_URL . '/start_batch_upload');
-define('LECTUREBOT_API_CHECK_BATCH_STATUS', LECTUREBOT_API_BASE_URL . '/check_batch_status');
+define(
+    'LECTUREBOT_API_CHECK_BATCH_STATUS',
+    'https://demo.arina.ai/dev2230/bots/tutorial_generation/check_batch_status'
+);
 define(
     'LECTUREBOT_API_TRIGGER_GENERATION',
     'https://demo.arina.ai/dev2230/bots/tutorial_generation/trigger_generation'
