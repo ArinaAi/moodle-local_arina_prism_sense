@@ -155,8 +155,8 @@ class generate_content_task extends \core\task\adhoc_task
         }
         
         // Polling configuration - PDF processing can take several minutes
-        $maxAttempts = 60; // Max 60 attempts (60 × 30s = 30 minutes)
-        $pollInterval = 30; // 30 seconds between polls
+        $maxAttempts = 60; // Max 60 attempts (60 × 60s = 60 minutes)
+        $pollInterval = 60; // 60 seconds (1 minute) between polls
         
         mtrace("Starting trigger_generation polling (max $maxAttempts attempts, {$pollInterval}s interval, total ~" .
             ($maxAttempts * $pollInterval / 60) . " minutes)");
@@ -176,6 +176,8 @@ class generate_content_task extends \core\task\adhoc_task
             if ($result !== false) {
                 return $result;
             }
+            // PDFs not ready yet — wait before next attempt
+            sleep($pollInterval);
         }
         
         mtrace("✗ Failed to get content_request_id after $maxAttempts attempts");
@@ -247,7 +249,7 @@ class generate_content_task extends \core\task\adhoc_task
      */
     private function callTriggerGenerationApi($params, $apiKey)
     {
-        $apiUrl = LECTUREBOT_API_TRIGGER_GENERATION . '?' . http_build_query($params);
+        $apiUrl = LECTUREBOT_API_TRIGGER_GENERATION . '?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
         
         $ch = curl_init($apiUrl);
         curl_setopt_array($ch, [

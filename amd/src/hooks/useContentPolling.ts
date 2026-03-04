@@ -1,8 +1,10 @@
-import { useEffect, Dispatch } from 'react';
+import { useEffect, useRef, Dispatch } from 'react';
 import type { AppState, AppAction, ContentItem } from '../types/app';
 import type { NotificationSeverity } from './useNotification';
 
-// Helper to handle notifications and dispatching aut-preview
+const POLL_INTERVAL_MS = 30000; // 30 seconds
+
+// Helper to handle notifications and dispatching auto-preview
 const updateContentItem = (
     updatedItem: ContentItem,
     dispatch: Dispatch<AppAction>,
@@ -111,22 +113,50 @@ export const useContentPolling = (
     dispatch: Dispatch<AppAction>,
     showNotification: (msg: string, severity: NotificationSeverity) => void
 ) => {
+    // Keep refs so the interval callback always reads the latest values
+    // without needing to restart the timer on every state change
+    const stateRef = useRef(state);
+    const showNotificationRef = useRef(showNotification);
+
+    // Update refs on every render — no re-subscription needed
     useEffect(() => {
-        if (!state.moodleContext) {
+        stateRef.current = state;
+        showNotificationRef.current = showNotification;
+    });
+
+    // Derive a stable boolean: are there ANY generating items right now?
+    // The interval only starts/stops based on this, NOT on which items changed.
+    // This means multiple parallel generating slides are all polled together
+    // in one call without the interval ever being reset mid-flight.
+    const hasGeneratingItems = state.contentItems.some((item) => item.status === 'generating');
+
+    useEffect(() => {
+        if (!state.moodleContext || !hasGeneratingItems) {
             return;
         }
-
-        const generatingItems = state.contentItems.filter((item) => item.status === 'generating');
-        if (generatingItems.length === 0) {
-            return;
-        }
-
-        const generatingIds = generatingItems.map((item) => item.id);
 
         const pollInterval = setInterval(() => {
-            fetchStatusUpdates(generatingIds, state, dispatch, showNotification);
-        }, 5000);
+            // Read fresh state from ref — avoids stale closure values
+            const currentState = stateRef.current;
+            const currentGeneratingItems = currentState.contentItems.filter(
+                (item) => item.status === 'generating'
+            );
+
+            if (currentGeneratingItems.length === 0) {
+                return; // All done, interval will be cleaned up on next render
+            }
+
+            // Poll ALL currently generating items in one request
+            // This naturally supports multiple parallel slide generations
+            const generatingIds = currentGeneratingItems.map((item) => item.id);
+            fetchStatusUpdates(generatingIds, currentState, dispatch, showNotificationRef.current);
+        }, POLL_INTERVAL_MS);
 
         return () => clearInterval(pollInterval);
-    }, [state.moodleContext, state.contentItems, dispatch, showNotification]);
+
+        // Intentionally excludes state.contentItems from deps:
+        // The ref keeps it fresh. We only restart when moodleContext changes
+        // or when generating goes from zero → non-zero (hasGeneratingItems flips).
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [state.moodleContext, hasGeneratingItems, dispatch]);
 };
