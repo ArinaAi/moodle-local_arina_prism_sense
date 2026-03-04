@@ -90,7 +90,7 @@ try {
     }
     
     // Validate all files before processing
-    $maxsize = 50 * 1024 * 1024;
+    $maxsize = 3 * 1024 * 1024;
     foreach ($uploadedFiles as $file) {
         // Check MIME type (basic check)
         if ($file['type'] !== 'application/pdf') {
@@ -107,7 +107,7 @@ try {
             http_response_code(400);
             echo json_encode([
                 'status' => 'error',
-                'error' => 'File "' . $file['name'] . '" exceeds the 50MB size limit'
+                'error' => 'File "' . $file['name'] . '" exceeds the 3MB size limit'
             ]);
             exit;
         }

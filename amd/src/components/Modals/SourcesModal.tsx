@@ -299,7 +299,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
     }
   });
 
-  const MAX_PDF_SIZE = 5 * 1024 * 1024; // 5MB in bytes
+  const MAX_PDF_SIZE = 3 * 1024 * 1024; // 3MB in bytes
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>, boxIndex: number) => {
     if (!selectedSection) {
@@ -320,7 +320,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
     }
 
     if (pdfFiles[0].size > MAX_PDF_SIZE) {
-      setErrors((prev) => ({ ...prev, file: 'File size must be less than 5MB.' }));
+      setErrors((prev) => ({ ...prev, file: 'File size must be less than 3MB.' }));
       return;
     }
 
@@ -362,7 +362,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
     }
 
     if (pdfFiles[0].size > MAX_PDF_SIZE) {
-      setErrors((prev) => ({ ...prev, file: 'File size must be less than 5MB.' }));
+      setErrors((prev) => ({ ...prev, file: 'File size must be less than 3MB.' }));
       return;
     }
 
