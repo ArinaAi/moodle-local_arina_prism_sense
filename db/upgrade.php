@@ -395,6 +395,12 @@ function local_lecturebot_upgrade_2026030200($dbman)
 {
     $table = new xmldb_table('local_lecturebot_sources');
 
+    // Ensure is_scanned is added in case branch switching caused its upgrade step to be skipped.
+    $field = new xmldb_field('is_scanned', XMLDB_TYPE_INTEGER, '1', null, null, null, null, 'author');
+    if (!$dbman->field_exists($table, $field)) {
+        $dbman->add_field($table, $field);
+    }
+
     // Add batch_id field to track backend batch upload ID.
     $field = new xmldb_field('batch_id', XMLDB_TYPE_CHAR, '255', null, null, null, null, 'is_scanned');
     if (!$dbman->field_exists($table, $field)) {

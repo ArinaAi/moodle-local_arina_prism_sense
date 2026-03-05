@@ -493,13 +493,24 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
   // if still processing shows a warning; if done opens the confirmation dialog.
   const handleDeleteIconClick = async (boxIndex: number, sourceId: number) => {
     setCheckingDeleteId(sourceId);
+    // Clear any stale warning from a previous attempt
+    setErrors((prev) => ({ ...prev, deleteBlocked: '', general: '' }));
     try {
       const res = await fetch(
         `${moodleContext.wwwroot}/local/lecturebot/api/check_source_status.php` +
         `?courseid=${moodleContext.courseid}&sourceid=${sourceId}`,
         { method: 'GET', credentials: 'include' }
       );
-      const data: { processed?: boolean } = await res.json();
+      const data: { processed?: boolean; network_error?: boolean } = await res.json();
+
+      if (data.network_error) {
+        // Cannot reach the backend API — block deletion until connectivity is restored
+        setErrors((prev) => ({
+          ...prev,
+          deleteBlocked: 'Unable to verify processing status. Please check your internet connection and try again.',
+        }));
+        return;
+      }
 
       if (data.processed === false) {
         // Still processing — show a warning instead of the delete dialog
@@ -513,8 +524,11 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
       // Processing done (or no batch) — open the normal confirmation dialog
       setDeleteConfirmation({ open: true, boxIndex, sourceId });
     } catch {
-      // Fail-safe: if the check itself errors, allow deletion
-      setDeleteConfirmation({ open: true, boxIndex, sourceId });
+      // The request to our own server failed (e.g. MAMP is down) — block deletion
+      setErrors((prev) => ({
+        ...prev,
+        deleteBlocked: 'Unable to verify processing status. Please check your connection and try again.',
+      }));
     } finally {
       setCheckingDeleteId(null);
     }
@@ -558,12 +572,13 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
         [selectedSection]: (prev[selectedSection] || []).filter((s) => s.id !== sourceId),
       }));
 
-      // Close confirmation dialog
+      // Close confirmation dialog and clear any previous error
+      setErrors((prev) => ({ ...prev, general: '' }));
       closeDeleteConfirmation();
     } catch (error) {
       console.error('Error deleting source:', error);
-      setErrors({ general: 'Failed to delete source. Please try again.' });
-      closeDeleteConfirmation();
+      // Keep the dialog open so the user can retry; show the error in the modal's error banner
+      setErrors((prev) => ({ ...prev, general: 'Failed to delete source. Please check your connection and try again.' }));
     }
   };
 
@@ -713,6 +728,12 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
               <CircularProgress />
             </Box>
+          )}
+
+          {!loading && errors.general && (
+            <Alert severity="error" sx={{ mb: 3 }} onClose={() => setErrors((prev) => ({ ...prev, general: '' }))}>
+              {errors.general}
+            </Alert>
           )}
 
           {!loading && errors.file && (

@@ -5,8 +5,9 @@
  * Returns { "processed": true } when it is safe to delete the source,
  * or { "processed": false } when the batch is still in progress.
  *
- * Fail-safe: any error (network, DB, invalid batch_id) returns processed:true
- * so users are never permanently blocked from deleting.
+ * Network safety: Returns { "processed": false, "network_error": true } on any
+ * network/connectivity error to prevent deletion during uncertain state.
+ * This ensures data integrity over convenience.
  *
  * @package    local_lecturebot
  * @copyright  2025
@@ -81,23 +82,23 @@ try {
     $curlError    = curl_error($ch);
     curl_close($ch);
 
-    // On any transport or HTTP error, fail-safe: allow deletion.
+    // On any transport or HTTP error, block deletion — we cannot confirm the status.
     if ($curlError || $httpCode !== 200 || !$response) {
         error_log(
             'LectureBot check_source_status: backend call failed for batch ' .
             $batchId .
             ' (HTTP ' . $httpCode . '): ' . $curlError
         );
-        echo json_encode(['processed' => true]);
+        echo json_encode(['processed' => false, 'network_error' => true]);
         exit;
     }
 
     $data = json_decode($response, true);
 
     if (!is_array($data)) {
-        // Malformed JSON — fail-safe.
+        // Malformed JSON — block deletion, cannot confirm status.
         error_log('LectureBot check_source_status: invalid JSON for batch ' . $batchId);
-        echo json_encode(['processed' => true]);
+        echo json_encode(['processed' => false, 'network_error' => true]);
         exit;
     }
 
@@ -112,7 +113,7 @@ try {
     echo json_encode(['processed' => $allDone]);
 
 } catch (Exception $e) {
-    // Fail-safe on any unexpected exception.
+    // Block deletion on unexpected exceptions — status is unknown.
     error_log('LectureBot check_source_status exception: ' . $e->getMessage());
-    echo json_encode(['processed' => true]);
+    echo json_encode(['processed' => false, 'network_error' => true]);
 }
