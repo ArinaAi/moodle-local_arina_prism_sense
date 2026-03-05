@@ -9,10 +9,78 @@ require_once(__DIR__ . '/configurator_azure.php');
 $courseid = required_param('courseid', PARAM_INT);
 require_login($courseid);
 
+// Validate API key before allowing access to the plugin
+$apiKey = get_config('local_lecturebot', 'api_key');
+$validationFailed = false;
+$errorMessage = '';
+
+if (empty($apiKey)) {
+    $validationFailed = true;
+    $errorMessage = 'API key is not configured. Please add your API key in the plugin settings.';
+} else {
+    // Validate API key against Arina auth service
+    $validateUrl = 'https://demo.arina.ai/dev2230/service/arina_auth_service/validate';
+    
+    $ch = curl_init($validateUrl);
+    curl_setopt_array($ch, [
+        CURLOPT_HTTPHEADER => ["X-API-Key: {$apiKey}"],
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 10,
+        CURLOPT_FOLLOWLOCATION => true,
+    ]);
+    
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+    
+    if ($curlError) {
+        $validationFailed = true;
+        $errorMessage = 'Unable to validate API key. Please check your network connection and try again.';
+        error_log("LectureBot API key validation cURL error: {$curlError}");
+    } elseif ($httpCode === 401) {
+        $validationFailed = true;
+        $errorMessage = 'API key is invalid or incorrect. Please check your plugin settings.';
+        error_log("LectureBot API key validation failed: HTTP 401 (Invalid API key)");
+    } elseif ($httpCode !== 200) {
+        $validationFailed = true;
+        $errorMessage = "API key validation failed with HTTP {$httpCode}. Please contact your administrator.";
+        error_log("LectureBot API key validation failed: HTTP {$httpCode}");
+    }
+}
+
 $PAGE->set_url(new moodle_url('/local/lecturebot/launch.php', ['courseid' => $courseid]));
 $PAGE->set_pagelayout('popup'); // Use popup layout for full-screen app
 $PAGE->set_title('Generate AI Lecture');
 $PAGE->set_heading('Generate AI Lecture');
+
+// If validation failed, show error page and exit
+if ($validationFailed) {
+    echo $OUTPUT->header();
+    echo '<div style="max-width: 600px; margin: 60px auto; padding: 40px; text-align: center; background:
+    #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">';
+    echo '<div style="color: #dc3545; font-size: 48px; margin-bottom: 20px;">⚠️</div>';
+    echo '<h2 style="color: #dc3545; margin-bottom: 20px;">API Key Validation Failed</h2>';
+    echo '<p style="font-size: 16px; color: #666; margin: 20px 0; line-height: 1.6;">' .
+    htmlspecialchars($errorMessage) . '</p>';
+    
+    // Show settings link for admins
+    $systemContext = context_system::instance();
+    if (has_capability('moodle/site:config', $systemContext)) {
+        $settingsUrl = new moodle_url('/admin/settings.php', ['section' => 'local_lecturebot']);
+        echo '<p style="margin: 30px 0;"><a href="' . $settingsUrl . '" class="btn btn-warning"
+        style="margin-right: 10px;">Configure API Key</a></p>';
+    } else {
+        echo '<p style="color: #888; margin: 20px 0;">
+        Please contact your system administrator to configure the API key.</p>';
+    }
+    
+    echo '<p><a href="' . $CFG->wwwroot . '/course/view.php?id=' . $courseid .
+    '" class="btn btn-primary">← Return to Course</a></p>';
+    echo '</div>';
+    echo $OUTPUT->footer();
+    exit;
+}
 
 // Get course sections and context using Utils
 // Note: Utils::prepareContext includes sections and sesskey

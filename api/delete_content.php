@@ -36,7 +36,7 @@ try {
         'deleted_by' => $USER->id,
     ];
     
-    error_log('LectureBot: Deleting content ' . $contentid . ' from database (Azure files preserved)');
+    error_log('LectureBot: Deleting content ' . $contentid);
     error_log('LectureBot: Azure restoration info: ' . json_encode($azureInfo));
     
     // Delete from database only (Azure files remain for restore)
@@ -49,7 +49,7 @@ try {
         
         echo json_encode([
             'status' => 'success',
-            'message' => 'Content deleted from database. Azure files preserved for restoration.',
+            'message' => 'Content deleted successfully!',
             'contentid' => $contentid,
             'azure_preserved' => true,
         ]);
