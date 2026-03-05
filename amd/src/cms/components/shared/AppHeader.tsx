@@ -67,7 +67,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, flex: 1, minWidth: 0 }}>
                     <button
                         onClick={() => {
-                            globalThis.location.href = `${moodleContext.wwwroot}/admin/settings.php?section=local_lecturebot`;
+                            if (window.history.length > 1 || document.referrer) {
+                                window.history.back();
+                            } else {
+                                globalThis.location.href = `${moodleContext.wwwroot}/my/`;
+                            }
                         }}
                         style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'center',

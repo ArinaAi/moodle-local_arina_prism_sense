@@ -305,7 +305,6 @@ function local_lecturebot_get_cms_menu_js($wwwroot)
                 menuItem.className = targetLink.className + ' lecturebot-cms-link';
                 menuItem.role = 'menuitem';
                 menuItem.href = '{$wwwroot}/local/lecturebot/cms.php';
-                menuItem.target = '_blank';
                 menuItem.rel = 'noopener noreferrer';
                 
                 // Clone the structure of existing items
