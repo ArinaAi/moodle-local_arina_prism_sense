@@ -20,6 +20,8 @@ const MobileLayout: React.FC<LayoutProps> = ({
     onClearAllContent,
     onDeleteContent,
     isLoadingContent,
+    hasCredits,
+    creditTooltip,
 }) => {
     const [activeTab, setActiveTab] = useState<'sources' | 'content' | 'publish'>('content');
 
@@ -109,6 +111,8 @@ const MobileLayout: React.FC<LayoutProps> = ({
                         onOpenVideoModal={onOpenVideoModal}
                         dispatch={dispatch}
                         isMobile={true}
+                        hasCredits={hasCredits}
+                        creditTooltip={creditTooltip}
                     />
                 )}
                 {activeTab === 'content' && (

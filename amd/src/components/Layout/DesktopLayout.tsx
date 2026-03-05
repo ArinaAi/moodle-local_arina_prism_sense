@@ -21,6 +21,8 @@ const DesktopLayout: React.FC<LayoutProps> = ({
     onDeleteContent,
     isLoadingContent,
     isLargeDesktop = false,
+    hasCredits,
+    creditTooltip,
 }) => {
     // Handler for previewing content from the list (non-eye icon click)
     const { handlePreviewContent } = useContentPreview({
@@ -57,6 +59,8 @@ const DesktopLayout: React.FC<LayoutProps> = ({
                     onOpenCurriculumModal={onOpenCurriculumModal}
                     onOpenVideoModal={onOpenVideoModal}
                     dispatch={dispatch}
+                    hasCredits={hasCredits}
+                    creditTooltip={creditTooltip}
                 />
             </Box>
 

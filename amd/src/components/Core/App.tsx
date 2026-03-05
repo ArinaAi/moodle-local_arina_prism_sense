@@ -41,6 +41,8 @@ import { useNotification } from '../../hooks/useNotification';
 import { usePreviewListener } from '../../hooks/usePreviewListener';
 import { useContentPolling } from '../../hooks/useContentPolling';
 import { useContentActions } from '../../hooks/useContentActions';
+import { useCreditBalance } from '../../hooks/useCreditBalance';
+import CreditPill from '../Layout/CreditPill';
 
 export const App: React.FC = () => {
   const [state, dispatch] = useReducer(appReducer, initialState);
@@ -58,14 +60,36 @@ export const App: React.FC = () => {
   const {
     isLoadingContent,
     loadContentState,
-    handleGenerateSlides,
-    handleGenerateVideoLecture,
+    handleGenerateSlides: _handleGenerateSlides,
+    handleGenerateVideoLecture: _handleGenerateVideoLecture,
     handleApproveSlides,
     handlePublishContent,
     handleUnpublishContent,
     handleClearAllContent,
     handleDeleteContent
   } = useContentActions(state, dispatch, showNotification);
+
+  // Credit balance
+  const { availableBalance, hasWallet, loading: creditLoading, refresh: refreshCredits } = useCreditBalance(state.moodleContext);
+  const hasCredits = hasWallet && availableBalance > 0;
+  const creditTooltip = !hasWallet
+    ? 'Ask your college admin to allocate you credits'
+    : 'You have no credits remaining. Contact your admin for more.';
+
+  // Wrap generation handlers to auto-refresh credits after completion
+  const handleGenerateSlides = useCallback(async (
+    ...args: Parameters<typeof _handleGenerateSlides>
+  ) => {
+    await _handleGenerateSlides(...args);
+    refreshCredits();
+  }, [_handleGenerateSlides, refreshCredits]);
+
+  const handleGenerateVideoLecture = useCallback(async (
+    ...args: Parameters<typeof _handleGenerateVideoLecture>
+  ) => {
+    await _handleGenerateVideoLecture(...args);
+    refreshCredits();
+  }, [_handleGenerateVideoLecture, refreshCredits]);
 
   // Load content state when moodleContext is available
   useEffect(() => {
@@ -180,6 +204,14 @@ export const App: React.FC = () => {
           <Header
             moodleContext={state.moodleContext}
             onOpenPluginFeedback={handleOpenPluginFeedbackModal}
+            creditBadge={
+              <CreditPill
+                availableBalance={availableBalance}
+                hasWallet={hasWallet}
+                loading={creditLoading}
+                isMobile={isMobile}
+              />
+            }
           />
 
           {/* Main Content - Takes remaining space after Header */}
@@ -203,6 +235,8 @@ export const App: React.FC = () => {
               onClearAllContent={handleClearAllContent}
               onDeleteContent={handleDeleteContent}
               isLoadingContent={isLoadingContent}
+              hasCredits={hasCredits}
+              creditTooltip={creditTooltip}
             />
           </Box>
 

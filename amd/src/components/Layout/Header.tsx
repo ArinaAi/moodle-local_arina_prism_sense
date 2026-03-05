@@ -1,16 +1,17 @@
 import React from 'react';
 import { Box, Typography, useTheme, useMediaQuery, IconButton } from '@mui/material';
 import type { MoodleContext } from '../../types/moodle';
-import {MessageSquareMore} from 'lucide-react';
+import { MessageSquareMore } from 'lucide-react';
 
 interface HeaderProps {
     moodleContext: MoodleContext;
     children?: React.ReactNode;
     onBack?: () => void;
     onOpenPluginFeedback?: () => void;
+    creditBadge?: React.ReactNode;
 }
 
-const Header: React.FC<HeaderProps> = ({ moodleContext, children, onBack, onOpenPluginFeedback }) => {
+const Header: React.FC<HeaderProps> = ({ moodleContext, children, onBack, onOpenPluginFeedback, creditBadge }) => {
 
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -143,6 +144,8 @@ const Header: React.FC<HeaderProps> = ({ moodleContext, children, onBack, onOpen
                 flexShrink: 0,
             }}>
                 {children}
+                {/* Credit Balance Badge */}
+                {creditBadge}
                 {/* Plugin Feedback Button */}
                 {onOpenPluginFeedback && (
                     <IconButton
@@ -163,7 +166,7 @@ const Header: React.FC<HeaderProps> = ({ moodleContext, children, onBack, onOpen
                         }}
                         title="Report an issue or suggest a feature"
                     >
-                        <MessageSquareMore 
+                        <MessageSquareMore
                             size={isMobile ? 16 : 20} // Responsive icon size
                             strokeWidth={2}
                         />

@@ -15,7 +15,12 @@ export interface LayoutProps {
     onDeleteContent: (contentId: number) => void;
     isLoadingContent?: boolean;
     hasAnySources?: boolean;
+    /** Whether the teacher has credits available (false = block generation/upload) */
+    hasCredits?: boolean;
+    /** Tooltip to show on disabled buttons when no credits */
+    creditTooltip?: string;
     // Responsive breakpoint props
     isSmallTablet?: boolean;
     isLargeDesktop?: boolean;
 }
+

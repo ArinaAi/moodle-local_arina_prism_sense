@@ -6,6 +6,7 @@ import {
   CardContent,
   Typography,
   Button,
+  Tooltip,
   useTheme,
   Divider,
 } from '@mui/material';
@@ -24,6 +25,8 @@ interface LeftColumnProps {
   onOpenVideoModal: () => void;
   dispatch?: React.Dispatch<AppAction>;
   isMobile?: boolean;
+  hasCredits?: boolean;
+  creditTooltip?: string;
 }
 
 const LeftColumn: React.FC<LeftColumnProps> = ({
@@ -33,6 +36,8 @@ const LeftColumn: React.FC<LeftColumnProps> = ({
   onOpenVideoModal,
   dispatch,
   isMobile = false,
+  hasCredits = true,
+  creditTooltip = '',
 }) => {
   const theme = useTheme();
 
@@ -91,49 +96,53 @@ const LeftColumn: React.FC<LeftColumnProps> = ({
         </Box>
 
         {/* Add Source Button */}
-        <Button
-          variant="contained"
-          size={isMobile ? 'medium' : 'large'}
-          startIcon={<Add />}
-          onClick={onOpenSourcesModal}
-          disabled={state.isGeneratingSlides}
-          sx={{
-            py: 'clamp(8px, 1.25vh, 12px)',
-            px: 'clamp(12px, 2vw, 20px)',
-            fontSize: 'clamp(0.75rem, 1vw + 0.6rem, 1rem)',
-            fontWeight: 700,
-            borderRadius: '16px',
-            background: 'linear-gradient(135deg, #0f6cbf 0%, #0a5a9d 100%)',
-            transition: 'all 0.3s ease',
-            // Allow button to shrink and content to wrap if needed
-            minWidth: 0,
-            whiteSpace: 'normal',
-            lineHeight: 1.1,
-            // Ensure minimum touch target on mobile
-            minHeight: isMobile ? '44px' : 'auto',
-            '& .MuiButton-startIcon': {
-              marginRight: 'clamp(4px, 1vw, 8px)',
-              '& svg': {
-                fontSize: 'clamp(18px, 2.5vw, 24px)'
-              }
-            },
-            '&:hover': {
-              background: 'linear-gradient(135deg, #0a5a9d 0%, #084a82 100%)',
-              boxShadow: '0 6px 20px rgba(15, 108, 191, 0.4)',
-              transform: 'translateY(-2px)',
-            },
-            '&:active': {
-              transform: 'translateY(0)',
-            },
-            '&:disabled': {
-              background: '#e0e0e0',
-              color: '#9e9e9e',
-            },
-          }}
-          fullWidth
-        >
-          Manage Sources
-        </Button>
+        <Tooltip title={!hasCredits ? creditTooltip : ''} arrow placement="top">
+          <span>
+            <Button
+              variant="contained"
+              size={isMobile ? 'medium' : 'large'}
+              startIcon={<Add />}
+              onClick={onOpenSourcesModal}
+              disabled={state.isGeneratingSlides || !hasCredits}
+              sx={{
+                py: 'clamp(8px, 1.25vh, 12px)',
+                px: 'clamp(12px, 2vw, 20px)',
+                fontSize: 'clamp(0.75rem, 1vw + 0.6rem, 1rem)',
+                fontWeight: 700,
+                borderRadius: '16px',
+                background: 'linear-gradient(135deg, #0f6cbf 0%, #0a5a9d 100%)',
+                transition: 'all 0.3s ease',
+                // Allow button to shrink and content to wrap if needed
+                minWidth: 0,
+                whiteSpace: 'normal',
+                lineHeight: 1.1,
+                // Ensure minimum touch target on mobile
+                minHeight: isMobile ? '44px' : 'auto',
+                '& .MuiButton-startIcon': {
+                  marginRight: 'clamp(4px, 1vw, 8px)',
+                  '& svg': {
+                    fontSize: 'clamp(18px, 2.5vw, 24px)'
+                  }
+                },
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #0a5a9d 0%, #084a82 100%)',
+                  boxShadow: '0 6px 20px rgba(15, 108, 191, 0.4)',
+                  transform: 'translateY(-2px)',
+                },
+                '&:active': {
+                  transform: 'translateY(0)',
+                },
+                '&:disabled': {
+                  background: '#e0e0e0',
+                  color: '#9e9e9e',
+                },
+              }}
+              fullWidth
+            >
+              Manage Sources
+            </Button>
+          </span>
+        </Tooltip>
 
         {/* Sources List Area */}
         <Box
@@ -170,6 +179,8 @@ const LeftColumn: React.FC<LeftColumnProps> = ({
             hasSlides={!!state.generatedSlides || !!state.generatedContent}
             hasSources={true}
             isMobile={isMobile}
+            hasCredits={hasCredits}
+            creditTooltip={creditTooltip}
           />
         </Box>
       </CardContent>

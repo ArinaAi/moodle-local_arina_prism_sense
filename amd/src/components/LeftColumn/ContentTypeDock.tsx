@@ -13,6 +13,8 @@ interface ContentTypeDockProps {
   hasSlides: boolean;
   hasSources: boolean;
   isMobile?: boolean;
+  hasCredits?: boolean;
+  creditTooltip?: string;
 }
 
 const contentTypes: ContentTypeDefinition[] = [
@@ -72,6 +74,8 @@ const ContentTypeDock: React.FC<ContentTypeDockProps> = ({
   hasSlides,
   hasSources,
   isMobile: _isMobile = false,
+  hasCredits = true,
+  creditTooltip = '',
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isCompact, setIsCompact] = useState(false);
@@ -93,6 +97,10 @@ const ContentTypeDock: React.FC<ContentTypeDockProps> = ({
   }, []);
 
   const isDisabled = useCallback((typeId: string) => {
+    // Disable all options when no credits
+    if (!hasCredits) {
+      return true;
+    }
     // Disable all options during generation
     if (isGeneratingSlides) {
       return true;
@@ -103,9 +111,13 @@ const ContentTypeDock: React.FC<ContentTypeDockProps> = ({
     }
     // All other content types are enabled by default
     return false;
-  }, [isGeneratingSlides, hasSources]);
+  }, [isGeneratingSlides, hasSources, hasCredits]);
 
   const getTooltipTitle = useCallback((typeId: string) => {
+    // Show credit tooltip when no credits available
+    if (!hasCredits) {
+      return creditTooltip;
+    }
     const type = contentTypes.find(t => t.id === typeId);
     if (typeId === 'slide-deck') {
       if (!hasSources) {
@@ -120,7 +132,7 @@ const ContentTypeDock: React.FC<ContentTypeDockProps> = ({
     }
     // Return description for all content types
     return type?.description || '';
-  }, [hasSources, isGeneratingSlides, hasSlides]);
+  }, [hasSources, isGeneratingSlides, hasSlides, hasCredits, creditTooltip]);
 
   const handleTypeClick = (typeId: string) => {
     if (typeId === 'slide-deck') {
