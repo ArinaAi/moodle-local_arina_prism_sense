@@ -71,6 +71,7 @@ class CreditServiceClient
     }
     
     // Check if Org Wallet exists in Moodle config and create it JIT if missing
+    // Returns the OWNER UUID (not wallet_id) - this is stored in Moodle config
     public function getOrInitializeOrgWallet()
     {
         $uuid = get_config('local_lecturebot', 'org_wallet_owner_id');
@@ -86,6 +87,7 @@ class CreditServiceClient
     
     // Check if Sub-user Wallet exists in Moodle user preferences and create JIT if missing
     // Returns the actual WALLET ID (not owner UUID)
+    // Note: owner_id = UUID stored in preferences, wallet_id = actual wallet identifier in Credit Service
     public function getOrInitializeSubUserWallet($userId)
     {
         $uuid = get_user_preferences('lecturebot_wallet_sub_user_id', null, $userId);
@@ -245,6 +247,16 @@ class CreditServiceClient
             $payload['performed_by_user_id'] = $performedByUserId;
         }
         return $this->makeRequest('POST', '/wallets/allocate', $payload);
+    }
+
+    /**
+     * Get organization-wide reserved credits (org + all child wallets).
+     * @param string $ownerId Organization owner UUID
+     * @return array API response with org_own_reserved, children_reserved, total_reserved
+     */
+    public function getOrgReservedCredits($ownerId)
+    {
+        return $this->makeRequest('GET', "/credits/usage/reserved/org/{$ownerId}");
     }
 
     public function generateV4UUID()

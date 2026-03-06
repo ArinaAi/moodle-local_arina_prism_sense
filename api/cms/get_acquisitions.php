@@ -22,10 +22,11 @@ header('Content-Type: application/json');
 try {
     $client = new \local_lecturebot\cms\CreditServiceClient();
     
-    // 1. Fetch Org Owner UUID (acquisitions API requires user_id, not wallet_id)
+    // Get Org Owner UUID (acquisitions API requires owner_id/user_id, not wallet_id)
+    // This is the external identifier stored in Moodle config
     $orgOwnerUuid = $client->getOrInitializeOrgWallet();
     
-    // 2. Fetch acquisitions directly using owner UUID
+    // Fetch acquisitions directly using owner UUID
     $res = $client->getAcquisitions($orgOwnerUuid);
     
     if ($res['status'] >= 200 && $res['status'] < 300) {
@@ -54,12 +55,22 @@ try {
             }
             $unitFormatted = ($currency === 'USD' ? '$' : '₹') . number_format($unitPrice, 3) . '/cr';
             
+            // Calculate expiry date from package validity_days
+            $expiryFormatted = 'N/A';
+            if (isset($row['package']['validity_days']) && $row['package']['validity_days'] > 0) {
+                $purchaseDate = strtotime($row['created_at']);
+                $validityDays = (int)$row['package']['validity_days'];
+                $expiryTimestamp = strtotime("+{$validityDays} days", $purchaseDate);
+                $expiryFormatted = date('M d, Y', $expiryTimestamp);
+            }
+            
             $acquisitions[] = [
                 'id' => $row['id'] ?? '',
                 'date' => $date,
                 'credits' => $credits,
                 'paid' => $paidFormatted,
                 'unit' => $unitFormatted,
+                'expiry' => $expiryFormatted,
                 'status' => $row['status'] ?? 'COMPLETED'
             ];
         }

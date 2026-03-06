@@ -16,7 +16,8 @@ module.exports = {
     publicPath: '/local/lecturebot/amd/build/'
   },
   resolve: {
-    extensions: ['.ts', '.tsx', '.js', '.jsx']
+    extensions: ['.ts', '.tsx', '.js', '.jsx'],
+    fullySpecified: false,
   },
   module: {
     rules: [
@@ -28,6 +29,12 @@ module.exports = {
       {
         test: /\.css$/,
         use: ['style-loader', 'css-loader']
+      },
+      {
+        test: /\.m?js$/,
+        resolve: {
+          fullySpecified: false,
+        },
       }
     ]
   },

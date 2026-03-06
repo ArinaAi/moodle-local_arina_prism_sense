@@ -10,6 +10,7 @@ export interface AcquisitionRow {
     credits: string;
     paid: string;
     unit: string;
+    expiry: string;
     status: string;
 }
 
@@ -102,7 +103,7 @@ export const FinancialsView: React.FC = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'inherit' }}>
                     <thead>
                         <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                            {['Date', 'Credits', 'Paid', 'Unit Cost', 'Status'].map((h) => (
+                            {['Date', 'Credits', 'Paid', 'Unit Cost', 'Expires', 'Status'].map((h) => (
                                 <th
                                     key={h}
                                     style={{
@@ -124,7 +125,7 @@ export const FinancialsView: React.FC = () => {
                         {loading ? (
                             Array.from({ length: 3 }).map((_, i) => (
                                 <tr key={`financials-skeleton-${i}`} style={{ borderBottom: '1px solid var(--border)' }}>
-                                    {Array.from({ length: 5 }).map((__un, j) => (
+                                    {Array.from({ length: 6 }).map((__un, j) => (
                                         <td key={`financials-sk-${i}-${j}`} style={{ padding: '14px 16px' }}>
                                             <Skeleton animation="wave" height={24} />
                                         </td>
@@ -133,7 +134,7 @@ export const FinancialsView: React.FC = () => {
                             ))
                         ) : acquisitions.length === 0 ? (
                             <tr>
-                                <td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: 'var(--ts)' }}>
+                                <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: 'var(--ts)' }}>
                                     No acquisitions found.
                                 </td>
                             </tr>
@@ -144,6 +145,7 @@ export const FinancialsView: React.FC = () => {
                                     <td style={{ padding: '14px 16px', fontSize: '0.9375rem', fontWeight: 600, color: 'var(--tp)' }}>{row.credits}</td>
                                     <td style={{ padding: '14px 16px', fontSize: '0.9375rem', color: 'var(--tp)' }}>{row.paid}</td>
                                     <td style={{ padding: '14px 16px', fontSize: '0.875rem', color: '#0f6cbf', fontWeight: 500 }}>{row.unit}</td>
+                                    <td style={{ padding: '14px 16px', fontSize: '0.875rem', color: 'var(--ts)' }}>{row.expiry}</td>
                                     <td style={{ padding: '14px 16px' }}>
                                         <span style={{
                                             display: 'inline-block',

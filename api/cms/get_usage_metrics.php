@@ -35,7 +35,8 @@ try {
         $metrics = [
             'slide_generation' => 0,
             'slide_regeneration' => 0,
-            'video_generation' => 0
+            'video_generation' => 0,
+            'doc_processing' => 0
         ];
         
         foreach ($txs as $tx) {
@@ -44,16 +45,30 @@ try {
                 
                 // Inspect metadata to see the action key
                 $meta = $tx['extra_metadata'] ?? [];
-                $actionKey = $meta['action_key'] ?? 'unknown';
+                $actionKey = isset($meta['action_key']) ? strtolower(trim($meta['action_key'])) : '';
                 
-                // Map the action keys to our display labels
-                // We're expecting things like 'generate_slides', 'regenerate_slide', 'generate_video'
-                if (strpos($actionKey, 'slide') !== false && strpos($actionKey, 're') === false) {
+                // Map action keys to categories
+                if (in_array($actionKey, [
+                    'slide_generation',
+                    'slide_generation_standard',
+                    'slide_generation_extensive',
+                    'slide_generation_deep_dive'
+                ])) {
                     $metrics['slide_generation'] += $amount;
-                } elseif (strpos($actionKey, 'regenerate') !== false) {
+                } elseif (in_array($actionKey, [
+                    'slide_regeneration',
+                    'slide_regeneration_standard',
+                    'slide_regeneration_extensive',
+                    'slide_regeneration_deep_dive'
+                ])) {
                     $metrics['slide_regeneration'] += $amount;
-                } elseif (strpos($actionKey, 'video') !== false) {
+                } elseif ($actionKey === 'video_generation') {
                     $metrics['video_generation'] += $amount;
+                } elseif ($actionKey === 'doc_processing') {
+                    $metrics['doc_processing'] += $amount;
+                } elseif (!empty($actionKey)) {
+                    // Log unknown action keys for debugging
+                    error_log("Lecturebot: Unknown action_key encountered: {$actionKey}");
                 }
             }
         }
@@ -64,6 +79,7 @@ try {
             ['key' => 'slide_generation', 'name' => 'Slide Generation', 'color' => '#6F42C1'],
             ['key' => 'slide_regeneration', 'name' => 'Slide Regeneration', 'color' => '#8A94DF'],
             ['key' => 'video_generation', 'name' => 'Video Generation', 'color' => '#2ECC71'],
+            ['key' => 'doc_processing', 'name' => 'Document Processing', 'color' => '#3498DB'],
         ];
 
         foreach ($metricConfigs as $config) {

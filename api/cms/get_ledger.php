@@ -104,9 +104,21 @@ try {
         $ledger = [];
         foreach ($txs as $tx) {
             $ts = date('M d, Y, H:i', strtotime($tx['created_at']));
+            $tsRaw = date('Y-m-d', strtotime($tx['created_at'])); // For date filtering
             
             // Build human-readable metadata
             $metaParts = [];
+            
+            // For CONSUMPTION transactions, identify who consumed the credits
+            // by checking if this transaction's wallet_id belongs to a sub-user/staff
+            $txType = $tx['transaction_type'] ?? '';
+            if ($txType === 'CONSUMPTION' && !empty($tx['wallet_id'])) {
+                $consumedByName = $walletIdNameCache[$tx['wallet_id']] ?? null;
+                if ($consumedByName && $consumedByName !== 'Organization') {
+                    $metaParts[] = "By: $consumedByName";
+                }
+            }
+            
             if (isset($tx['extra_metadata']) && is_array($tx['extra_metadata'])) {
                 // Show package name for purchases
                 if (!empty($tx['extra_metadata']['package_name'])) {
@@ -114,6 +126,35 @@ try {
                 }
                 if (!empty($tx['extra_metadata']['description'])) {
                     $metaParts[] = $tx['extra_metadata']['description'];
+                }
+                
+                // Show action/service for consumption transactions
+                if (!empty($tx['extra_metadata']['action_key'])) {
+                    $actionKey = strtolower(trim($tx['extra_metadata']['action_key']));
+                    
+                    define('LABEL_SLIDE_GENERATION', 'Slide Generation');
+                    define('LABEL_SLIDE_REGENERATION', 'Slide Regeneration');
+                    define('LABEL_VIDEO_GENERATION', 'Video Generation');
+                    define('LABEL_DOC_PROCESSING', 'Document Processing');
+                    
+                    // Map action keys to user-friendly service names
+                    $actionLabels = [
+                        'slide_generation' => LABEL_SLIDE_GENERATION,
+                        'slide_generation_standard' => LABEL_SLIDE_GENERATION,
+                        'slide_generation_extensive' => LABEL_SLIDE_GENERATION,
+                        'slide_generation_deep_dive' => LABEL_SLIDE_GENERATION,
+                        'slide_regeneration' => LABEL_SLIDE_REGENERATION,
+                        'slide_regeneration_standard' => LABEL_SLIDE_REGENERATION,
+                        'slide_regeneration_extensive' => LABEL_SLIDE_REGENERATION,
+                        'slide_regeneration_deep_dive' => LABEL_SLIDE_REGENERATION,
+                        'video_generation' => LABEL_VIDEO_GENERATION,
+                        'doc_processing' => LABEL_DOC_PROCESSING,
+                        'upload_pdf' => 'PDF Upload',
+                        'pdf_upload' => 'PDF Upload',
+                    ];
+                    
+                    $serviceName = $actionLabels[$actionKey] ?? ucwords(str_replace('_', ' ', $actionKey));
+                    $metaParts[] = 'Service: ' . $serviceName;
                 }
                 // Resolve owner UUID fields
                 foreach (['performed_by_user_id', 'target_owner_id', 'source_owner_id'] as $field) {
@@ -148,6 +189,19 @@ try {
                     }
                 }
             }
+            
+            // If no metadata parts were built, provide a basic fallback based on transaction type
+            if (empty($metaParts)) {
+                $txType = $tx['transaction_type'] ?? 'UNKNOWN';
+                if ($txType === 'PURCHASE') {
+                    $metaParts[] = 'Credit purchase';
+                } elseif ($txType === 'CONSUMPTION') {
+                    $metaParts[] = 'Service usage (details not available)';
+                } elseif ($txType === 'ALLOCATION_OUT' || $txType === 'ALLOCATION_IN') {
+                    $metaParts[] = 'Credit transfer';
+                }
+            }
+            
             $meta = implode(' · ', $metaParts);
             
             // Map Arina transaction_type
@@ -157,6 +211,7 @@ try {
             $ledger[] = [
                 'id' => $tx['id'],
                 'ts' => $ts,
+                'tsRaw' => $tsRaw,
                 'type' => $type,
                 'typeLabel' => $typeLabel,
                 'meta' => $meta,

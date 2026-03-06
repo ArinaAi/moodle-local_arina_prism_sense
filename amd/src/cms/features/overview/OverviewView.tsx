@@ -45,6 +45,7 @@ export const OverviewView: React.FC = () => {
         available_balance: number;
         reserved_credits: number;
     } | null>(null);
+    const [staffReserved, setStaffReserved] = useState<number>(0);
     const [usageData, setUsageData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -53,13 +54,15 @@ export const OverviewView: React.FC = () => {
     const fetchDashboardData = async () => {
         try {
             const baseUrl = (window as any).MOODLE_CMS_CONTEXT?.wwwroot || '';
-            const [balanceRes, usageRes] = await Promise.all([
+            const [balanceRes, usageRes, reservedRes] = await Promise.all([
                 fetch(`${baseUrl}/local/lecturebot/api/cms/get_balance.php`, { credentials: 'include' }),
-                fetch(`${baseUrl}/local/lecturebot/api/cms/get_usage_metrics.php`, { credentials: 'include' })
+                fetch(`${baseUrl}/local/lecturebot/api/cms/get_usage_metrics.php`, { credentials: 'include' }),
+                fetch(`${baseUrl}/local/lecturebot/api/cms/get_org_reserved.php`, { credentials: 'include' })
             ]);
 
             const balanceResult = await balanceRes.json();
             const usageResult = await usageRes.json();
+            const reservedResult = await reservedRes.json();
 
             if (balanceResult.success && balanceResult.data) {
                 setBalanceData(balanceResult.data);
@@ -69,6 +72,10 @@ export const OverviewView: React.FC = () => {
 
             if (usageResult.success && usageResult.data) {
                 setUsageData(usageResult.data);
+            }
+
+            if (reservedResult.success && reservedResult.data) {
+                setStaffReserved(reservedResult.data.staff_reserved || 0);
             }
         } catch (err) {
             console.error('Error fetching balance:', err);
@@ -149,7 +156,7 @@ export const OverviewView: React.FC = () => {
                         />
                         <StatCard
                             label="Reserved Credits"
-                            value={balanceData?.reserved_credits || 0}
+                            value={staffReserved}
                             subtitle="Locked for pending operations"
                             color="#ff9800"
                             icon={Users}

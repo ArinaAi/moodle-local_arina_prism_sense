@@ -47,6 +47,7 @@ try {
     $client = new \local_lecturebot\cms\CreditServiceClient();
     
     // Org Wallet: resolve owner UUID -> wallet ID
+    // The allocation API requires actual wallet IDs, not owner UUIDs
     $orgUuid = $client->getOrInitializeOrgWallet();
     $orgWalletId = $client->resolveWalletId($orgUuid);
     

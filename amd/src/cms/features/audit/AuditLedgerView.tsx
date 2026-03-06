@@ -4,17 +4,17 @@ import { Download, BookOpen } from 'lucide-react';
 import { Skeleton } from '@mui/material';
 import { stagger, fadeIn } from '../../config/animations';
 import { Badge } from '../../components/ui/Badge';
+import { DateRangeFilter } from '../../components/ui/DateRangeFilter';
 
 export interface LedgerRow {
     id: string;
     ts: string;
+    tsRaw: string;
     type: string;
     typeLabel: string;
     meta: string;
     amount: number;
     balance: number;
-    userId?: string;
-    userName?: string;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -25,6 +25,8 @@ const TYPE_LABELS: Record<string, string> = {
     'ALLOCATION_IN': 'Credits Received',
     'REFUND': 'Refund',
     'ADMIN_ADJUSTMENT': 'Admin Adjustment',
+    'MANUAL_ADJUSTMENT': 'Manual Adjustment',
+    'EXPIRATION': 'Expired Credits',
 };
 
 const TYPE_OPTIONS = Object.keys(TYPE_LABELS);
@@ -54,7 +56,6 @@ const blurStyle = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) =>
 
 export const AuditLedgerView: React.FC = () => {
     const [typeFilter, setTypeFilter] = useState('All');
-    const [userFilter, setUserFilter] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [metaSearch, setMetaSearch] = useState('');
@@ -86,13 +87,12 @@ export const AuditLedgerView: React.FC = () => {
         () =>
             ledger.filter((r) => {
                 if (typeFilter !== 'All' && r.type !== typeFilter) { return false; }
-                if (userFilter && !(r.userName || '').toLowerCase().includes(userFilter.toLowerCase())) { return false; }
-                if (startDate && r.ts < startDate) { return false; }
-                if (endDate && r.ts > endDate + 'T23:59:59') { return false; }
+                if (startDate && r.tsRaw < startDate) { return false; }
+                if (endDate && r.tsRaw > endDate) { return false; }
                 if (metaSearch && !(r.meta || '').toLowerCase().includes(metaSearch.toLowerCase())) { return false; }
                 return true;
             }),
-        [typeFilter, userFilter, startDate, endDate, metaSearch, ledger],
+        [typeFilter, startDate, endDate, metaSearch, ledger],
     );
 
     const handleExportCSV = useCallback(() => {
@@ -138,55 +138,34 @@ export const AuditLedgerView: React.FC = () => {
                     onChange={(e) => setTypeFilter(e.target.value)}
                     onFocus={focusStyle}
                     onBlur={blurStyle}
-                    style={{ ...filterInputStyle, minWidth: 140 }}
+                    style={{ ...filterInputStyle, minWidth: 160 }}
                 >
                     {TYPE_OPTIONS.map((o) => (
                         <option key={o} value={o}>{TYPE_LABELS[o]}</option>
                     ))}
                 </select>
 
-                {/* User filter */}
-                <input
-                    type="text"
-                    placeholder="Filter by user…"
-                    value={userFilter}
-                    onChange={(e) => setUserFilter(e.target.value)}
-                    onFocus={focusStyle}
-                    onBlur={blurStyle}
-                    style={{ ...filterInputStyle, minWidth: 140 }}
-                />
-
-                {/* Start date */}
-                <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    onFocus={focusStyle}
-                    onBlur={blurStyle}
-                    style={{ ...filterInputStyle, minWidth: 150, colorScheme: 'light dark' }}
-                    title="Start date"
-                />
-
-                {/* End date */}
-                <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    onFocus={focusStyle}
-                    onBlur={blurStyle}
-                    style={{ ...filterInputStyle, minWidth: 150, colorScheme: 'light dark' }}
-                    title="End date"
+                {/* Date range filter with presets */}
+                <DateRangeFilter
+                    startDate={startDate}
+                    endDate={endDate}
+                    onStartDateChange={setStartDate}
+                    onEndDateChange={setEndDate}
+                    onClear={() => {
+                        setStartDate('');
+                        setEndDate('');
+                    }}
                 />
 
                 {/* Metadata search — flex-grows to fill remaining space */}
                 <input
                     type="text"
-                    placeholder="Search description…"
+                    placeholder="Search description (staff names, packages, etc.)…"
                     value={metaSearch}
                     onChange={(e) => setMetaSearch(e.target.value)}
                     onFocus={focusStyle}
                     onBlur={blurStyle}
-                    style={{ ...filterInputStyle, flex: 1, minWidth: 160 }}
+                    style={{ ...filterInputStyle, flex: 1, minWidth: 200 }}
                 />
 
                 {/* Export CSV — blueprint §5.6: #0f6cbf weight 600 */}
@@ -276,7 +255,7 @@ export const AuditLedgerView: React.FC = () => {
                                                     No transactions found
                                                 </div>
                                                 <div style={{ fontSize: '0.875rem', color: 'var(--ts)' }}>
-                                                    {(typeFilter !== 'All' || userFilter || startDate || endDate || metaSearch)
+                                                    {(typeFilter !== 'All' || startDate || endDate || metaSearch)
                                                         ? 'Try adjusting your filters.'
                                                         : 'Credit transactions will appear here once activity begins.'}
                                                 </div>
