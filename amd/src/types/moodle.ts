@@ -12,4 +12,5 @@ export interface MoodleContext {
   sesskey: string;
   wwwroot: string;
   sections: MoodleSection[];
+  canApprove: boolean;
 }

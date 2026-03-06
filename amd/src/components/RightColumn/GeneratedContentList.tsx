@@ -1,7 +1,8 @@
 import React from 'react';
-import { Box, Typography, List, CircularProgress, Card, CardContent, useTheme, Collapse } from '@mui/material';
+import { Box, Typography, List, ListItem, Skeleton, Card, CardContent, useTheme, Collapse } from '@mui/material';
 import { FileText } from 'lucide-react';
 import type { ContentItem } from '../../types/app';
+import type { MoodleContext } from '../../types/moodle';
 import GeneratedContentItem from './GeneratedContentItem';
 import { TransitionGroup } from 'react-transition-group';
 
@@ -13,6 +14,7 @@ interface GeneratedContentListProps {
     onMenuOpen: (event: React.MouseEvent<HTMLButtonElement>, contentId: number) => void;
     isMobile?: boolean;
     onPreviewContent?: (contentId: number) => void;
+    moodleContext: MoodleContext;
 }
 
 const GeneratedContentList: React.FC<GeneratedContentListProps> = ({
@@ -23,6 +25,7 @@ const GeneratedContentList: React.FC<GeneratedContentListProps> = ({
     onMenuOpen,
     isMobile = false,
     onPreviewContent,
+    moodleContext,
 }) => {
     const theme = useTheme();
 
@@ -32,10 +35,40 @@ const GeneratedContentList: React.FC<GeneratedContentListProps> = ({
     const errorItems = contentItems.filter(item => item.status === 'error');
 
     const renderLoadingState = () => (
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', py: 6 }}>
-            <CircularProgress size={40} thickness={4} sx={{ mb: 2 }} />
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>Loading content...</Typography>
-        </Box>
+        <List sx={{ flex: 1, overflow: 'hidden', p: 0, pr: 1 }}>
+            {[1, 2, 3].map(item => (
+                <ListItem
+                    key={item}
+                    sx={{
+                        border: `1px solid ${theme.palette.divider}`,
+                        borderRadius: '20px',
+                        mb: 1.5,
+                        p: 'clamp(12px, 1.5vw, 16px)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.4)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 'clamp(8px, 1.5vw, 12px)',
+                        opacity: 1 - (item * 0.2),
+                    }}
+                >
+                    <Box sx={{ flexShrink: 0, width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Skeleton variant="circular" width={32} height={32} animation="wave" />
+                    </Box>
+                    <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Skeleton variant="text" width="70%" height={24} animation="wave" />
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                            <Skeleton variant="rounded" width={60} height={20} animation="wave" sx={{ borderRadius: '12px' }} />
+                            <Skeleton variant="rounded" width={45} height={20} animation="wave" sx={{ borderRadius: '12px' }} />
+                            <Skeleton variant="text" width={80} height={18} animation="wave" />
+                        </Box>
+                    </Box>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'clamp(4px, 1vw, 8px)', flexShrink: 0, alignItems: 'center' }}>
+                        <Skeleton variant="circular" width={24} height={24} animation="wave" />
+                        <Skeleton variant="circular" width={24} height={24} animation="wave" />
+                    </Box>
+                </ListItem>
+            ))}
+        </List>
     );
 
     const renderEmptyState = () => (
@@ -61,17 +94,17 @@ const GeneratedContentList: React.FC<GeneratedContentListProps> = ({
                 <TransitionGroup component={null}>
                     {generatingItems.map(item => (
                         <Collapse key={item.id} timeout={400}>
-                            <GeneratedContentItem item={item} onPublish={onPublish} onUnpublish={onUnpublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} />
+                            <GeneratedContentItem item={item} onPublish={onPublish} onUnpublish={onUnpublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} moodleContext={moodleContext} />
                         </Collapse>
                     ))}
                     {readyItems.map(item => (
                         <Collapse key={item.id} timeout={400}>
-                            <GeneratedContentItem item={item} onPublish={onPublish} onUnpublish={onUnpublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} />
+                            <GeneratedContentItem item={item} onPublish={onPublish} onUnpublish={onUnpublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} moodleContext={moodleContext} />
                         </Collapse>
                     ))}
                     {errorItems.map(item => (
                         <Collapse key={item.id} timeout={400}>
-                            <GeneratedContentItem item={item} onPublish={onPublish} onUnpublish={onUnpublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} />
+                            <GeneratedContentItem item={item} onPublish={onPublish} onUnpublish={onUnpublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} moodleContext={moodleContext} />
                         </Collapse>
                     ))}
                 </TransitionGroup>

@@ -37,3 +37,5 @@ $string['errorviewingpdf'] = 'Error viewing PDF';
 $string['filenotfound'] = 'PDF file not found';
 $string['invalidfiletype'] = 'File is not a valid PDF';
 
+// Capabilities
+$string['lecturebot:approvecontent'] = 'Approve AI-generated content';

@@ -3,6 +3,7 @@ import { Box, Typography, ListItem, CircularProgress, IconButton, Tooltip, useTh
 import { Add, MoreVert, Error as ErrorIcon } from '@mui/icons-material';
 import StatusBadge from './StatusBadge';
 import type { ContentItem } from '../../types/app';
+import type { MoodleContext } from '../../types/moodle';
 import { useContentPreview } from '../../hooks/useContentPreview';
 import { ContentTypeIcon, ContentItemTitle, SlideCountChip, formatDate } from './contentItemUtils';
 
@@ -12,6 +13,7 @@ interface GeneratedContentItemProps {
     onUnpublish: (contentId: string) => void;
     onMenuOpen: (event: React.MouseEvent<HTMLButtonElement>, contentId: number) => void;
     onPreview?: (contentId: number) => void;
+    moodleContext: MoodleContext;
 }
 
 const TOOLTIP_CONFIG = {
@@ -23,7 +25,7 @@ const TOOLTIP_CONFIG = {
     PopperProps: { sx: { zIndex: 100006 } }
 };
 
-const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPublish, onMenuOpen, onPreview }) => {
+const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPublish, onMenuOpen, onPreview, moodleContext }) => {
     const theme = useTheme();
     const { handlePreviewContent: localHandlePreview } = useContentPreview({ contentItems: [item] });
 
@@ -243,7 +245,7 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                     </Box>
                 </Box>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'clamp(4px, 1vw, 8px)', flexShrink: 0, alignItems: 'center' }}>
-                    {item.approved && !isPublished && (
+                    {item.approved && !isPublished && moodleContext.canApprove && (
                         <Tooltip
                             title="Publish to course page"
                             {...TOOLTIP_CONFIG}

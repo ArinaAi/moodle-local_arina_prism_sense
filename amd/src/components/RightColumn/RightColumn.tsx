@@ -17,12 +17,14 @@ import {
 import { Delete, InfoOutlined, UnpublishedOutlined } from '@mui/icons-material';
 
 import type { ContentItem } from '../../types/app';
+import type { MoodleContext } from '../../types/moodle';
 import GeneratedContentList from './GeneratedContentList';
 import PublishedContentList from './PublishedContentList';
 
 interface RightColumnProps {
   state: {
     contentItems: ContentItem[];
+    moodleContext?: MoodleContext | null;
   };
   onPublishContent: (contentId: string) => void;
   onUnpublishContent: (contentId: string) => void;
@@ -162,15 +164,16 @@ const RightColumn: React.FC<RightColumnProps> = ({
           onMenuOpen={handleMenuOpen}
           isMobile={isMobile}
           onPreviewContent={onPreviewContent}
+          moodleContext={state.moodleContext!}
         />
 
-        {/* Published Content Card */}
         <PublishedContentList
           contentItems={state.contentItems}
           onUnpublish={(contentId) => setUnpublishConfirmation({ open: true, contentId })}
           onMenuOpen={handleMenuOpen}
           isMobile={isMobile}
           onPreviewContent={onPreviewContent}
+          moodleContext={state.moodleContext!}
         />
       </Box>
 

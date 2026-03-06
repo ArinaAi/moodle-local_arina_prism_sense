@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Typography, List, Card, CardContent, useTheme, Collapse } from '@mui/material';
 import { CheckCircle } from '@mui/icons-material';
 import type { ContentItem } from '../../types/app';
+import type { MoodleContext } from '../../types/moodle';
 import GeneratedContentItem from './GeneratedContentItem';
 import { TransitionGroup } from 'react-transition-group';
 
@@ -11,14 +12,16 @@ interface PublishedContentListProps {
     onMenuOpen: (event: React.MouseEvent<HTMLButtonElement>, contentId: number) => void;
     isMobile?: boolean;
     onPreviewContent?: (contentId: number) => void;
+    moodleContext: MoodleContext;
 }
 
-const PublishedContentList: React.FC<PublishedContentListProps> = ({ 
-    contentItems, 
-    onUnpublish, 
-    onMenuOpen, 
+const PublishedContentList: React.FC<PublishedContentListProps> = ({
+    contentItems,
+    onUnpublish,
+    onMenuOpen,
     isMobile = false,
-    onPreviewContent 
+    onPreviewContent,
+    moodleContext
 }) => {
     const theme = useTheme();
     const publishedItems = contentItems.filter(item => item.status === 'published');
@@ -55,12 +58,13 @@ const PublishedContentList: React.FC<PublishedContentListProps> = ({
                         <TransitionGroup component={null}>
                             {publishedItems.map(item => (
                                 <Collapse key={item.id} timeout={400}>
-                                    <GeneratedContentItem 
-                                        item={item} 
-                                        onPublish={() => {}} 
+                                    <GeneratedContentItem
+                                        item={item}
+                                        onPublish={() => { }}
                                         onUnpublish={onUnpublish}
                                         onMenuOpen={onMenuOpen}
                                         onPreview={onPreviewContent}
+                                        moodleContext={moodleContext}
                                     />
                                 </Collapse>
                             ))}

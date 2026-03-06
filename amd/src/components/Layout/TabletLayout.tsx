@@ -21,7 +21,6 @@ const TabletLayout: React.FC<LayoutProps> = ({
     onUnpublishContent,
     onClearAllContent: _onClearAllContent,
     onDeleteContent,
-    isLoadingContent,
     isSmallTablet = false,
 }) => {
     // Handler for previewing content from the list
@@ -130,12 +129,13 @@ const TabletLayout: React.FC<LayoutProps> = ({
                 <Box sx={{ minHeight: 0, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
                     <GeneratedContentList
                         contentItems={state.contentItems}
-                        isLoading={isLoadingContent ?? false}
+                        isLoading={state.isGeneratingSlides}
                         onPublish={onPublishContent}
-                        onUnpublish={(contentId) => setUnpublishConfirmation({ open: true, contentId })}
+                        onUnpublish={onUnpublishContent}
                         onMenuOpen={handleMenuOpen}
-                        isMobile={isSmallTablet}
+                        isMobile={false}
                         onPreviewContent={handlePreviewContent}
+                        moodleContext={state.moodleContext!}
                     />
                 </Box>
 
@@ -143,10 +143,11 @@ const TabletLayout: React.FC<LayoutProps> = ({
                 <Box sx={{ minHeight: 0, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
                     <PublishedContentList
                         contentItems={state.contentItems}
-                        onUnpublish={(contentId) => setUnpublishConfirmation({ open: true, contentId })}
+                        onUnpublish={onUnpublishContent}
                         onMenuOpen={handleMenuOpen}
-                        isMobile={isSmallTablet}
+                        isMobile={false}
                         onPreviewContent={handlePreviewContent}
+                        moodleContext={state.moodleContext!}
                     />
                 </Box>
             </Box>

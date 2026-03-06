@@ -21,7 +21,7 @@ try {
     // Require login and capability
     require_login($courseid);
     $context = context_course::instance($courseid);
-    require_capability('moodle/course:update', $context);
+    require_capability('local/lecturebot:approvecontent', $context);
     require_sesskey();
 
     
