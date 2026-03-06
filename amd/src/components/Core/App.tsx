@@ -55,7 +55,15 @@ export const App: React.FC = () => {
 
   useMoodleContext(dispatch, showNotification);
   usePreviewListener(dispatch, showNotification);
-  useContentPolling(state, dispatch, showNotification);
+
+  // Credit balance
+  const { availableBalance, hasWallet, loading: creditLoading, refresh: refreshCredits } = useCreditBalance(state.moodleContext);
+  const hasCredits = hasWallet && availableBalance > 0;
+  const creditTooltip = !hasWallet
+    ? 'Ask your college admin to allocate you credits'
+    : 'You have no credits remaining. Contact your admin for more.';
+
+  useContentPolling(state, dispatch, showNotification, refreshCredits);
 
   const {
     isLoadingContent,
@@ -68,13 +76,6 @@ export const App: React.FC = () => {
     handleClearAllContent,
     handleDeleteContent
   } = useContentActions(state, dispatch, showNotification);
-
-  // Credit balance
-  const { availableBalance, hasWallet, loading: creditLoading, refresh: refreshCredits } = useCreditBalance(state.moodleContext);
-  const hasCredits = hasWallet && availableBalance > 0;
-  const creditTooltip = !hasWallet
-    ? 'Ask your college admin to allocate you credits'
-    : 'You have no credits remaining. Contact your admin for more.';
 
   // Wrap generation handlers to auto-refresh credits after completion
   const handleGenerateSlides = useCallback(async (
@@ -246,6 +247,7 @@ export const App: React.FC = () => {
               open={state.showSourcesModal}
               onClose={handleCloseSourcesModal}
               moodleContext={state.moodleContext}
+              refreshCredits={refreshCredits}
             />
           )}
 

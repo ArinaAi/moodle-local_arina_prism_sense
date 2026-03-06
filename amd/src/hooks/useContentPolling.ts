@@ -8,7 +8,8 @@ const POLL_INTERVAL_MS = 30000; // 30 seconds
 const updateContentItem = (
     updatedItem: ContentItem,
     dispatch: Dispatch<AppAction>,
-    showNotification: (msg: string, severity: NotificationSeverity) => void
+    showNotification: (msg: string, severity: NotificationSeverity) => void,
+    refreshCredits?: () => void
 ) => {
     if (updatedItem.status === 'ready') {
         showNotification(`Playback ready for "${updatedItem.sectionname}"`, 'success');
@@ -17,9 +18,15 @@ const updateContentItem = (
             dispatch({ type: 'SET_CURRENT_CONTENT_ID', payload: updatedItem.id });
             dispatch({ type: 'SET_SLIDES_APPROVED', payload: updatedItem.approved || false });
         }
+        if (refreshCredits) {
+            refreshCredits();
+        }
     } else if (updatedItem.status === 'error') {
         const errorMsg = updatedItem.errormessage || 'Generation failed. Please try again.';
         showNotification(`Generation failed for "${updatedItem.sectionname}": ${errorMsg}`, 'error');
+        if (refreshCredits) {
+            refreshCredits();
+        }
     }
 };
 
@@ -28,7 +35,8 @@ const processUpdate = (
     updatedItem: ContentItem,
     contentItems: ContentItem[],
     dispatch: Dispatch<AppAction>,
-    showNotification: (msg: string, severity: NotificationSeverity) => void
+    showNotification: (msg: string, severity: NotificationSeverity) => void,
+    refreshCredits?: () => void
 ): boolean => {
     const index = contentItems.findIndex((i) => i.id === updatedItem.id);
     if (index === -1) {
@@ -47,7 +55,7 @@ const processUpdate = (
         contentItems[index] = updatedItem;
         // Only call updateContentItem for completed items
         if (statusChanged) {
-            updateContentItem(updatedItem, dispatch, showNotification);
+            updateContentItem(updatedItem, dispatch, showNotification, refreshCredits);
         }
         return true;
     }
@@ -60,7 +68,8 @@ const fetchStatusUpdates = async (
     generatingIds: number[],
     state: AppState,
     dispatch: Dispatch<AppAction>,
-    showNotification: (msg: string, severity: NotificationSeverity) => void
+    showNotification: (msg: string, severity: NotificationSeverity) => void,
+    refreshCredits?: () => void
 ) => {
     try {
         const idsParam = generatingIds.join(',');
@@ -79,7 +88,7 @@ const fetchStatusUpdates = async (
             const parentIdsToRemove = new Set<number>();
 
             updates.forEach((updatedItem) => {
-                if (processUpdate(updatedItem, newContentItems, dispatch, showNotification)) {
+                if (processUpdate(updatedItem, newContentItems, dispatch, showNotification, refreshCredits)) {
                     hasUpdates = true;
                     // If this item just became ready AND is a regeneration, mark its parent for removal
                     const idx = newContentItems.findIndex((i) => i.id === updatedItem.id);
@@ -111,17 +120,20 @@ const fetchStatusUpdates = async (
 export const useContentPolling = (
     state: AppState,
     dispatch: Dispatch<AppAction>,
-    showNotification: (msg: string, severity: NotificationSeverity) => void
+    showNotification: (msg: string, severity: NotificationSeverity) => void,
+    refreshCredits?: () => void
 ) => {
     // Keep refs so the interval callback always reads the latest values
     // without needing to restart the timer on every state change
     const stateRef = useRef(state);
     const showNotificationRef = useRef(showNotification);
+    const refreshCreditsRef = useRef(refreshCredits);
 
     // Update refs on every render — no re-subscription needed
     useEffect(() => {
         stateRef.current = state;
         showNotificationRef.current = showNotification;
+        refreshCreditsRef.current = refreshCredits;
     });
 
     // Derive a stable boolean: are there ANY generating items right now?
@@ -149,7 +161,7 @@ export const useContentPolling = (
             // Poll ALL currently generating items in one request
             // This naturally supports multiple parallel slide generations
             const generatingIds = currentGeneratingItems.map((item) => item.id);
-            fetchStatusUpdates(generatingIds, currentState, dispatch, showNotificationRef.current);
+            fetchStatusUpdates(generatingIds, currentState, dispatch, showNotificationRef.current, refreshCreditsRef.current);
         }, POLL_INTERVAL_MS);
 
         return () => clearInterval(pollInterval);

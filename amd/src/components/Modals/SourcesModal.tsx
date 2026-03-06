@@ -35,6 +35,7 @@ interface SourcesModalProps {
   open: boolean;
   onClose: () => void;
   moodleContext: MoodleContext;
+  refreshCredits: () => void;
 }
 
 interface SectionOption {
@@ -113,7 +114,7 @@ const getModalStyles = (isMobile: boolean) => {
   };
 };
 
-const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContext }) => {
+const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContext, refreshCredits }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -653,7 +654,8 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
         // Don't close - user needs to see errors and retry
         setErrors({ general: `${result.failures.length} file(s) failed to upload. Please retry.` });
       } else {
-        // All succeeded - close modal
+        // All succeeded - refresh credits and close modal
+        refreshCredits();
         onClose();
       }
     } catch (err) {

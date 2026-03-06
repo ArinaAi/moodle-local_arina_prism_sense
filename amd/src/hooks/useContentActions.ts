@@ -528,7 +528,7 @@ export const useContentActions = (
                 const updatedItems = state.contentItems.filter(item => item.id !== contentId);
                 dispatch({ type: 'SET_CONTENT_ITEMS', payload: updatedItems });
 
-                showNotification('Content deleted. Azure files preserved for restoration.', 'success');
+                showNotification('Content deleted successfully!', 'success');
             } else {
                 throw new Error(result.error || 'Failed to delete content');
             }
