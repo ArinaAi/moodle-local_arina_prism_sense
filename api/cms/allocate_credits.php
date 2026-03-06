@@ -54,21 +54,46 @@ try {
     // Target Wallet: JIT creation if needed, returns wallet ID directly
     $targetWalletId = $client->getOrInitializeSubUserWallet($targetUserId);
     
-    // Determine direction
+    // Get the staff member's owner UUID (needed for recall authorization)
+    $targetUserUuid = $client->getUserOwnerUuid($targetUserId);
+    
+    // Determine direction and authorization
     if ($action === 'distribute') {
         $sourceWalletId = $orgWalletId;
         $targetWalletIds = [$targetWalletId];
+        $performedByUuid = $orgUuid; // Org authorizes distribution
     } elseif ($action === 'recall') {
+        // For recall, check if staff has sufficient balance
+        $staffBalanceRes = $client->getWalletBalance($targetWalletId);
+        if ($staffBalanceRes['status'] >= 200 && $staffBalanceRes['status'] < 300) {
+            $availableBalance = floatval($staffBalanceRes['data']['available_balance'] ?? 0);
+            if ($availableBalance < $amount) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => "Insufficient balance. Staff has {$availableBalance} credits available,
+                    but you're trying to recall {$amount}."
+                ]);
+                exit;
+            }
+        }
+        
         $sourceWalletId = $targetWalletId;
         $targetWalletIds = [$orgWalletId];
+        $performedByUuid = $targetUserUuid; // Staff member authorizes their own wallet allocation
     } else {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Invalid action. Must be distribute or recall']);
         exit;
     }
 
-    // Use org owner UUID as the performed_by identifier (Arina API expects UUIDs, not Moodle integer IDs)
-    $response = $client->allocateCredits($sourceWalletId, $targetWalletIds, $amount, $orgUuid);
+    // Perform allocation with correct authorization
+    $response = $client->allocateCredits($sourceWalletId, $targetWalletIds, $amount, $performedByUuid);
+    
+    // Debug logging
+    error_log("Allocate Credits API Call - Action: {$action}, Source: {$sourceWalletId}, Target: " .
+    json_encode($targetWalletIds) . ", Amount: {$amount}");
+    error_log("Allocate Credits API Response: " . json_encode($response));
     
     if ($response['status'] >= 200 && $response['status'] < 300) {
         echo json_encode([

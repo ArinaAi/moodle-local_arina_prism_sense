@@ -171,6 +171,11 @@ class CreditServiceClient
         return $this->makeRequest('GET', "/wallets/owner/{$ownerId}/balance");
     }
 
+    public function getWalletBalance($walletId)
+    {
+        return $this->makeRequest('GET', "/wallets/{$walletId}/balance");
+    }
+
     public function getWalletByOwner($ownerId)
     {
         $res = $this->makeRequest('GET', "/wallets?owner_id={$ownerId}");
