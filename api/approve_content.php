@@ -21,7 +21,9 @@ try {
     // Require login and capability
     require_login($courseid);
     $context = context_course::instance($courseid);
-    require_capability('local/lecturebot:approvecontent', $context);
+    if (!has_capability('local/lecturebot:approvecontent', $context)) {
+        throw new moodle_exception('error', 'moodle', '', 'You do not have permission to approve content.');
+    }
     require_sesskey();
 
     
