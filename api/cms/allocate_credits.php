@@ -59,6 +59,20 @@ try {
     
     // Determine direction and authorization
     if ($action === 'distribute') {
+        // For distribute, check if the organization has sufficient balance
+        $orgBalanceRes = $client->getWalletBalance($orgWalletId);
+        if ($orgBalanceRes['status'] >= 200 && $orgBalanceRes['status'] < 300) {
+            $availableBalance = floatval($orgBalanceRes['data']['available_balance'] ?? 0);
+            if ($availableBalance < $amount) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => "Insufficient organization balance!"
+                ]);
+                exit;
+            }
+        }
+
         $sourceWalletId = $orgWalletId;
         $targetWalletIds = [$targetWalletId];
         $performedByUuid = $orgUuid; // Org authorizes distribution
@@ -71,8 +85,7 @@ try {
                 http_response_code(400);
                 echo json_encode([
                     'success' => false,
-                    'message' => "Insufficient balance. Staff has {$availableBalance} credits available,
-                    but you're trying to recall {$amount}."
+                    'message' => "Insufficient balance!"
                 ]);
                 exit;
             }

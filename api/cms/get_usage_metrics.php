@@ -62,7 +62,10 @@ try {
                     'slide_regeneration_deep_dive'
                 ])) {
                     $metrics['slide_regeneration'] += $amount;
-                } elseif ($actionKey === 'video_generation') {
+                } elseif (in_array($actionKey, [
+                    'vid_gen_no_avatar',
+                    'vid_gen_with_avatar'
+                ])) {
                     $metrics['video_generation'] += $amount;
                 } elseif ($actionKey === 'doc_processing') {
                     $metrics['doc_processing'] += $amount;
