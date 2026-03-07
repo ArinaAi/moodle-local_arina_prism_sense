@@ -128,7 +128,7 @@ const MobileLayout: React.FC<LayoutProps> = ({
                 )}
                 {activeTab === 'publish' && (
                     <RightColumn
-                        state={{ contentItems: state.contentItems }}
+                        state={{ contentItems: state.contentItems, moodleContext: state.moodleContext }}
                         onPublishContent={onPublishContent}
                         onUnpublishContent={onUnpublishContent}
                         onClearAll={onClearAllContent}

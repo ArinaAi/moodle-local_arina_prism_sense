@@ -79,7 +79,7 @@ const DesktopLayout: React.FC<LayoutProps> = ({
             {/* Right Column */}
             <Box sx={{ height: '100%', minHeight: 0, overflow: 'hidden' }}>
                 <RightColumn
-                    state={{ contentItems: state.contentItems }}
+                    state={{ contentItems: state.contentItems, moodleContext: state.moodleContext }}
                     onPublishContent={onPublishContent}
                     onUnpublishContent={onUnpublishContent}
                     onClearAll={onClearAllContent}
