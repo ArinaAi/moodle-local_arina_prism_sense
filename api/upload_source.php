@@ -408,7 +408,7 @@ try {
                         $backendData = json_decode($backendResponse, true);
                         $errorMsg = 'Backend returned HTTP ' . $httpCode;
                         if (isset($backendData['detail'])) {
-                            $errorMsg .= ': ' . (is_string($backendData['detail']) ? 
+                            $errorMsg .= ': ' . (is_string($backendData['detail']) ?
                                 $backendData['detail'] : json_encode($backendData['detail']));
                         }
                         throw new \local_lecturebot\exception\api_http_exception($errorMsg);

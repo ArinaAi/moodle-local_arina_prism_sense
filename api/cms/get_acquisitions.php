@@ -10,7 +10,7 @@
 define('AJAX_SCRIPT', true);
 require_once(__DIR__ . '/../../../../config.php');
 require_once($CFG->libdir . '/moodlelib.php');
-require_once(__DIR__ . '/CreditServiceClient.php');
+require_once __DIR__ . '/CreditServiceAcquisitionClient.php';
 
 // Require login and admin cap
 require_login();
@@ -20,7 +20,7 @@ require_capability('moodle/site:config', $context);
 header('Content-Type: application/json');
 
 try {
-    $client = new \local_lecturebot\cms\CreditServiceClient();
+    $client = new \local_lecturebot\cms\CreditServiceAcquisitionClient();
     
     // Get Org Owner UUID (acquisitions API requires owner_id/user_id, not wallet_id)
     // This is the external identifier stored in Moodle config

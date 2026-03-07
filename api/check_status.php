@@ -1,7 +1,7 @@
 <?php
 /**
  * Check generation status for content items
- * 
+ *
  * @package    local_lecturebot
  * @copyright  2025
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -50,20 +50,20 @@ try {
         }
         
        // Get section name helper
-       static $section_names = null;
-       if ($section_names === null) {
+       static $sectionnames = null;
+       if ($sectionnames === null) {
            $modinfo = get_fast_modinfo($courseid);
            $sections = $modinfo->get_section_info_all();
-           $section_names = [];
+           $sectionnames = [];
            foreach ($sections as $sec) {
-               $section_names[$sec->id] = $sec->name ?: "Section " . $sec->section;
+               $sectionnames[$sec->id] = $sec->name ?: "Section " . $sec->section;
            }
        }
 
         return [
             'id' => $content->id,
             'sectionid' => $content->sectionid,
-            'sectionname' => $section_names[$content->sectionid] ?? "Unknown Section",
+            'sectionname' => $sectionnames[$content->sectionid] ?? "Unknown Section",
             'contenttype' => $content->contenttype,
             'status' => $content->status,
             'processing_status' => $generationData['processing_status'] ?? null,

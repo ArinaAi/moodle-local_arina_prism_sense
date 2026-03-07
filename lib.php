@@ -65,7 +65,8 @@ function local_lecturebot_get_button_js($wwwroot)
                     button.innerHTML = "{$buttontext}";
                     button.style.cssText = "margin-top: 10px; margin-right: 15px; background: #0f6cbf;" +
                         " border-color: #0f6cbf; color: white;" +
-                        " font-weight: 600; padding: 8px 16px; border-radius: 4px; display: inline-block; cursor: pointer;";
+                        " font-weight: 600; padding: 8px 16px; border-radius: 4px; display: " +
+                        "inline-block; cursor: pointer;";
 
                     button.addEventListener("click", function() {
                         if (window.MOODLE_CONTEXT && window.MOODLE_CONTEXT.courseid) {
@@ -375,6 +376,19 @@ function local_lecturebot_get_login_css()
  */
 function local_lecturebot_get_login_base_css()
 {
+    return local_lecturebot_get_login_layout_css()
+         . local_lecturebot_get_login_welcome_css()
+         . local_lecturebot_get_login_footer_css()
+         . local_lecturebot_get_login_responsive_css();
+}
+
+/**
+ * Get login layout CSS.
+ *
+ * @return string CSS code
+ */
+function local_lecturebot_get_login_layout_css()
+{
     return <<<CSS
         /* ===== LOGIN PAGE BASE STYLES ===== */
         
@@ -400,7 +414,7 @@ function local_lecturebot_get_login_base_css()
         #page-login-index .login-container {
             border-radius: clamp(12px, 4vw, 20px) !important;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12),
-                        0 2px 8px rgba(0, 0, 0, 0.08) !important;   
+                        0 2px 8px rgba(0, 0, 0, 0.08) !important;
             padding: clamp(20px, 5vh, 48px) clamp(16px, 5vw, 40px) clamp(20px, 4vh, 40px) !important;
             max-width: min(420px, calc(100vw - 32px)) !important;
             margin: clamp(16px, 3vh, 40px) auto !important;
@@ -433,8 +447,18 @@ function local_lecturebot_get_login_base_css()
         #page-login-index .login-logo {
             text-align: center !important;
             margin-bottom: 0 !important;
-        }  
-    
+        }
+CSS;
+}
+
+/**
+ * Get login welcome CSS.
+ *
+ * @return string CSS code
+ */
+function local_lecturebot_get_login_welcome_css()
+{
+    return <<<CSS
         /* Custom Welcome Section Styles - Fluid Responsive */
         .lecturebot-welcome-section {
             text-align: center;
@@ -470,7 +494,17 @@ function local_lecturebot_get_login_base_css()
             background: linear-gradient(90deg, transparent, #e5e7eb, transparent);
             margin: clamp(16px, 3vh, 24px) 0;
         }
-        
+CSS;
+}
+
+/**
+ * Get login footer CSS.
+ *
+ * @return string CSS code
+ */
+function local_lecturebot_get_login_footer_css()
+{
+    return <<<CSS
         /* Footer Styles - Fluid Responsive */
         .lecturebot-login-footer {
             text-align: center;
@@ -524,7 +558,17 @@ function local_lecturebot_get_login_base_css()
             height: clamp(12px, 2.5vw, 14px);
             color: #10b981;
         }
-        
+CSS;
+}
+
+/**
+ * Get login responsive CSS.
+ *
+ * @return string CSS code
+ */
+function local_lecturebot_get_login_responsive_css()
+{
+    return <<<CSS
         /* ===== HEIGHT-BASED RESPONSIVE ADJUSTMENTS ===== */
         
         /* For screens shorter than 700px (like MacBook Pro 13" at 640px) */

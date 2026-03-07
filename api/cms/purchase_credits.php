@@ -13,7 +13,7 @@
 define('AJAX_SCRIPT', true);
 require_once(__DIR__ . '/../../../../config.php');
 require_once($CFG->libdir . '/moodlelib.php');
-require_once(__DIR__ . '/CreditServiceClient.php');
+require_once __DIR__ . '/CreditServiceAcquisitionClient.php';
 
 // Require login and admin cap
 require_login();
@@ -44,7 +44,7 @@ try {
         exit;
     }
 
-    $client = new \local_lecturebot\cms\CreditServiceClient();
+    $client = new \local_lecturebot\cms\CreditServiceAcquisitionClient();
 
     // 1. Resolve the Org Wallet
     $orgOwnerUuid = $client->getOrInitializeOrgWallet();
