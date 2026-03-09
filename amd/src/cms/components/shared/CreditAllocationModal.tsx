@@ -36,9 +36,9 @@ export const CreditAllocationModal: React.FC<CreditAllocationModalProps> = ({
     const accentColor = isRecall ? '#dc3545' : '#0f6cbf';
 
     const handleSubmit = async () => {
-        const val = parseFloat(amount);
-        if (isNaN(val) || val <= 0) {
-            setError('Please enter a valid amount greater than 0');
+        const val = Number(amount);
+        if (Number.isNaN(val) || val <= 0 || !Number.isInteger(val)) {
+            setError('Please enter a valid whole number greater than 0');
             return;
         }
 
@@ -209,7 +209,12 @@ export const CreditAllocationModal: React.FC<CreditAllocationModalProps> = ({
                         type="number"
                         placeholder="Enter credit amount…"
                         value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
+                        onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))}
+                        onKeyDown={(e) => {
+                            if (e.key === '.' || e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                                e.preventDefault();
+                            }
+                        }}
                         fullWidth
                         variant="outlined"
                         autoFocus

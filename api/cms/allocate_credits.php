@@ -32,31 +32,31 @@ if (!isset($input['target_user_id']) || !isset($input['amount']) || !isset($inpu
     exit;
 }
 
-$targetUserId = (int)$input['target_user_id'];
-$amount = (float)$input['amount'];
+$targetUserId = (int) $input['target_user_id'];
+$amount = (float) $input['amount'];
 $action = $input['action']; // 'distribute' or 'recall'
 
-if ($amount <= 0) {
+if ($amount <= 0 || floor($amount) != $amount) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Amount must be greater than zero']);
+    echo json_encode(['success' => false, 'message' => 'Amount must be a whole number greater than zero']);
     exit;
 }
 
 try {
     global $USER;
     $client = new \local_lecturebot\cms\CreditServiceClient();
-    
+
     // Org Wallet: resolve owner UUID -> wallet ID
     // The allocation API requires actual wallet IDs, not owner UUIDs
     $orgUuid = $client->getOrInitializeOrgWallet();
     $orgWalletId = $client->resolveWalletId($orgUuid);
-    
+
     // Target Wallet: JIT creation if needed, returns wallet ID directly
     $targetWalletId = $client->getOrInitializeSubUserWallet($targetUserId);
-    
+
     // Get the staff member's owner UUID (needed for recall authorization)
     $targetUserUuid = $client->getUserOwnerUuid($targetUserId);
-    
+
     // Determine direction and authorization
     if ($action === 'distribute') {
         // For distribute, check if the organization has sufficient balance
@@ -90,7 +90,7 @@ try {
                 exit;
             }
         }
-        
+
         $sourceWalletId = $targetWalletId;
         $targetWalletIds = [$orgWalletId];
         $performedByUuid = $targetUserUuid; // Staff member authorizes their own wallet allocation
@@ -102,23 +102,53 @@ try {
 
     // Perform allocation with correct authorization
     $response = $client->allocateCredits($sourceWalletId, $targetWalletIds, $amount, $performedByUuid);
-    
-    // Debug logging
-    error_log("Allocate Credits API Call - Action: {$action}, Source: {$sourceWalletId}, Target: " .
-    json_encode($targetWalletIds) . ", Amount: {$amount}");
-    error_log("Allocate Credits API Response: " . json_encode($response));
-    
+
     if ($response['status'] >= 200 && $response['status'] < 300) {
         echo json_encode([
             'success' => true,
             'message' => 'Credits successfully allocated'
         ]);
     } else {
+        $backendError = '';
+        // Extract specific error detail if available
+        if (isset($response['data']['detail'])) {
+            if (is_string($response['data']['detail'])) {
+                $backendError = $response['data']['detail'];
+            } elseif (is_array($response['data']['detail'])) {
+                $errorMsgs = [];
+                foreach ($response['data']['detail'] as $errObj) {
+                    if (isset($errObj['msg'])) {
+                        $errorMsgs[] = $errObj['msg'];
+                    } elseif (is_string($errObj)) {
+                        $errorMsgs[] = $errObj;
+                    }
+                }
+                if (!empty($errorMsgs)) {
+                    $backendError = implode(', ', $errorMsgs);
+                } else {
+                    $backendError = json_encode($response['data']['detail']);
+                }
+            }
+        } elseif (is_string($response['data'])) {
+            $backendError = $response['data'];
+        }
+
+        // Map technical backend errors to user-friendly messages
+        $errorMessage = 'Allocation failed. Please try again or contact support.';
+        if (stripos($backendError, 'Insufficient active batch credits') !== false) {
+            $errorMessage = "Cannot recall credits: The user's allocated
+            credits have already been consumed or have expired.";
+        } elseif (stripos($backendError, 'greater than 0') !== false) {
+            $errorMessage = "Please enter a valid credit amount greater than 0.";
+        } elseif (!empty($backendError)) {
+            // Fallback for other backend errors
+            $errorMessage = $backendError;
+        }
+
         http_response_code($response['status']);
         echo json_encode([
             'success' => false,
-            'message' => 'Allocation failed via Arina Credit Service',
-            'error' => $response['data']
+            'message' => $errorMessage
         ]);
     }
 } catch (\Exception $e) {
