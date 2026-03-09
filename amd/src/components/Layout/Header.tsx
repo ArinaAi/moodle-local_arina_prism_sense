@@ -73,17 +73,25 @@ const Header: React.FC<HeaderProps> = ({ moodleContext, children, onBack, onOpen
                         border: '1px solid #e9ecef',
                         borderRadius: '20px',
                         cursor: 'pointer',
-                        transition: 'all 0.2s',
+                        transition: 'transform 0.15s ease, background-color 0.15s ease',
                         padding: 0,
                         flexShrink: 0,
                     }}
                     onMouseOver={(e) => {
                         e.currentTarget.style.backgroundColor = '#e9ecef';
                         e.currentTarget.style.borderColor = '#dee2e6';
+                        e.currentTarget.style.transform = 'scale(1.05)';
                     }}
                     onMouseOut={(e) => {
                         e.currentTarget.style.backgroundColor = '#f8f9fa';
                         e.currentTarget.style.borderColor = '#e9ecef';
+                        e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                    onMouseDown={(e) => {
+                        e.currentTarget.style.transform = 'scale(0.95)';
+                    }}
+                    onMouseUp={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.05)';
                     }}
                     onFocus={(e) => {
                         e.currentTarget.style.backgroundColor = '#e9ecef';
@@ -158,10 +166,14 @@ const Header: React.FC<HeaderProps> = ({ moodleContext, children, onBack, onOpen
                             border: '1px solid',
                             borderColor: 'primary.main',
                             color: 'primary.main',
-                            transition: 'all 0.2s',
+                            transition: 'transform 0.15s ease, background-color 0.15s ease',
                             '&:hover': {
                                 backgroundColor: 'rgba(15, 108, 191, 0.08)',
                                 borderColor: 'primary.dark',
+                                transform: 'scale(1.05)',
+                            },
+                            '&:active': {
+                                transform: 'scale(0.95)',
                             },
                         }}
                         title="Report an issue or suggest a feature"

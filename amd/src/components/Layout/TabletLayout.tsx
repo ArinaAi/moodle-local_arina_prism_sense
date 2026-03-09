@@ -7,6 +7,7 @@ import GeneratedContentList from '../RightColumn/GeneratedContentList';
 import PublishedContentList from '../RightColumn/PublishedContentList';
 import { useContentPreview } from '../../hooks/useContentPreview';
 import type { LayoutProps } from '../../types/layout';
+import { KEYFRAMES, EASING } from '../../styles/animations';
 
 const TabletLayout: React.FC<LayoutProps> = ({
     state,
@@ -22,6 +23,8 @@ const TabletLayout: React.FC<LayoutProps> = ({
     onClearAllContent: _onClearAllContent,
     onDeleteContent,
     isSmallTablet = false,
+    hasCredits,
+    creditTooltip: _creditTooltip,
 }) => {
     // Handler for previewing content from the list
     const { handlePreviewContent } = useContentPreview({
@@ -101,7 +104,7 @@ const TabletLayout: React.FC<LayoutProps> = ({
                 }}
             >
                 {/* Top Left: Sources + Dock */}
-                <Box sx={{ minHeight: 0, overflow: 'auto' }}>
+                <Box sx={{ minHeight: 0, overflow: 'auto', ...KEYFRAMES.slideUpFade, animation: `slideUpFade 0.5s ${EASING.decelerate} both`, animationDelay: '0.05s' }}>
                     <LeftColumn
                         state={state}
                         onOpenSourcesModal={onOpenSourcesModal}
@@ -113,7 +116,7 @@ const TabletLayout: React.FC<LayoutProps> = ({
                 </Box>
 
                 {/* Top Right: Center Column (Preview) */}
-                <Box sx={{ minHeight: 0, overflow: 'auto' }}>
+                <Box sx={{ minHeight: 0, overflow: 'auto', ...KEYFRAMES.slideUpFade, animation: `slideUpFade 0.5s ${EASING.decelerate} both`, animationDelay: '0.15s' }}>
                     <CenterColumn
                         state={state}
                         onApproveSlides={onApproveSlides}
@@ -122,11 +125,12 @@ const TabletLayout: React.FC<LayoutProps> = ({
                         onOpenSourcesModal={onOpenSourcesModal}
                         hasAnySources={state.sources.length > 0}
                         isMobile={isSmallTablet}
+                        hasCredits={hasCredits}
                     />
                 </Box>
 
                 {/* Bottom Left: Generated Content */}
-                <Box sx={{ minHeight: 0, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+                <Box sx={{ minHeight: 0, overflow: 'auto', display: 'flex', flexDirection: 'column', ...KEYFRAMES.slideUpFade, animation: `slideUpFade 0.5s ${EASING.decelerate} both`, animationDelay: '0.25s' }}>
                     <GeneratedContentList
                         contentItems={state.contentItems}
                         isLoading={state.isGeneratingSlides}
@@ -140,7 +144,7 @@ const TabletLayout: React.FC<LayoutProps> = ({
                 </Box>
 
                 {/* Bottom Right: Published Content */}
-                <Box sx={{ minHeight: 0, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+                <Box sx={{ minHeight: 0, overflow: 'auto', display: 'flex', flexDirection: 'column', ...KEYFRAMES.slideUpFade, animation: `slideUpFade 0.5s ${EASING.decelerate} both`, animationDelay: '0.35s' }}>
                     <PublishedContentList
                         contentItems={state.contentItems}
                         onUnpublish={onUnpublishContent}

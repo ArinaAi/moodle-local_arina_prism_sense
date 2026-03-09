@@ -171,7 +171,8 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                 display: 'flex',
                 alignItems: 'center',
                 gap: 'clamp(8px, 1.5vw, 12px)',
-                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                // GPU-safe: only animate transform and box-shadow
+                transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 cursor: 'pointer',
                 position: 'relative',
                 overflow: 'hidden',
@@ -187,11 +188,10 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                     pointerEvents: 'none',
                 },
                 '&:hover': {
-                    transform: 'translateX(4px)',
+                    transform: 'translateY(-2px)',
                     boxShadow: isPublished
-                        ? '0 6px 16px rgba(40, 167, 69, 0.25)'
-                        : '0 6px 16px rgba(40, 167, 69, 0.2)',
-                    borderColor: theme.palette.success.main,
+                        ? '0 8px 24px rgba(40, 167, 69, 0.2)'
+                        : '0 8px 24px rgba(40, 167, 69, 0.15)',
                     '&::before': {
                         left: isPublished ? '100%' : 0,
                     },

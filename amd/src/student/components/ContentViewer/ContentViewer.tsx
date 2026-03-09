@@ -87,6 +87,7 @@ const ContentViewer: React.FC = () => {
                         onPrev={handlePrev}
                         slides={slides}
                         onSlideClick={goToSlide}
+                        isLoading={isLoading}
                     />
                 </Box>
             )}

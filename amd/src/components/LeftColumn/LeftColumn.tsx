@@ -111,7 +111,7 @@ const LeftColumn: React.FC<LeftColumnProps> = ({
                 fontWeight: 700,
                 borderRadius: '16px',
                 background: 'linear-gradient(135deg, #0f6cbf 0%, #0a5a9d 100%)',
-                transition: 'all 0.3s ease',
+                transition: 'transform 0.15s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.15s cubic-bezier(0.2, 0, 0, 1)',
                 // Allow button to shrink and content to wrap if needed
                 minWidth: 0,
                 whiteSpace: 'normal',

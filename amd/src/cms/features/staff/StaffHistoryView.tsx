@@ -69,9 +69,14 @@ export const StaffHistoryView: React.FC<StaffHistoryViewProps> = ({ staff, onBac
                 </motion.button>
             </motion.div>
 
-            {/* 3 info cards — blueprint §5.3.B */}
-            <motion.div variants={fadeIn} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+            {/* 4 info cards — blueprint §5.3.B */}
+            <motion.div variants={fadeIn} style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
                 <InfoCard label="Current Balance" value={staff.balance.toLocaleString()} accent="#0f6cbf" />
+                <InfoCard
+                    label="Reserved Credits"
+                    value={staff.reserved_credits > 0 ? `🔒 ${staff.reserved_credits.toLocaleString()}` : '—'}
+                    accent="#d97706"
+                />
                 <InfoCard label="Department" value={staff.department} accent="#28a745" />
                 <InfoCard label="Email" value={staff.email} accent="#6f42c1" />
             </motion.div>

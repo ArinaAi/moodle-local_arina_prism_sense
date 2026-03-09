@@ -4,9 +4,10 @@ import { Settings } from 'lucide-react';
 
 interface EmptyStateProps {
     onOpenSourcesModal?: () => void;
+    hasCredits?: boolean;
 }
 
-const EmptyState: React.FC<EmptyStateProps> = ({ onOpenSourcesModal }) => {
+const EmptyState: React.FC<EmptyStateProps> = ({ onOpenSourcesModal, hasCredits = true }) => {
     return (
         <Box
             sx={{
@@ -61,6 +62,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({ onOpenSourcesModal }) => {
                     size="large"
                     startIcon={<Settings size={18} style={{ width: 'clamp(18px, 1.5vw, 20px)', height: 'clamp(18px, 1.5vw, 20px)' }} />}
                     onClick={onOpenSourcesModal}
+                    disabled={!hasCredits}
                     sx={{
                         py: 'clamp(8px, 1.25vw, 12px)',
                         px: 'clamp(24px, 3vw, 32px)',

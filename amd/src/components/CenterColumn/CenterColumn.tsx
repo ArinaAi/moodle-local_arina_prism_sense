@@ -33,6 +33,7 @@ interface CenterColumnProps {
   onClosePreview?: () => void;
   hasAnySources?: boolean;
   isMobile?: boolean;
+  hasCredits?: boolean;
 }
 
 const CenterColumn: React.FC<CenterColumnProps> = ({
@@ -43,6 +44,7 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
   onClosePreview,
   hasAnySources = false,
   isMobile = false,
+  hasCredits = true,
 }) => {
   const { generatedSlides, generatedContent, activeContentType, currentContentId, moodleContext, isGeneratingSlides, contentItems, slidesApproved } = state;
 
@@ -106,7 +108,7 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
 
     // Empty State
     if (!hasAnySources) {
-      return <EmptyState onOpenSourcesModal={onOpenSourcesModal} />;
+      return <EmptyState onOpenSourcesModal={onOpenSourcesModal} hasCredits={hasCredits} />;
     }
     // Ready State
     return <ReadyState />;

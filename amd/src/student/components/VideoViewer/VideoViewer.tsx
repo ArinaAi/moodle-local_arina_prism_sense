@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Box, Typography, IconButton, Slider, Menu, MenuItem, CircularProgress } from '@mui/material';
+import { Box, Typography, IconButton, Slider, Menu, MenuItem, Skeleton } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
@@ -276,7 +276,7 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title: _title }) =>
         const hours = Math.floor(seconds / 3600);
         const mins = Math.floor((seconds % 3600) / 60);
         const secs = Math.floor(seconds % 60);
-        
+
         if (hours > 0) {
             return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         }
@@ -321,7 +321,7 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title: _title }) =>
         };
     };
 
-    // Loading overlay component
+    // Loading overlay component - exact shape skeleton
     const renderLoadingOverlay = () => (
         <Box
             sx={{
@@ -332,16 +332,67 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title: _title }) =>
                 bottom: 0,
                 display: 'flex',
                 flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: 'rgba(0, 0, 0, 0.9)',
-                zIndex: 10
+                bgcolor: '#000', // Video backgrounds are black
+                zIndex: 10,
+                overflow: 'hidden',
             }}
         >
-            <CircularProgress size={60} sx={{ color: '#2563eb', mb: 2 }} />
-            <Typography variant="body1" sx={{ color: 'white' }}>
-                Loading video...
-            </Typography>
+            {/* Main Video Area Skeleton */}
+            <Box sx={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Skeleton
+                    variant="rectangular"
+                    width="100%"
+                    height="100%"
+                    animation="wave"
+                    sx={{ bgcolor: 'rgba(255,255,255,0.05)' }}
+                />
+
+                {/* Center Play Button Skeleton */}
+                <Box sx={{ position: 'absolute' }}>
+                    <Skeleton
+                        variant="circular"
+                        width="clamp(48px, 15vw, 80px)"
+                        height="clamp(48px, 15vw, 80px)"
+                        animation="wave"
+                        sx={{ bgcolor: 'rgba(255,255,255,0.1)' }}
+                    />
+                </Box>
+            </Box>
+
+            {/* Bottom Controls Bar Skeleton */}
+            <Box sx={{
+                height: 'clamp(50px, 10vw, 70px)',
+                bgcolor: 'rgba(0,0,0,0.8)',
+                px: 'clamp(8px, 2vw, 16px)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center'
+            }}>
+                {/* Progress bar skeleton */}
+                <Skeleton variant="rounded" width="100%" height={6} sx={{ mb: 1, bgcolor: 'rgba(255,255,255,0.1)' }} animation="wave" />
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 'clamp(4px, 1vw, 8px)' }}>
+                    {/* Play button */}
+                    <Skeleton variant="circular" width={24} height={24} sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} animation="wave" />
+
+                    {/* Time remaining */}
+                    <Skeleton variant="text" width={60} height={20} sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} animation="wave" />
+
+                    <Box sx={{ flex: 1 }} />
+
+                    {/* Volume, Speed, PiP, Fullscreen buttons */}
+                    {[1, 2, 3, 4].map((i) => (
+                        <Skeleton
+                            key={`control-skel-${i}`}
+                            variant="circular"
+                            width={24}
+                            height={24}
+                            sx={{ bgcolor: 'rgba(255,255,255,0.1)', ml: i === 1 ? 0 : 1 }}
+                            animation="wave"
+                        />
+                    ))}
+                </Box>
+            </Box>
         </Box>
     );
 

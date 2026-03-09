@@ -25,11 +25,13 @@ const PublishedContentItem: React.FC<PublishedContentItemProps> = ({ item }) => 
                 alignItems: 'center',
                 gap: 'clamp(8px, 1.5vw, 16px)',
                 cursor: 'pointer',
-                transition: 'all 0.3s ease',
+                transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 '&:hover': {
-                    transform: 'translateX(4px)',
-                    boxShadow: '0 6px 16px rgba(40, 167, 69, 0.2)',
-                    borderColor: theme.palette.success.main,
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 8px 24px rgba(40, 167, 69, 0.18)',
+                },
+                '&:active': {
+                    transform: 'scale(0.98)',
                 },
             }}
             onClick={(e) => {

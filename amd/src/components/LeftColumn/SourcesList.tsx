@@ -123,11 +123,14 @@ const SourcesList: React.FC<SourcesListProps> = ({ sources }) => {
                                             borderRadius: '8px',
                                             border: '1px solid',
                                             borderColor: 'divider',
-                                            transition: 'all 0.2s ease',
+                                            transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                                             minWidth: 0,
                                             '&:hover': {
-                                                backgroundColor: 'rgba(0, 0, 0, 0.02)',
-                                                transform: 'translateX(2px)',
+                                                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                                                transform: 'translateY(-1px)',
+                                            },
+                                            '&:active': {
+                                                transform: 'scale(0.98)',
                                             },
                                         }}
                                     >

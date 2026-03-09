@@ -8,6 +8,7 @@ import {
   IconButton,
   Alert,
   CircularProgress,
+  Skeleton,
   Paper,
   Select,
   MenuItem,
@@ -741,8 +742,45 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
           WebkitOverflowScrolling: 'touch',
         }}>
           {loading && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress />
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+                gap: styles.gridGap,
+                mb: 3,
+                pt: 1, // Add slight padding to match the non-loading state
+              }}
+            >
+              {[1, 2, 3].map((item) => (
+                <Box key={`skeleton-box-${item}`} sx={{ display: 'flex', flexDirection: 'column', gap: 'clamp(12px, 1.5vh, 16px)' }}>
+                  {/* DropZone Area Skeleton */}
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      border: '2px dashed #e2e8f0',
+                      borderRadius: 2,
+                      p: 'clamp(16px, 2vh, 24px)',
+                      backgroundColor: '#fafbfc',
+                      minHeight: 'clamp(180px, 30vh, 320px)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      opacity: 1 - (item * 0.15) // Staggered opacity effect
+                    }}
+                  >
+                    <Skeleton variant="circular" width={48} height={48} animation="wave" sx={{ mb: 1.5 }} />
+                    <Skeleton variant="text" width={100} height={20} animation="wave" sx={{ mb: 0.5 }} />
+                    <Skeleton variant="text" width={120} height={16} animation="wave" />
+                  </Paper>
+
+                  {/* Inputs Area Skeleton */}
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    <Skeleton variant="rounded" width="100%" height={40} animation="wave" sx={{ borderRadius: 1 }} />
+                    <Skeleton variant="rounded" width="100%" height={40} animation="wave" sx={{ borderRadius: 1 }} />
+                  </Box>
+                </Box>
+              ))}
             </Box>
           )}
 
@@ -1346,7 +1384,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
               },
             }}
           >
-            Done
+            Upload
           </Button>
         </Box>
 
@@ -1364,6 +1402,12 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
               // Responsive width instead of fixed minWidth
               width: { xs: '100%', sm: '400px' },
               maxWidth: { xs: '100%', sm: '400px' },
+              // Pop-in animation
+              '@keyframes popIn': {
+                '0%': { opacity: 0, transform: 'scale(0.95)' },
+                '100%': { opacity: 1, transform: 'scale(1)' },
+              },
+              animation: 'popIn 0.2s cubic-bezier(0, 0, 0.2, 1) both',
             },
           }}
         >

@@ -10,7 +10,7 @@ interface PptxViewerProps {
   title?: string;
 }
 
-const PptxViewer: React.FC<PptxViewerProps> = ({ contentId, courseId: _courseId}) => {
+const PptxViewer: React.FC<PptxViewerProps> = ({ contentId, courseId: _courseId }) => {
   // Mock the selectedContent object expected by the hook
   const selectedContent = useMemo(() => ({ id: contentId }), [contentId]);
 
@@ -50,6 +50,7 @@ const PptxViewer: React.FC<PptxViewerProps> = ({ contentId, courseId: _courseId}
         onPrev={handlePrev}
         slides={slides}
         onSlideClick={goToSlide}
+        isLoading={isLoading}
       />
     </Paper>
   );

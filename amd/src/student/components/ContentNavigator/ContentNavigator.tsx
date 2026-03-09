@@ -10,7 +10,7 @@ import {
     MenuItem,
     Select,
     FormControl,
-    CircularProgress,
+    Skeleton,
 } from '@mui/material';
 import { ExpandMore } from '@mui/icons-material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -27,7 +27,48 @@ const ContentNavigator: React.FC = () => {
     const [sectionFilter, setSectionFilter] = useState<number | 'all'>('all');
 
     if (isLoading) {
-        return <Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}><CircularProgress size={24} sx={{ color: '#94a3b8' }} /></Box>;
+        return (
+            <Box sx={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                bgcolor: '#f8fafc',
+                borderRight: '1px solid rgba(0,0,0,0.04)'
+            }}>
+                <Box sx={{ p: 'clamp(12px, 2vw, 20px)', pb: 'clamp(8px, 1.5vw, 12px)' }}>
+                    <Skeleton variant="text" width="60%" height={28} animation="wave" />
+                    <Skeleton variant="text" width="30%" height={20} animation="wave" />
+                </Box>
+                <Box sx={{ px: 'clamp(12px, 2vw, 20px)', mb: 'clamp(12px, 2vw, 20px)' }}>
+                    <Skeleton variant="rounded" width="100%" height={40} sx={{ borderRadius: '12px' }} animation="wave" />
+                </Box>
+                <Box sx={{ flex: 1, px: 'clamp(12px, 2vw, 16px)', pb: 'clamp(12px, 2vw, 16px)', overflow: 'hidden' }}>
+                    {[1, 2, 3].map((item) => (
+                        <Box key={item} sx={{ mb: 2, opacity: 1 - (item * 0.2) }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1.5, bgcolor: '#ffffff', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.04)' }}>
+                                <Box sx={{ flex: 1, mr: 2 }}>
+                                    <Skeleton variant="text" width="50%" height={24} animation="wave" />
+                                    <Box sx={{ display: 'flex', gap: 1, mt: 0.5, alignItems: 'center' }}>
+                                        <Skeleton variant="rounded" width="80%" height={4} animation="wave" />
+                                        <Skeleton variant="text" width="15%" height={16} animation="wave" />
+                                    </Box>
+                                </Box>
+                                <Skeleton variant="circular" width={24} height={24} animation="wave" />
+                            </Box>
+                            {item === 1 && (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5, mx: 1, mt: 1, borderRadius: '8px', border: '1px solid rgba(0,0,0,0.08)', bgcolor: '#ffffff' }}>
+                                    <Skeleton variant="circular" width={32} height={32} animation="wave" />
+                                    <Box sx={{ flex: 1 }}>
+                                        <Skeleton variant="text" width="70%" height={20} animation="wave" />
+                                        <Skeleton variant="text" width="40%" height={16} animation="wave" />
+                                    </Box>
+                                </Box>
+                            )}
+                        </Box>
+                    ))}
+                </Box>
+            </Box>
+        );
     }
 
     if (error) {

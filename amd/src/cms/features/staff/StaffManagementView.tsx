@@ -15,6 +15,7 @@ export interface ApiStaffMember {
     department: string;
     status: 'active' | 'pending';
     balance: number;
+    reserved_credits: number;
 }
 
 interface StaffManagementViewProps {
@@ -160,11 +161,12 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ onView
                         <thead>
                             <tr>
                                 {[
-                                    { label: 'Staff Member', width: '30%' },
-                                    { label: 'Department', width: '18%' },
-                                    { label: 'Balance', width: '15%' },
-                                    { label: 'Status', width: '12%' },
-                                    { label: 'Actions', width: '25%' },
+                                    { label: 'Staff Member', width: '26%' },
+                                    { label: 'Department', width: '16%' },
+                                    { label: 'Balance', width: '13%' },
+                                    { label: 'Reserved', width: '13%' },
+                                    { label: 'Status', width: '10%' },
+                                    { label: 'Actions', width: '22%' },
                                 ].map((h) => (
                                     <th
                                         key={h.label}
@@ -194,7 +196,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ onView
                                 {loading ? (
                                     Array.from({ length: 5 }).map((_, i) => (
                                         <tr key={`staff-skeleton-${i}`} style={{ borderBottom: '1px solid var(--border)' }}>
-                                            {[30, 18, 15, 12, 25].map((pct, j) => (
+                                            {[26, 16, 13, 13, 10, 22].map((pct, j) => (
                                                 <td key={`staff-sk-${i}-${j}`} style={{ padding: '16px 20px', width: `${pct}%` }}>
                                                     <Skeleton animation="wave" height={20} />
                                                 </td>
@@ -203,7 +205,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ onView
                                     ))
                                 ) : filtered.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5}>
+                                        <td colSpan={6}>
                                             <div style={{ padding: '48px 24px', textAlign: 'center' }}>
                                                 <Users size={48} style={{ color: 'var(--td)', margin: '0 auto 16px' }} />
                                                 <div style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--tp)', marginBottom: 6 }}>
@@ -285,6 +287,27 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ onView
                                                 color: '#0f6cbf',
                                             }}>
                                                 {s.balance.toLocaleString()}
+                                            </td>
+                                            {/* Reserved Credits */}
+                                            <td style={{ padding: '16px 20px' }}>
+                                                {s.reserved_credits > 0 ? (
+                                                    <span style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: 4,
+                                                        padding: '3px 10px',
+                                                        borderRadius: 6,
+                                                        background: 'rgba(217, 119, 6, 0.10)',
+                                                        color: '#b45309',
+                                                        fontSize: '0.875rem',
+                                                        fontWeight: 700,
+                                                        fontVariantNumeric: 'tabular-nums',
+                                                    }}>
+                                                        {s.reserved_credits.toLocaleString()}
+                                                    </span>
+                                                ) : (
+                                                    <span style={{ fontSize: '0.8125rem', color: 'var(--td)' }}>—</span>
+                                                )}
                                             </td>
                                             {/* Status */}
                                             <td style={{ padding: '16px 20px' }}>

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Box, Typography, CircularProgress, IconButton } from '@mui/material';
+import { Box, Typography, IconButton, Skeleton } from '@mui/material';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
@@ -116,7 +116,7 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [zoomLevel, setZoomLevel] = useState(1);
     const [showThumbnails, setShowThumbnails] = useState(false);
-    
+
     // Touch handling state
     const touchStartX = useRef<number>(0);
     const touchEndX = useRef<number>(0);
@@ -150,10 +150,10 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
     // Keyboard navigation - using action map to reduce complexity
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
         if (!isFullscreen) { return; }
-        
+
         const action = getKeyboardAction(e.key);
         if (!action) { return; }
-        
+
         e.preventDefault();
         const actions: Record<KeyboardAction & string, () => void> = {
             next: () => onNext?.(),
@@ -195,11 +195,11 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
         // as Fullscreen API is often restricted or unavailable
         const isMobileOrTablet = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-        
+
         if (isMobileOrTablet || isIOS) {
             // Use CSS-based fullscreen with portal for mobile devices
             setIsFullscreen(true);
-            
+
             // Try to lock orientation on mobile (optional)
             try {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -214,7 +214,7 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
             }
             return;
         }
-        
+
         // For desktop, try native Fullscreen API
         const element = containerRef.current;
         if (!element) {
@@ -222,7 +222,7 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
             setIsFullscreen(true);
             return;
         }
-        
+
         // Vendor-prefixed fullscreen methods for cross-browser support
         interface FullscreenElement extends HTMLDivElement {
             webkitRequestFullscreen?: () => Promise<void>;
@@ -230,7 +230,7 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
             msRequestFullscreen?: () => Promise<void>;
         }
         const el = element as FullscreenElement;
-        
+
         try {
             if (el.requestFullscreen) {
                 await el.requestFullscreen();
@@ -255,12 +255,12 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
         // First, exit CSS-based fullscreen
         setIsFullscreen(false);
         setShowThumbnails(false);
-        
+
         // Then try to exit native fullscreen API if active
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const doc = document as any;
-            
+
             if (document.fullscreenElement) {
                 if (document.exitFullscreen) {
                     await document.exitFullscreen();
@@ -270,7 +270,7 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
                     await doc.msExitFullscreen();
                 }
             }
-            
+
             // Unlock orientation
             try {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -321,18 +321,65 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
                 overflow: isFullscreen ? 'visible' : 'hidden',
                 perspective: '1000px',
             }}>
-                    {/* Status / Loading */}
-                    {isLoading && <CircularProgress size={40} thickness={4} sx={{ color: '#2563eb' }} />}
-                    {error && (
-                        <Box sx={{ textAlign: 'center', color: 'text.secondary' }}>
-                            <Box sx={{ fontSize: 48, mb: 1, opacity: 0.5 }}>⚠️</Box>
-                            <Typography>{error}</Typography>
-                        </Box>
-                    )}
+                {/* Status / Loading */}
+                {isLoading && (
+                    <Box sx={{
+                        position: 'relative',
+                        flex: '0 1 auto',
+                        width: '100%',
+                        maxWidth: isFullscreen ? '95%' : 'min(100%, clamp(200px, 80vw, 1200px))',
+                        aspectRatio: '16/9', // Keep presentation slide ratio
+                        maxHeight: isFullscreen ? '90%' : 'clamp(100px, 40vh, 600px)',
+                        minHeight: 0,
+                        borderRadius: isFullscreen ? 1 : 0,
+                        overflow: 'hidden',
+                        boxShadow: isFullscreen ? 'none' : '0 20px 50px -12px rgba(0, 0, 0, 0.15)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1,
+                        bgcolor: 'white',
+                        p: 'clamp(20px, 5vw, 60px)'
+                    }}>
+                        {/* Title Skeleton */}
+                        <Skeleton variant="text" width="70%" height="clamp(40px, 8vw, 80px)" animation="wave" sx={{ mb: 'clamp(16px, 3vw, 32px)' }} />
 
-                    {/* Slide Image Card */}
-                    {!isLoading && !error && currentSlideData && (
+                        {/* Body Text Skeletons */}
+                        <Box sx={{ width: '85%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                            <Skeleton variant="text" width="100%" height="clamp(20px, 3vw, 32px)" animation="wave" />
+                            <Skeleton variant="text" width="95%" height="clamp(20px, 3vw, 32px)" animation="wave" />
+                            <Skeleton variant="text" width="80%" height="clamp(20px, 3vw, 32px)" animation="wave" />
+                        </Box>
+
+                        {/* Replicate the Glass Toolbar from the actual preview */}
                         <Box sx={{
+                            position: 'absolute',
+                            top: layoutStyles.toolbarTop,
+                            right: layoutStyles.toolbarRight,
+                            display: 'flex',
+                            gap: layoutStyles.toolbarGap,
+                            p: layoutStyles.toolbarPadding,
+                            bgcolor: 'rgba(255, 255, 255, 0.5)',
+                            borderRadius: layoutStyles.toolbarRadius,
+                        }}>
+                            <Skeleton variant="circular" width={layoutStyles.iconSize === 'small' ? 30 : 40} height={layoutStyles.iconSize === 'small' ? 30 : 40} animation="wave" />
+                            <Skeleton variant="circular" width={layoutStyles.iconSize === 'small' ? 30 : 40} height={layoutStyles.iconSize === 'small' ? 30 : 40} animation="wave" />
+                        </Box>
+                    </Box>
+                )}
+                {error && (
+                    <Box sx={{ textAlign: 'center', color: 'text.secondary' }}>
+                        <Box sx={{ fontSize: 48, mb: 1, opacity: 0.5 }}>⚠️</Box>
+                        <Typography>{error}</Typography>
+                    </Box>
+                )}
+
+                {/* Slide Image Card */}
+                {!isLoading && !error && currentSlideData && (
+                    <Box
+                        key={currentSlideData.slideNumber}
+                        sx={{
                             position: 'relative',
                             flex: '0 1 auto', // Can shrink but doesn't grow beyond content
                             maxWidth: isFullscreen ? '95%' : 'min(100%, clamp(200px, 80vw, 1200px))', // Full width in fullscreen
@@ -350,175 +397,175 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
                             justifyContent: 'center',
                             ...slideCardStyles,
                         }}>
-                            <img
-                                src={currentSlideData.data}
-                                alt={`Slide ${currentSlideData.slideNumber}`}
-                                style={{
-                                    display: 'block',
-                                    width: 'auto',
-                                    height: 'auto',
-                                    maxWidth: '100%',
-                                    maxHeight: isFullscreen ? '85vh' : 'clamp(100px, 40vh, 600px)', // Full height in fullscreen
-                                    objectFit: 'contain',
-                                }}
-                            />
-                        </Box>
-                    )}
+                        <img
+                            src={currentSlideData.data}
+                            alt={`Slide ${currentSlideData.slideNumber} `}
+                            style={{
+                                display: 'block',
+                                width: 'auto',
+                                height: 'auto',
+                                maxWidth: '100%',
+                                maxHeight: isFullscreen ? '85vh' : 'clamp(100px, 40vh, 600px)', // Full height in fullscreen
+                                objectFit: 'contain',
+                            }}
+                        />
+                    </Box>
+                )}
 
-                    {/* Glass Toolbar (Floating Top-Right) */}
-                    {!isLoading && !error && hasSlides && !isFullscreen && (
-                        <Box sx={{
-                            position: 'absolute',
-                            top: layoutStyles.toolbarTop,
-                            right: layoutStyles.toolbarRight,
-                            zIndex: 10,
-                            display: 'flex',
-                            gap: layoutStyles.toolbarGap,
-                            bgcolor: 'rgba(255, 255, 255, 0.85)',
-                            backdropFilter: 'blur(12px)',
-                            borderRadius: layoutStyles.toolbarRadius,
-                            p: layoutStyles.toolbarPadding,
-                            border: '1px solid rgba(255,255,255,0.5)',
-                            boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
-                        }}>
-                            <IconButton
-                                size={layoutStyles.iconSize}
-                                sx={{
-                                    color: zoomLevel > 1 ? '#2563eb' : '#444746',
-                                    ...layoutStyles.touchTarget,
-                                }}
-                                onClick={handleZoomIn}
-                                title={zoomLevel > 1 ? `Zoom: ${zoomLevel}x` : "Zoom In"}
-                            >
-                                <ZoomInIcon fontSize={layoutStyles.iconSize} />
-                            </IconButton>
+                {/* Glass Toolbar (Floating Top-Right) */}
+                {!isLoading && !error && hasSlides && !isFullscreen && (
+                    <Box sx={{
+                        position: 'absolute',
+                        top: layoutStyles.toolbarTop,
+                        right: layoutStyles.toolbarRight,
+                        zIndex: 10,
+                        display: 'flex',
+                        gap: layoutStyles.toolbarGap,
+                        bgcolor: 'rgba(255, 255, 255, 0.85)',
+                        backdropFilter: 'blur(12px)',
+                        borderRadius: layoutStyles.toolbarRadius,
+                        p: layoutStyles.toolbarPadding,
+                        border: '1px solid rgba(255,255,255,0.5)',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+                    }}>
+                        <IconButton
+                            size={layoutStyles.iconSize}
+                            sx={{
+                                color: zoomLevel > 1 ? '#2563eb' : '#444746',
+                                ...layoutStyles.touchTarget,
+                            }}
+                            onClick={handleZoomIn}
+                            title={zoomLevel > 1 ? `Zoom: ${zoomLevel} x` : "Zoom In"}
+                        >
+                            <ZoomInIcon fontSize={layoutStyles.iconSize} />
+                        </IconButton>
 
-                            <IconButton
-                                size={layoutStyles.iconSize}
-                                sx={{
-                                    color: '#444746',
-                                    ...layoutStyles.touchTarget,
-                                }}
-                                onClick={enterFullscreen}
-                                title="Fullscreen"
-                            >
-                                <FullscreenIcon fontSize={layoutStyles.iconSize} />
-                            </IconButton>
-                        </Box>
-                    )}
+                        <IconButton
+                            size={layoutStyles.iconSize}
+                            sx={{
+                                color: '#444746',
+                                ...layoutStyles.touchTarget,
+                            }}
+                            onClick={enterFullscreen}
+                            title="Fullscreen"
+                        >
+                            <FullscreenIcon fontSize={layoutStyles.iconSize} />
+                        </IconButton>
+                    </Box>
+                )}
 
-                    {/* Fullscreen Navigation Controls */}
-                    {isFullscreen && (
-                        <>
-                            {/* Close button - top right */}
+                {/* Fullscreen Navigation Controls */}
+                {isFullscreen && (
+                    <>
+                        {/* Close button - top right */}
+                        <IconButton
+                            onClick={exitFullscreen}
+                            sx={{
+                                position: 'absolute',
+                                top: 16,
+                                right: 16,
+                                zIndex: 20,
+                                bgcolor: 'rgba(0,0,0,0.5)',
+                                color: 'white',
+                                '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
+                            }}
+                        >
+                            <CloseIcon />
+                        </IconButton>
+
+                        {/* Previous button - left side */}
+                        {onPrev && currentSlide > 0 && (
                             <IconButton
-                                onClick={exitFullscreen}
+                                onClick={onPrev}
                                 sx={{
                                     position: 'absolute',
-                                    top: 16,
-                                    right: 16,
+                                    left: 16,
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
                                     zIndex: 20,
                                     bgcolor: 'rgba(0,0,0,0.5)',
                                     color: 'white',
+                                    width: 48,
+                                    height: 48,
                                     '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
                                 }}
                             >
-                                <CloseIcon />
+                                <ChevronLeftIcon fontSize="large" />
                             </IconButton>
+                        )}
 
-                            {/* Previous button - left side */}
-                            {onPrev && currentSlide > 0 && (
-                                <IconButton
-                                    onClick={onPrev}
-                                    sx={{
-                                        position: 'absolute',
-                                        left: 16,
-                                        top: '50%',
-                                        transform: 'translateY(-50%)',
-                                        zIndex: 20,
-                                        bgcolor: 'rgba(0,0,0,0.5)',
-                                        color: 'white',
-                                        width: 48,
-                                        height: 48,
-                                        '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
-                                    }}
-                                >
-                                    <ChevronLeftIcon fontSize="large" />
-                                </IconButton>
-                            )}
-
-                            {/* Next button - right side */}
-                            {onNext && currentSlide < slides.length - 1 && (
-                                <IconButton
-                                    onClick={onNext}
-                                    sx={{
-                                        position: 'absolute',
-                                        right: 16,
-                                        top: '50%',
-                                        transform: 'translateY(-50%)',
-                                        zIndex: 20,
-                                        bgcolor: 'rgba(0,0,0,0.5)',
-                                        color: 'white',
-                                        width: 48,
-                                        height: 48,
-                                        '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
-                                    }}
-                                >
-                                    <ChevronRightIcon fontSize="large" />
-                                </IconButton>
-                            )}
-
-                            {/* Slide counter - bottom center */}
-                            <Box
-                                onClick={() => setShowThumbnails(prev => !prev)}
+                        {/* Next button - right side */}
+                        {onNext && currentSlide < slides.length - 1 && (
+                            <IconButton
+                                onClick={onNext}
                                 sx={{
                                     position: 'absolute',
-                                    bottom: showThumbnails ? 100 : 24,
-                                    left: '50%',
-                                    transform: 'translateX(-50%)',
+                                    right: 16,
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
                                     zIndex: 20,
-                                    bgcolor: 'rgba(0,0,0,0.6)',
+                                    bgcolor: 'rgba(0,0,0,0.5)',
                                     color: 'white',
-                                    px: 2,
-                                    py: 1,
-                                    borderRadius: 2,
-                                    fontSize: '0.875rem',
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                    transition: 'bottom 0.3s ease',
-                                    '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' },
+                                    width: 48,
+                                    height: 48,
+                                    '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
                                 }}
                             >
-                                {currentSlide + 1} / {slides.length}
-                                <Typography variant="caption" sx={{ ml: 1, opacity: 0.7 }}>
-                                    (tap for thumbnails)
-                                </Typography>
-                            </Box>
+                                <ChevronRightIcon fontSize="large" />
+                            </IconButton>
+                        )}
 
-                            {/* Thumbnails panel - bottom */}
-                            {showThumbnails && onSlideClick && (
-                                <Box
-                                    sx={{
-                                        position: 'absolute',
-                                        bottom: 0,
-                                        left: 0,
-                                        right: 0,
-                                        zIndex: 15,
-                                        bgcolor: 'rgba(0,0,0,0.8)',
-                                        backdropFilter: 'blur(8px)',
+                        {/* Slide counter - bottom center */}
+                        <Box
+                            onClick={() => setShowThumbnails(prev => !prev)}
+                            sx={{
+                                position: 'absolute',
+                                bottom: showThumbnails ? 100 : 24,
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                zIndex: 20,
+                                bgcolor: 'rgba(0,0,0,0.6)',
+                                color: 'white',
+                                px: 2,
+                                py: 1,
+                                borderRadius: 2,
+                                fontSize: '0.875rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'bottom 0.3s ease',
+                                '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' },
+                            }}
+                        >
+                            {currentSlide + 1} / {slides.length}
+                            <Typography variant="caption" sx={{ ml: 1, opacity: 0.7 }}>
+                                (tap for thumbnails)
+                            </Typography>
+                        </Box>
+
+                        {/* Thumbnails panel - bottom */}
+                        {showThumbnails && onSlideClick && (
+                            <Box
+                                sx={{
+                                    position: 'absolute',
+                                    bottom: 0,
+                                    left: 0,
+                                    right: 0,
+                                    zIndex: 15,
+                                    bgcolor: 'rgba(0,0,0,0.8)',
+                                    backdropFilter: 'blur(8px)',
+                                }}
+                            >
+                                <SlideThumbnails
+                                    slides={slides}
+                                    currentSlide={currentSlide}
+                                    onSlideClick={(index) => {
+                                        onSlideClick(index);
                                     }}
-                                >
-                                    <SlideThumbnails
-                                        slides={slides}
-                                        currentSlide={currentSlide}
-                                        onSlideClick={(index) => {
-                                            onSlideClick(index);
-                                        }}
-                                    />
-                                </Box>
-                            )}
-                        </>
-                    )}
+                                />
+                            </Box>
+                        )}
+                    </>
+                )}
             </Box>
         </Box>
     );

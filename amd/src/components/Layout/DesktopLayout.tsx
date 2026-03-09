@@ -5,6 +5,7 @@ import CenterColumn from '../CenterColumn/CenterColumn';
 import RightColumn from '../RightColumn/RightColumn';
 import { useContentPreview } from '../../hooks/useContentPreview';
 import type { LayoutProps } from '../../types/layout';
+import { KEYFRAMES, EASING } from '../../styles/animations';
 
 const DesktopLayout: React.FC<LayoutProps> = ({
     state,
@@ -51,8 +52,13 @@ const DesktopLayout: React.FC<LayoutProps> = ({
                 alignItems: 'stretch',
             }}
         >
-            {/* Left Column */}
-            <Box sx={{ height: '100%', minHeight: 0, overflow: 'auto' }}>
+            {/* Left Column - enters first */}
+            <Box sx={{
+                height: '100%', minHeight: 0, overflow: 'auto',
+                ...KEYFRAMES.slideUpFade,
+                animation: `slideUpFade 0.5s ${EASING.decelerate} both`,
+                animationDelay: '0.05s',
+            }}>
                 <LeftColumn
                     state={state}
                     onOpenSourcesModal={onOpenSourcesModal}
@@ -64,8 +70,13 @@ const DesktopLayout: React.FC<LayoutProps> = ({
                 />
             </Box>
 
-            {/* Center Column */}
-            <Box sx={{ height: '100%', minHeight: 0, overflow: 'auto' }}>
+            {/* Center Column - enters second */}
+            <Box sx={{
+                height: '100%', minHeight: 0, overflow: 'auto',
+                ...KEYFRAMES.slideUpFade,
+                animation: `slideUpFade 0.5s ${EASING.decelerate} both`,
+                animationDelay: '0.15s',
+            }}>
                 <CenterColumn
                     state={state}
                     onApproveSlides={onApproveSlides}
@@ -73,11 +84,17 @@ const DesktopLayout: React.FC<LayoutProps> = ({
                     onOpenFeedbackModal={onOpenFeedbackModal}
                     onOpenSourcesModal={onOpenSourcesModal}
                     hasAnySources={state.sources.length > 0}
+                    hasCredits={hasCredits}
                 />
             </Box>
 
-            {/* Right Column */}
-            <Box sx={{ height: '100%', minHeight: 0, overflow: 'hidden' }}>
+            {/* Right Column - enters last */}
+            <Box sx={{
+                height: '100%', minHeight: 0, overflow: 'hidden',
+                ...KEYFRAMES.slideUpFade,
+                animation: `slideUpFade 0.5s ${EASING.decelerate} both`,
+                animationDelay: '0.25s',
+            }}>
                 <RightColumn
                     state={{ contentItems: state.contentItems, moodleContext: state.moodleContext }}
                     onPublishContent={onPublishContent}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Button, useTheme, useMediaQuery } from '@mui/material';
+import { Box, Typography, Button, useTheme, useMediaQuery, Skeleton } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import SlideThumbnails from './SlideThumbnails';
@@ -12,6 +12,7 @@ interface SlideNavigationFooterProps {
     onPrev: () => void;
     slides?: SlideImage[];
     onSlideClick?: (index: number) => void;
+    isLoading?: boolean;
 }
 
 // Helper function for responsive styles (moved outside to reduce complexity)
@@ -31,19 +32,76 @@ const getNavStyles = (isMobile: boolean) => ({
     showIcons: !isMobile,
 });
 
-const SlideNavigationFooter: React.FC<SlideNavigationFooterProps> = ({ 
-    currentSlide, 
-    totalSlides, 
-    onNext, 
+const SlideNavigationFooter: React.FC<SlideNavigationFooterProps> = ({
+    currentSlide,
+    totalSlides,
+    onNext,
     onPrev,
     slides = [],
-    onSlideClick
+    onSlideClick,
+    isLoading = false
 }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     // Use external helper function
     const styles = getNavStyles(isMobile);
+
+    if (isLoading) {
+        return (
+            <Box sx={{
+                bgcolor: 'white',
+                borderTop: '1px solid rgba(0,0,0,0.06)',
+                position: 'relative',
+                zIndex: 2,
+                flexShrink: 1,
+                minHeight: 'clamp(40px, 8vh, 60px)',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                opacity: 0.7,
+            }}>
+                {/* Thin progress bar skeleton */}
+                <Box sx={{ width: '100%', bgcolor: '#f1f5f9', height: styles.progressHeight }} />
+
+                <Box sx={{
+                    p: styles.padding,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: 1,
+                }}>
+                    <Skeleton variant="rounded" width={100} height={32} sx={{ borderRadius: 2 }} animation="wave" />
+                    <Skeleton variant="text" width={40} height={20} animation="wave" />
+                    <Skeleton variant="rounded" width={80} height={32} sx={{ borderRadius: 2, bgcolor: 'rgba(37, 99, 235, 0.4)' }} animation="wave" />
+                </Box>
+
+                {/* Strip of thumbnail skeletons */}
+                <Box sx={{
+                    display: 'flex',
+                    gap: '8px',
+                    px: styles.padding,
+                    pb: styles.padding,
+                    overflow: 'hidden'
+                }}>
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <Box key={`thumb-skel-${i}`} sx={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                            <Skeleton
+                                variant="rectangular"
+                                width={isMobile ? 80 : 120}
+                                height={isMobile ? 45 : 68}
+                                animation="wave"
+                                sx={{
+                                    borderRadius: 1,
+                                    border: i === 1 ? '2px solid rgba(37, 99, 235, 0.4)' : '1px solid rgba(0,0,0,0.08)'
+                                }}
+                            />
+                        </Box>
+                    ))}
+                </Box>
+            </Box>
+        );
+    }
 
     if (totalSlides === 0) {
         return null;

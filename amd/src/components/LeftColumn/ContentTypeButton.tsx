@@ -90,8 +90,9 @@ const ContentTypeButton: React.FC<ContentTypeButtonProps> = ({
                         backgroundColor: isActive ? `${type.color}15` : '#ffffff',
                         color: type.color,
                         borderRadius: isCompact ? '12px' : '14px',
-                        transition: 'all 0.2s ease',
+                        transition: 'transform 0.15s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.15s cubic-bezier(0.2, 0, 0, 1)',
                         '&:hover': getHoverStyles(disabled, isActive, type.color),
+                        '&:active': !disabled ? { transform: 'scale(0.96)' } : {},
                         cursor: disabled ? 'not-allowed' : 'pointer',
                         // Compact mode: smaller, square-ish buttons
                         // Normal mode: taller buttons that scale with container

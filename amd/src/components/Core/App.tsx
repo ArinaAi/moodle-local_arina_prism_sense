@@ -201,19 +201,27 @@ export const App: React.FC = () => {
             background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
           }}
         >
-          {/* Header */}
-          <Header
-            moodleContext={state.moodleContext}
-            onOpenPluginFeedback={handleOpenPluginFeedbackModal}
-            creditBadge={
-              <CreditPill
-                availableBalance={availableBalance}
-                hasWallet={hasWallet}
-                loading={creditLoading}
-                isMobile={isMobile}
-              />
-            }
-          />
+          {/* Header — slides down into place first */}
+          <Box sx={{
+            '@keyframes slideDownFade': {
+              '0%': { opacity: 0, transform: 'translateY(-8px)' },
+              '100%': { opacity: 1, transform: 'translateY(0)' },
+            },
+            animation: 'slideDownFade 0.4s cubic-bezier(0, 0, 0.2, 1) both',
+          }}>
+            <Header
+              moodleContext={state.moodleContext}
+              onOpenPluginFeedback={handleOpenPluginFeedbackModal}
+              creditBadge={
+                <CreditPill
+                  availableBalance={availableBalance}
+                  hasWallet={hasWallet}
+                  loading={creditLoading}
+                  isMobile={isMobile}
+                />
+              }
+            />
+          </Box>
 
           {/* Main Content - Takes remaining space after Header */}
           <Box sx={{
