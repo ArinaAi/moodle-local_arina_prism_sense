@@ -9,7 +9,7 @@ import {
   IconButton,
   Alert,
   Paper,
-  CircularProgress,
+  Skeleton,
   Card,
   CardContent,
   Radio,
@@ -233,8 +233,59 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
 
   /* Helper Functions */
   const renderLoadingState = () => (
-    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-      <CircularProgress />
+    <Box sx={{ display: 'grid', gap: 2.5, mb: 3 }}>
+      {[1, 2, 3].map((item) => (
+        <Card
+          key={`skeleton-section-${item}`}
+          sx={{
+            border: '2px solid #e9ecef',
+            borderRadius: '12px',
+            bgcolor: 'white',
+            boxShadow: 'none',
+            opacity: 1 - (item * 0.15), // Staggered opacity
+          }}
+        >
+          <CardContent sx={{ p: 'clamp(16px, 2vw + 12px, 24px)' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 'clamp(12px, 1.5vw + 8px, 20px)' }}>
+              {/* Icon Skeleton */}
+              <Skeleton
+                variant="rounded"
+                animation="wave"
+                sx={{
+                  width: 'clamp(40px, 4vw + 24px, 48px)',
+                  height: 'clamp(40px, 4vw + 24px, 48px)',
+                  borderRadius: '12px',
+                  flexShrink: 0,
+                }}
+              />
+
+              {/* Content Skeleton */}
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Skeleton
+                  variant="text"
+                  animation="wave"
+                  width="60%"
+                  height={24}
+                  sx={{ mb: 'clamp(2px, 0.5vw, 6px)' }}
+                />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Skeleton variant="rounded" width={50} height={20} animation="wave" sx={{ borderRadius: 1 }} />
+                  <Skeleton variant="rounded" width={100} height={20} animation="wave" sx={{ borderRadius: 1 }} />
+                </Box>
+              </Box>
+
+              {/* Radio Button Skeleton - aligned to right */}
+              <Skeleton
+                variant="circular"
+                width={20}
+                height={20}
+                animation="wave"
+                sx={{ ml: 1 }}
+              />
+            </Box>
+          </CardContent>
+        </Card>
+      ))}
     </Box>
   );
 
@@ -278,14 +329,17 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
               sx={{
                 border: selectedSectionId === section.id ? '2px solid #0f6cbf' : '2px solid #e9ecef',
                 borderRadius: '12px',
-                transition: 'all 0.3s ease',
+                transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 bgcolor: selectedSectionId === section.id ? 'rgba(15, 108, 191, 0.05)' : 'white',
                 boxShadow: selectedSectionId === section.id ? '0 4px 12px rgba(15, 108, 191, 0.15)' : 'none',
                 cursor: 'pointer',
                 '&:hover': {
                   borderColor: '#0f6cbf',
                   transform: 'translateY(-2px)',
-                  boxShadow: '0 6px 16px rgba(15, 108, 191, 0.2)',
+                  boxShadow: '0 8px 20px rgba(15, 108, 191, 0.18)',
+                },
+                '&:active': {
+                  transform: 'scale(0.98)',
                 },
               }}
             >
@@ -305,7 +359,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
-                      transition: 'all 0.3s ease',
+                      transition: 'background-color 0.2s ease',
                     }}
                   >
                     {selectedSectionId === section.id ? (
@@ -441,17 +495,6 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
                 <Typography sx={{ fontWeight: 600, color: '#1a1a1a' }}>
                   Presentation Depth
                 </Typography>
-                <Chip
-                  label="8 credits"
-                  size="small"
-                  sx={{
-                    bgcolor: 'rgba(15, 108, 191, 0.1)',
-                    color: '#0f6cbf',
-                    fontWeight: 600,
-                    fontSize: '0.7rem',
-                    height: '20px',
-                  }}
-                />
               </Box>
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
                 Video duration scales with slide count.
@@ -467,9 +510,12 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
               control={<Radio />}
               label={
                 <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Express (~15m)
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      Express (~15m)
+                    </Typography>
+                    <Chip label="6 Credits" size="small" sx={{ bgcolor: 'rgba(15, 108, 191, 0.1)', color: '#0f6cbf', fontWeight: 600, fontSize: '0.65rem', height: '18px' }} />
+                  </Box>
                   <Typography variant="caption" color="text.secondary">
                     Quick summary or intro.
                   </Typography>
@@ -482,9 +528,12 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
               control={<Radio />}
               label={
                 <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Standard (~30m)
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      Standard (~30m)
+                    </Typography>
+                    <Chip label="8 Credits" size="small" sx={{ bgcolor: 'rgba(15, 108, 191, 0.1)', color: '#0f6cbf', fontWeight: 600, fontSize: '0.65rem', height: '18px' }} />
+                  </Box>
                   <Typography variant="caption" color="text.secondary">
                     Complete general overview.
                   </Typography>
@@ -512,6 +561,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
                         height: '18px',
                       }}
                     />
+                    <Chip label="10 Credits" size="small" sx={{ bgcolor: 'rgba(15, 108, 191, 0.1)', color: '#0f6cbf', fontWeight: 600, fontSize: '0.65rem', height: '18px' }} />
                   </Box>
                   <Typography variant="caption" color="text.secondary">
                     In-depth analysis.
@@ -520,21 +570,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
               }
               sx={{ mb: 1.5, ml: 0, alignItems: 'flex-start' }}
             />
-            <FormControlLabel
-              value="45"
-              control={<Radio />}
-              label={
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Deep Dive
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Unrestricted length for maximum detail.
-                  </Typography>
-                </Box>
-              }
-              sx={{ ml: 0, alignItems: 'flex-start' }}
-            />
+
           </RadioGroup>
         </FormControl>
       </Paper>
@@ -774,6 +810,12 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',
+              // Pop-in animation
+              '@keyframes popIn': {
+                '0%': { opacity: 0, transform: 'scale(0.95)' },
+                '100%': { opacity: 1, transform: 'scale(1)' },
+              },
+              animation: 'popIn 0.2s cubic-bezier(0, 0, 0.2, 1) both',
             }}
           >
             <Box

@@ -36,23 +36,22 @@ header('Content-Type: application/json');
 function mapVideoLengthToMode(?string $videoLength): string
 {
     $map = [
-        '5'  => 'Express',
+        '5' => 'Express',
         '15' => 'Standard',
         '30' => 'Extensive',
-        '45' => 'Deep Dive',
     ];
     return $map[$videoLength] ?? 'Standard';
 }
 
 try {
     $rawInput = file_get_contents('php://input');
-    $input    = json_decode($rawInput, true);
+    $input = json_decode($rawInput, true);
 
     if (!$input || !isset($input['contentid'])) {
         throw new invalid_parameter_exception('Invalid request: Missing content ID');
     }
 
-    $contentid = (int)$input['contentid'];
+    $contentid = (int) $input['contentid'];
 
     // Load content record to get course info, video_length, and verify access
     $content = $DB->get_record('local_lecturebot_content', ['id' => $contentid], '*', MUST_EXIST);
@@ -63,12 +62,12 @@ try {
     // ----------------------------------------------------------------
     // 1. Read all feedback fields
     // ----------------------------------------------------------------
-    $selectedCategories  = $input['selected_categories']  ?? [];
-    $topicsNeedingDepth  = $input['topics_needing_depth']  ?? [];
-    $topicsOverexplained = $input['topics_overexplained']  ?? [];
-    $extraTopics         = $input['extra_topics']          ?? [];
-    $missingSubtopics    = $input['missing_subtopics']     ?? [];
-    $reorderedFlow       = $input['reordered_flow']        ?? [];
+    $selectedCategories = $input['selected_categories'] ?? [];
+    $topicsNeedingDepth = $input['topics_needing_depth'] ?? [];
+    $topicsOverexplained = $input['topics_overexplained'] ?? [];
+    $extraTopics = $input['extra_topics'] ?? [];
+    $missingSubtopics = $input['missing_subtopics'] ?? [];
+    $reorderedFlow = $input['reordered_flow'] ?? [];
 
     // feedback_type = comma-joined selected category IDs (e.g. "topics_need_depth,confusing_flow")
     $feedbackType = !empty($selectedCategories)
@@ -79,7 +78,7 @@ try {
     // generationdata is JSON; video_length may also be a top-level column
     $videoLength = null;
     if (!empty($content->generationdata)) {
-        $genData     = json_decode($content->generationdata, true);
+        $genData = json_decode($content->generationdata, true);
         $videoLength = $genData['video_length'] ?? null;
     }
     // Fall back to direct column if available
@@ -97,18 +96,18 @@ try {
     // 2. Build JSON payload for the Arina Content-Regen Feedback API
     // ----------------------------------------------------------------
     $payload = [
-        'tenant_id'           => (string)get_config('local_lecturebot', 'tenantid') ?:
-        getenv('LECTUREBOT_TENANT_ID') ?: '0',
-        'user_id'             => (string)$USER->id,
-        'contentid'           => (string)$contentid,
-        'feedback_type'       => $feedbackType,
-        'mode'                => $mode,
-        'generation_type'     => 'slide-regen',
+        'tenant_id' => (string) get_config('local_lecturebot', 'tenantid') ?:
+            getenv('LECTUREBOT_TENANT_ID') ?: '0',
+        'user_id' => (string) $USER->id,
+        'contentid' => (string) $contentid,
+        'feedback_type' => $feedbackType,
+        'mode' => $mode,
+        'generation_type' => 'slide-regen',
         'topics_needing_depth' => $topicsNeedingDepth,
         'topics_overexplained' => $topicsOverexplained,
-        'extra_topics'        => $extraTopics,
-        'missing_subtopics'   => $missingSubtopics,
-        'reordered_flow'      => $reorderedFlow,
+        'extra_topics' => $extraTopics,
+        'missing_subtopics' => $missingSubtopics,
+        'reordered_flow' => $reorderedFlow,
         'selected_categories' => $selectedCategories,
     ];
 
@@ -118,20 +117,20 @@ try {
     $ch = curl_init(LECTUREBOT_CONTENT_REGEN_FEEDBACK_URL);
 
     curl_setopt_array($ch, [
-        CURLOPT_POST           => true,
-        CURLOPT_POSTFIELDS     => json_encode($payload),
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => json_encode($payload),
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 30,
+        CURLOPT_TIMEOUT => 30,
         CURLOPT_CONNECTTIMEOUT => 10,
-        CURLOPT_HTTPHEADER     => [
+        CURLOPT_HTTPHEADER => [
             'Content-Type: application/json',
             'Accept: application/json',
         ],
     ]);
 
     $responseBody = curl_exec($ch);
-    $httpCode     = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError    = curl_error($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
     curl_close($ch);
 
     if ($curlError) {
@@ -139,14 +138,14 @@ try {
         http_response_code(502);
         echo json_encode([
             'success' => false,
-            'error'   => 'Could not reach feedback service: ' . $curlError,
+            'error' => 'Could not reach feedback service: ' . $curlError,
         ]);
         exit;
     }
 
     if ($httpCode === 201) {
         $apiResponse = json_decode($responseBody, true);
-        $feedbackId  = $apiResponse['id'] ?? null;
+        $feedbackId = $apiResponse['id'] ?? null;
 
         error_log(sprintf(
             'Content regen feedback saved. Service ID: %s, ContentID: %d, User: %d, Mode: %s',
@@ -157,9 +156,9 @@ try {
         ));
 
         echo json_encode([
-            'success'     => true,
+            'success' => true,
             'feedback_id' => $feedbackId,
-            'message'     => 'Feedback saved successfully',
+            'message' => 'Feedback saved successfully',
         ]);
     } else {
         error_log(sprintf(
@@ -170,7 +169,7 @@ try {
         http_response_code(500);
         echo json_encode([
             'success' => false,
-            'error'   => "Feedback service returned HTTP {$httpCode}.",
+            'error' => "Feedback service returned HTTP {$httpCode}.",
         ]);
     }
 
@@ -179,6 +178,6 @@ try {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'error'   => $e->getMessage(),
+        'error' => $e->getMessage(),
     ]);
 }

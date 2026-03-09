@@ -13,6 +13,7 @@ import {
     FormControl,
     FormLabel,
     RadioGroup,
+    Chip,
     useTheme,
     useMediaQuery,
 } from '@mui/material';
@@ -218,21 +219,6 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                                         }
                                         sx={{ mb: 1, ml: 0, alignItems: 'flex-start' }}
                                     />
-                                    <FormControlLabel
-                                        value="example_driven"
-                                        control={<Radio />}
-                                        label={
-                                            <Box>
-                                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                    Example Driven
-                                                </Typography>
-                                                <Typography variant="caption" color="text.secondary">
-                                                    Practical examples and applications
-                                                </Typography>
-                                            </Box>
-                                        }
-                                        sx={{ ml: 0, alignItems: 'flex-start' }}
-                                    />
                                 </RadioGroup>
                             </FormControl>
                         </Paper>
@@ -306,9 +292,12 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                                         control={<Radio />}
                                         label={
                                             <Box>
-                                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                    No Avatar : 1 credit / 20 secs
-                                                </Typography>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                                        No Avatar
+                                                    </Typography>
+                                                    <Chip label="1 Credit / 20s" size="small" sx={{ bgcolor: 'rgba(15, 108, 191, 0.1)', color: '#0f6cbf', fontWeight: 600, fontSize: '0.65rem', height: '18px' }} />
+                                                </Box>
                                                 <Typography variant="caption" color="text.secondary">
                                                     Voice-only narration
                                                 </Typography>
@@ -321,9 +310,12 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                                         control={<Radio />}
                                         label={
                                             <Box>
-                                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                    With Avatar: 1.25 credit / 20 secs
-                                                </Typography>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                                        With Avatar
+                                                    </Typography>
+                                                    <Chip label="1.25 Credits / 20s" size="small" sx={{ bgcolor: 'rgba(15, 108, 191, 0.1)', color: '#0f6cbf', fontWeight: 600, fontSize: '0.65rem', height: '18px' }} />
+                                                </Box>
                                                 <Typography variant="caption" color="text.secondary">
                                                     AI presenter on title slides only
                                                 </Typography>

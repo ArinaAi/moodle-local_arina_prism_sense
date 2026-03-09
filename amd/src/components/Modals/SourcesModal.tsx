@@ -22,6 +22,7 @@ import {
   Checkbox,
   FormControlLabel,
   Tooltip,
+  Chip,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
@@ -702,9 +703,22 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
             flexShrink: 0,
           }}
         >
-          <Typography variant={styles.titleVariant} component="h2" sx={{ fontWeight: 600 }}>
-            Manage Sources
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant={styles.titleVariant} component="h2" sx={{ fontWeight: 600 }}>
+              Manage Sources
+            </Typography>
+            <Chip
+              label="0.30 Credits / Page"
+              size="small"
+              sx={{
+                bgcolor: 'rgba(15, 108, 191, 0.1)',
+                color: '#0f6cbf',
+                fontWeight: 600,
+                fontSize: '0.75rem',
+                border: '1px solid rgba(15, 108, 191, 0.2)'
+              }}
+            />
+          </Box>
           <IconButton
             onClick={onClose}
             disabled={isAnyUploading}
