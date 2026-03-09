@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box, Typography, useTheme, useMediaQuery } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NAV_TITLES } from '../../config/mockData';
 import { AnimatedNumber } from '../ui/AnimatedNumber';
+import { DeltaBadge } from '../ui/DeltaBadge';
 import { tween } from '../../config/animations';
 import { PurchaseCreditsModal } from './PurchaseCreditsModal';
+import { BALANCE_REFRESH_EVENT } from '../../lib/balanceEvents';
 
 interface AppHeaderProps {
     activeNav: string;
@@ -17,7 +19,10 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
     const moodleContext = (globalThis as any).MOODLE_CMS_CONTEXT || {};
 
     const [balance, setBalance] = useState<number>(0);
+    const [balanceDelta, setBalanceDelta] = useState<number | null>(null);
     const [purchaseOpen, setPurchaseOpen] = useState(false);
+    const prevBalance = useRef<number | null>(null);
+    const lastFetchAt = useRef<number>(0);
 
     const fetchBalance = async () => {
         try {
@@ -25,15 +30,41 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
             const res = await fetch(`${baseUrl}/local/lecturebot/api/cms/get_balance.php`, { credentials: 'include' });
             const data = await res.json();
             if (data.success && data.data) {
-                setBalance(data.data.available_balance || 0);
+                const newBalance: number = data.data.current_balance || 0;
+                // Compute delta vs previous (skip on first load)
+                if (prevBalance.current !== null && newBalance !== prevBalance.current) {
+                    setBalanceDelta(newBalance - prevBalance.current);
+                }
+                prevBalance.current = newBalance;
+                setBalance(newBalance);
             }
         } catch (e) {
             console.error('Failed to fetch balance', e);
+        } finally {
+            lastFetchAt.current = Date.now();
         }
     };
 
     useEffect(() => {
-        fetchBalance();
+        void fetchBalance();
+    }, []);
+
+    // Listen for balance refresh events (from CreditAllocationModal, PurchaseCreditsModal)
+    useEffect(() => {
+        const handler = () => { void fetchBalance(); };
+        globalThis.addEventListener(BALANCE_REFRESH_EVENT, handler);
+        return () => globalThis.removeEventListener(BALANCE_REFRESH_EVENT, handler);
+    }, []);
+
+    // Refresh on tab visibility regain if >30s stale
+    useEffect(() => {
+        const handler = () => {
+            if (document.visibilityState === 'visible' && Date.now() - lastFetchAt.current > 30_000) {
+                void fetchBalance();
+            }
+        };
+        document.addEventListener('visibilitychange', handler);
+        return () => document.removeEventListener('visibilitychange', handler);
     }, []);
 
     const getTitleVariant = () => {
@@ -120,8 +151,10 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
                             <Typography sx={{ fontSize: '0.6875rem', textTransform: 'uppercase', color: 'text.secondary', letterSpacing: '0.04em', fontWeight: 600, lineHeight: 1.2 }}>
                                 Institutional Balance
                             </Typography>
-                            <Typography sx={{ fontSize: '1.0625rem', fontWeight: 700, color: 'text.primary', fontVariantNumeric: 'tabular-nums', lineHeight: 1.2, mt: 0.25 }}>
-                                <AnimatedNumber value={balance} /> Credits
+                            <Typography sx={{ fontSize: '1.0625rem', fontWeight: 700, color: 'text.primary', fontVariantNumeric: 'tabular-nums', lineHeight: 1.2, mt: 0.25, display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
+                                <AnimatedNumber value={balance} />
+                                <DeltaBadge delta={balanceDelta} size="header" />
+                                &nbsp;Credits
                             </Typography>
                         </Box>
                         <motion.button

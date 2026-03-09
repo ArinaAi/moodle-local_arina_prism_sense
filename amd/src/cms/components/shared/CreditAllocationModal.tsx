@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { emitBalanceRefresh } from '../../lib/balanceEvents';
 import {
     Box,
     Typography,
@@ -58,6 +59,7 @@ export const CreditAllocationModal: React.FC<CreditAllocationModalProps> = ({
             });
             const result = await response.json();
             if (result.success) {
+                emitBalanceRefresh();
                 onClose(true);
             } else {
                 setError(result.message || 'Allocation failed');

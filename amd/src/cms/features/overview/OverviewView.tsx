@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { DollarSign, Users, Zap, AlertCircle } from 'lucide-react';
 import { Skeleton } from '@mui/material';
@@ -6,6 +6,7 @@ import { stagger } from '../../config/animations';
 import { StatCard } from '../../components/ui/StatCard';
 import { DonutChart } from '../../components/charts/DonutChart';
 import { BreakdownPanel } from '../../components/charts/BreakdownPanel';
+import { useLiveBalance } from '../../hooks/useLiveBalance';
 
 // Service Overview Card
 const ServiceOverviewCard: React.FC = () => (
@@ -40,59 +41,25 @@ const ServiceOverviewCard: React.FC = () => (
 
 // Overview Page
 export const OverviewView: React.FC = () => {
-    const [balanceData, setBalanceData] = useState<{
-        current_balance: number;
-        available_balance: number;
-        reserved_credits: number;
-    } | null>(null);
-    const [staffReserved, setStaffReserved] = useState<number>(0);
-    const [usageData, setUsageData] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    // useLiveBalance(true) → polling enabled because we are on the Overview tab
+    const { balanceData, staffReserved, delta, loading, error } = useLiveBalance(true);
 
-
-    const fetchDashboardData = async () => {
-        try {
-            const baseUrl = (window as any).MOODLE_CMS_CONTEXT?.wwwroot || '';
-            const [balanceRes, usageRes, reservedRes] = await Promise.all([
-                fetch(`${baseUrl}/local/lecturebot/api/cms/get_balance.php`, { credentials: 'include' }),
-                fetch(`${baseUrl}/local/lecturebot/api/cms/get_usage_metrics.php`, { credentials: 'include' }),
-                fetch(`${baseUrl}/local/lecturebot/api/cms/get_org_reserved.php`, { credentials: 'include' })
-            ]);
-
-            const balanceResult = await balanceRes.json();
-            const usageResult = await usageRes.json();
-            const reservedResult = await reservedRes.json();
-
-            if (balanceResult.success && balanceResult.data) {
-                setBalanceData(balanceResult.data);
-            } else {
-                setError(balanceResult.message || 'Failed to fetch balance');
-            }
-
-            if (usageResult.success && usageResult.data) {
-                setUsageData(usageResult.data);
-            }
-
-            if (reservedResult.success && reservedResult.data) {
-                setStaffReserved(reservedResult.data.staff_reserved || 0);
-            }
-        } catch (err) {
-            console.error('Error fetching balance:', err);
-            setError('Network error: Unable to load balance data');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchDashboardData();
+    // Usage metrics still fetched locally (not included in balance hook)
+    const [usageData, setUsageData] = React.useState<any[]>([]);
+    React.useEffect(() => {
+        const baseUrl = (globalThis as any).MOODLE_CMS_CONTEXT?.wwwroot || '';
+        fetch(`${baseUrl}/local/lecturebot/api/cms/get_usage_metrics.php`, { credentials: 'include' })
+            .then((r) => r.json())
+            .then((res) => { if (res.success && res.data) { setUsageData(res.data); } })
+            .catch(() => {/* silently ignore */ });
     }, []);
 
-
-
-    // Empty state: balance loaded successfully but is zero
     const isEmpty = !loading && !error && balanceData && balanceData.current_balance === 0;
+
+    const availableBalance = Math.max(0, (balanceData?.current_balance || 0) - staffReserved);
+    const availablePct = balanceData && balanceData.current_balance > 0
+        ? Math.floor((availableBalance / balanceData.current_balance) * 100)
+        : 0;
 
     return (
         <motion.div
@@ -124,7 +91,6 @@ export const OverviewView: React.FC = () => {
                     <p style={{ margin: 0, fontSize: '0.9rem', color: '#1565c0' }}>
                         Get started by purchasing a credit package to fuel your institution&apos;s AI generation.
                     </p>
-
                 </motion.div>
             )}
 
@@ -145,14 +111,16 @@ export const OverviewView: React.FC = () => {
                             color="#0f6cbf"
                             icon={DollarSign}
                             insight="Wallet active"
+                            delta={delta?.institutional ?? null}
                         />
                         <StatCard
                             label="Available Reserve"
-                            value={balanceData?.available_balance || 0}
-                            subtitle="Ready to use or allocate"
+                            value={availableBalance}
+                            subtitle="Institutional Balance minus reserved credits"
                             color="#6f42c1"
                             icon={Zap}
-                            insight={`${balanceData && balanceData.current_balance > 0 ? Math.floor((balanceData.available_balance / balanceData.current_balance) * 100) : 0}% of pool available`}
+                            insight={`${availablePct}% of pool available`}
+                            delta={delta?.available ?? null}
                         />
                         <StatCard
                             label="Reserved Credits"
@@ -161,6 +129,7 @@ export const OverviewView: React.FC = () => {
                             color="#ff9800"
                             icon={Users}
                             insight="Currently processing"
+                            delta={delta?.reserved ?? null}
                         />
                     </>
                 )}
@@ -210,8 +179,6 @@ export const OverviewView: React.FC = () => {
                     <BreakdownPanel data={isEmpty ? [] : usageData} />
                 )}
             </motion.div>
-
-
         </motion.div>
     );
 };

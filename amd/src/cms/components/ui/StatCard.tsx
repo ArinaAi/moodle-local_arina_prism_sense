@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import type { LucideIcon } from 'lucide-react';
 import { spring } from '../../config/animations';
 import { AnimatedNumber } from './AnimatedNumber';
+import { DeltaBadge } from './DeltaBadge';
 
 interface StatCardProps {
     label: string;
@@ -11,6 +12,7 @@ interface StatCardProps {
     color?: string;
     icon: LucideIcon;
     insight?: string;
+    delta?: number | null;
 }
 
 export const StatCard: React.FC<StatCardProps> = ({
@@ -20,6 +22,7 @@ export const StatCard: React.FC<StatCardProps> = ({
     color = '#0f6cbf',
     icon: Icon,
     insight,
+    delta,
 }) => (
     <motion.div
         variants={{
@@ -77,15 +80,18 @@ export const StatCard: React.FC<StatCardProps> = ({
             </div>
         </div>
 
-        {/* Big value */}
+        {/* Big value + transient delta badge */}
         <div style={{
             fontSize: '2.25rem',
             fontWeight: 800,
             color: 'var(--tp)',
             letterSpacing: '-0.03em',
             lineHeight: 1,
+            display: 'flex',
+            alignItems: 'baseline',
         }}>
             <AnimatedNumber value={value} />
+            {delta !== undefined && <DeltaBadge delta={delta ?? null} size="card" />}
         </div>
         <div style={{ fontSize: '0.8125rem', color: 'var(--ts)', marginTop: 5 }}>{subtitle}</div>
 
