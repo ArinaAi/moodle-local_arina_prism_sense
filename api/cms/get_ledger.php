@@ -22,13 +22,22 @@ header('Content-Type: application/json');
 
 try {
     $client = new \local_lecturebot\cms\CreditServiceClient();
-    
-    // 1-2. Fetch Org Owner UUID and resolve the actual wallet ID
-    $walletId = get_wallet_id_or_exit($client);
-    
-    // 3. Fetch transactions using the real wallet ID
-    $res = $client->getTransactions($walletId);
-    
+
+    // 1-2. Fetch Org Owner UUID and resolve the actual org wallet ID
+    $orgWalletId = get_wallet_id_or_exit($client);
+
+    $fetchWalletId = $orgWalletId;
+    if (!empty($_GET['sub_user_id'])) {
+        $subUserId = (int) $_GET['sub_user_id'];
+        $subWalletId = $client->getOrInitializeSubUserWallet($subUserId);
+        if ($subWalletId) {
+            $fetchWalletId = $subWalletId;
+        }
+    }
+
+    // 3. Fetch transactions using the requested wallet ID
+    $res = $client->getTransactions($fetchWalletId);
+
     if ($res['status'] >= 200 && $res['status'] < 300) {
         // API returns {transactions: [...], total: N, wallet_id: ..., current_balance: ...}
         $txs = [];
@@ -41,19 +50,19 @@ try {
                 $txs = $res['data'];
             }
         }
-        
+
         // ── Friendly type labels ──
         $typeLabels = [
-            'PURCHASE'          => 'Credit Purchase',
-            'CONSUMPTION'       => 'Credit Usage',
-            'ALLOCATION_OUT'    => 'Staff Allocation',
-            'ALLOCATION_IN'     => 'Credits Received',
-            'REFUND'            => 'Refund',
-            'ADMIN_ADJUSTMENT'  => 'Admin Adjustment',
+            'PURCHASE' => 'Credit Purchase',
+            'CONSUMPTION' => 'Credit Usage',
+            'ALLOCATION_OUT' => 'Staff Allocation',
+            'ALLOCATION_IN' => 'Credits Received',
+            'REFUND' => 'Refund',
+            'ADMIN_ADJUSTMENT' => 'Admin Adjustment',
             'MANUAL_ADJUSTMENT' => 'Manual Adjustment',
-            'EXPIRATION'        => 'Expired',
+            'EXPIRATION' => 'Expired',
         ];
-        
+
         // ── UUID/Wallet-ID → Name Resolution ──
         $uuidNameCache = [];
         $walletIdNameCache = [];
@@ -61,10 +70,10 @@ try {
         if ($orgUuid) {
             $uuidNameCache[$orgUuid] = 'Organization Admin';
         }
-        $walletIdNameCache[$walletId] = 'Organization';
-        
+        $walletIdNameCache[$orgWalletId] = 'Organization';
+
         // Fetch hierarchy to get child wallet IDs and their owner UUIDs
-        $hierarchyRes = $client->getHierarchy($walletId);
+        $hierarchyRes = $client->getHierarchy($orgWalletId);
         $childOwnerUuids = [];
         if ($hierarchyRes['status'] >= 200 && $hierarchyRes['status'] < 300) {
             // Schema: child_wallets[] = {wallet_id, owner_id, type, balance}
@@ -77,7 +86,7 @@ try {
                 }
             }
         }
-        
+
         // Resolve child owner UUIDs → Moodle user names via wallet preferences
         if (!empty($childOwnerUuids)) {
             global $DB;
@@ -100,25 +109,22 @@ try {
                 }
             }
         }
-        
+
         $ledger = [];
         foreach ($txs as $tx) {
             $ts = date('M d, Y, H:i', strtotime($tx['created_at']));
             $tsRaw = date('Y-m-d', strtotime($tx['created_at'])); // For date filtering
-            
+
             // Build human-readable metadata
             $metaParts = [];
-            
+
             // For CONSUMPTION transactions, identify who consumed the credits
             // by checking if this transaction's wallet_id belongs to a sub-user/staff
             $txType = $tx['transaction_type'] ?? '';
             if ($txType === 'CONSUMPTION' && !empty($tx['wallet_id'])) {
                 $consumedByName = $walletIdNameCache[$tx['wallet_id']] ?? null;
-                if ($consumedByName && $consumedByName !== 'Organization') {
-                    $metaParts[] = "By: $consumedByName";
-                }
             }
-            
+
             if (isset($tx['extra_metadata']) && is_array($tx['extra_metadata'])) {
                 // Show package name for purchases
                 if (!empty($tx['extra_metadata']['package_name'])) {
@@ -127,16 +133,16 @@ try {
                 if (!empty($tx['extra_metadata']['description'])) {
                     $metaParts[] = $tx['extra_metadata']['description'];
                 }
-                
+
                 // Show action/service for consumption transactions
                 if (!empty($tx['extra_metadata']['action_key'])) {
                     $actionKey = strtolower(trim($tx['extra_metadata']['action_key']));
-                    
+
                     define('LABEL_SLIDE_GENERATION', 'Slide Generation');
                     define('LABEL_SLIDE_REGENERATION', 'Slide Regeneration');
                     define('LABEL_VIDEO_GENERATION', 'Video Generation');
                     define('LABEL_DOC_PROCESSING', 'Document Processing');
-                    
+
                     // Map action keys to user-friendly service names
                     $actionLabels = [
                         'slide_generation' => LABEL_SLIDE_GENERATION,
@@ -152,19 +158,17 @@ try {
                         'upload_pdf' => 'PDF Upload',
                         'pdf_upload' => 'PDF Upload',
                     ];
-                    
+
                     $serviceName = $actionLabels[$actionKey] ?? ucwords(str_replace('_', ' ', $actionKey));
                     $metaParts[] = 'Service: ' . $serviceName;
                 }
                 // Resolve owner UUID fields
-                foreach (['performed_by_user_id', 'target_owner_id', 'source_owner_id'] as $field) {
+                foreach (['target_owner_id', 'source_owner_id'] as $field) {
                     if (!empty($tx['extra_metadata'][$field])) {
                         $uuid = $tx['extra_metadata'][$field];
                         $name = $uuidNameCache[$uuid] ?? null;
                         if ($name) {
-                            if ($field === 'performed_by_user_id') {
-                                $label = 'By';
-                            } elseif ($field === 'target_owner_id') {
+                            if ($field === 'target_owner_id') {
                                 $label = 'To';
                             } else {
                                 $label = 'From';
@@ -189,7 +193,7 @@ try {
                     }
                 }
             }
-            
+
             // If no metadata parts were built, provide a basic fallback based on transaction type
             if (empty($metaParts)) {
                 $txType = $tx['transaction_type'] ?? 'UNKNOWN';
@@ -201,13 +205,13 @@ try {
                     $metaParts[] = 'Credit transfer';
                 }
             }
-            
+
             $meta = implode(' · ', $metaParts);
-            
+
             // Map Arina transaction_type
             $type = strtoupper($tx['transaction_type'] ?? $tx['type'] ?? 'UNKNOWN');
             $typeLabel = $typeLabels[$type] ?? ucwords(str_replace('_', ' ', strtolower($type)));
-            
+
             $ledger[] = [
                 'id' => $tx['id'],
                 'ts' => $ts,
@@ -215,11 +219,11 @@ try {
                 'type' => $type,
                 'typeLabel' => $typeLabel,
                 'meta' => $meta,
-                'amount' => (float)($tx['credit_amount'] ?? $tx['amount'] ?? 0),
-                'balance' => (float)($tx['balance_after'] ?? $tx['resulting_balance'] ?? 0),
+                'amount' => (float) ($tx['credit_amount'] ?? $tx['amount'] ?? 0),
+                'balance' => (float) ($tx['balance_after'] ?? $tx['resulting_balance'] ?? 0),
             ];
         }
-        
+
         echo json_encode([
             'success' => true,
             'data' => $ledger
