@@ -83,7 +83,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
 
   const [sectionsWithSources, setSectionsWithSources] = useState<SectionWithSources[]>([]);
   const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
-  const [contentStrategy, setContentStrategy] = useState<'standard' | 'example_driven'>('standard');
+  const contentStrategy = 'standard';
   const [videoLength, setVideoLength] = useState<string>('5');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -575,84 +575,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
         </FormControl>
       </Paper>
 
-      {/* Content Strategy */}
-      <Paper
-        variant="outlined"
-        sx={{
-          p: 'clamp(16px, 2vw + 12px, 24px)',
-          borderRadius: '12px',
-          bgcolor: 'white',
-          border: '2px solid #e9ecef',
-          transition: 'all 0.3s ease',
-          '&:hover': {
-            borderColor: '#0f6cbf',
-            boxShadow: '0 4px 12px rgba(15, 108, 191, 0.15)',
-          },
-        }}
-      >
-        <FormControl component="fieldset">
-          <Tooltip
-            title="Choose how the AI generates content: theory-focused or example-driven with practical applications"
-            arrow
-            placement="top"
-            PopperProps={{
-              sx: {
-                zIndex: 100002,
-              },
-            }}
-          >
-            <FormLabel
-              component="legend"
-              sx={{
-                fontWeight: 600,
-                color: '#1a1a1a',
-                mb: 'clamp(8px, 1.5vw + 4px, 12px)',
-                '&.Mui-focused': {
-                  color: '#1a1a1a',
-                },
-                cursor: 'help',
-              }}
-            >
-              Content Strategy
-            </FormLabel>
-          </Tooltip>
-          <RadioGroup
-            value={contentStrategy}
-            onChange={(e) => setContentStrategy(e.target.value as 'standard' | 'example_driven')}
-          >
-            <FormControlLabel
-              value="standard"
-              control={<Radio />}
-              label={
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Standard
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Theory-focused content with clear explanations
-                  </Typography>
-                </Box>
-              }
-              sx={{ mb: 1.5, ml: 0 }}
-            />
-            <FormControlLabel
-              value="example_driven"
-              sx={{ ml: 0 }}
-              control={<Radio />}
-              label={
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Example-Driven
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Practical examples and real-world applications
-                  </Typography>
-                </Box>
-              }
-            />
-          </RadioGroup>
-        </FormControl>
-      </Paper>
+
     </>
   );
 
