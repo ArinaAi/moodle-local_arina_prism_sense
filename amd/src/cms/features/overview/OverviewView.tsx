@@ -46,15 +46,17 @@ export const OverviewView: React.FC = () => {
 
     // Usage metrics still fetched locally (not included in balance hook)
     const [usageData, setUsageData] = React.useState<any[]>([]);
+    const [usageLoading, setUsageLoading] = React.useState(true);
     React.useEffect(() => {
         const baseUrl = (globalThis as any).MOODLE_CMS_CONTEXT?.wwwroot || '';
         fetch(`${baseUrl}/local/lecturebot/api/cms/get_usage_metrics.php`, { credentials: 'include' })
             .then((r) => r.json())
             .then((res) => { if (res.success && res.data) { setUsageData(res.data); } })
-            .catch(() => {/* silently ignore */ });
+            .catch(() => {/* silently ignore */ })
+            .finally(() => setUsageLoading(false));
     }, []);
 
-    const isEmpty = !loading && !error && balanceData && balanceData.current_balance === 0;
+    const isEmpty = !loading && !usageLoading && !error && balanceData && balanceData.current_balance === 0 && usageData.length === 0;
 
     const availableBalance = Math.max(0, (balanceData?.current_balance || 0) - staffReserved);
     const availablePct = balanceData && balanceData.current_balance > 0
@@ -161,7 +163,7 @@ export const OverviewView: React.FC = () => {
                     <p style={{ fontSize: '0.8125rem', color: 'var(--ts)', marginBottom: 4 }}>
                         Credit consumption by service type
                     </p>
-                    {loading ? (
+                    {loading || usageLoading ? (
                         <Skeleton variant="circular" width={200} height={200} sx={{ margin: '0 auto', mt: 2 }} animation="wave" />
                     ) : (
                         <DonutChart data={isEmpty ? [{ name: 'No Data', value: 100, color: '#e0e0e0' }] : (usageData.length > 0 ? usageData : [{ name: 'No Usage Yet', value: 100, color: '#e0e0e0' }])} />
@@ -169,7 +171,7 @@ export const OverviewView: React.FC = () => {
                 </div>
 
                 {/* Right — breakdown */}
-                {loading ? (
+                {loading || usageLoading ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                         <Skeleton variant="rectangular" height={40} sx={{ borderRadius: 2 }} animation="wave" />
                         <Skeleton variant="rectangular" height={40} sx={{ borderRadius: 2 }} animation="wave" />

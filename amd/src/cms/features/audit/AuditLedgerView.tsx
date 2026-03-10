@@ -97,7 +97,7 @@ export const AuditLedgerView: React.FC = () => {
 
     const handleExportCSV = useCallback(() => {
         if (filtered.length === 0) { return; }
-        const headers = ['Timestamp', 'Type', 'Description', 'Amount', 'Balance'];
+        const headers = ['Timestamp', 'Type', 'Metadata', 'Amount', 'Balance'];
         const rows = filtered.map((r) => [
             r.ts,
             r.typeLabel || r.type,
@@ -160,7 +160,7 @@ export const AuditLedgerView: React.FC = () => {
                 {/* Metadata search — flex-grows to fill remaining space */}
                 <input
                     type="text"
-                    placeholder="Search description (staff names, packages, etc.)…"
+                    placeholder="Search metadata (staff names, packages, etc.)…"
                     value={metaSearch}
                     onChange={(e) => setMetaSearch(e.target.value)}
                     onFocus={focusStyle}
@@ -209,7 +209,7 @@ export const AuditLedgerView: React.FC = () => {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'inherit' }}>
                         <thead>
                             <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                                {['Timestamp', 'Type', 'Description', 'Amount', 'Balance'].map((h) => (
+                                {['Timestamp', 'Type', 'Metadata', 'Amount', 'Balance'].map((h) => (
                                     <th
                                         key={h}
                                         style={{

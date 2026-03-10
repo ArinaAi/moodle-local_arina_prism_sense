@@ -194,6 +194,10 @@ try {
                 }
             }
 
+            if ($txType === 'CONSUMPTION' && !empty($consumedByName)) {
+                $metaParts[] = 'Consumed by: ' . $consumedByName;
+            }
+
             // If no metadata parts were built, provide a basic fallback based on transaction type
             if (empty($metaParts)) {
                 $txType = $tx['transaction_type'] ?? 'UNKNOWN';
@@ -222,6 +226,25 @@ try {
                 'amount' => (float) ($tx['credit_amount'] ?? $tx['amount'] ?? 0),
                 'balance' => (float) ($tx['balance_after'] ?? $tx['resulting_balance'] ?? 0),
             ];
+        }
+
+        // ── Append Reserved Credits if any ──
+        $balRes = $client->getWalletBalance($fetchWalletId);
+        if ($balRes['status'] >= 200 && $balRes['status'] < 300 && !empty($balRes['data'])) {
+            $reserved = (float) ($balRes['data']['reserved_credits'] ?? 0);
+            if ($reserved > 0) {
+                // Add reserved amount as a special pending transaction at the top of the ledger
+                array_unshift($ledger, [
+                    'id' => 'reserve-' . time(),
+                    'ts' => date('M d, Y, H:i'),
+                    'tsRaw' => date('Y-m-d'),
+                    'type' => 'PENDING_RESERVE',
+                    'typeLabel' => 'Credits Reserved (Processing)',
+                    'meta' => 'Locked for pending generation requests',
+                    'amount' => -$reserved,
+                    'balance' => $balRes['data']['current_balance'] ?? 0,
+                ]);
+            }
         }
 
         echo json_encode([

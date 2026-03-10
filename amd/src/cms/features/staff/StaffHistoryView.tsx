@@ -112,7 +112,7 @@ export const StaffHistoryView: React.FC<StaffHistoryViewProps> = ({ staff, onBac
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'inherit' }}>
                         <thead>
                             <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                                {['Timestamp', 'Type', 'Description', 'Amount', 'Balance'].map((h) => (
+                                {['Timestamp', 'Type', 'Metadata', 'Amount', 'Balance'].map((h) => (
                                     <th
                                         key={h}
                                         style={{

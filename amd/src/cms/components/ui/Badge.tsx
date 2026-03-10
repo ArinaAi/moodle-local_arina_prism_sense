@@ -13,7 +13,8 @@ export type BadgeType =
     | 'REFUND'
     | 'ADMIN_ADJUSTMENT'
     | 'MANUAL_ADJUSTMENT'
-    | 'EXPIRATION';
+    | 'EXPIRATION'
+    | 'PENDING_RESERVE';
 
 const BADGE_COLORS: Record<string, { bg: string; color: string }> = {
     Active: { bg: 'rgba(40,167,69,0.15)', color: '#155724' },
@@ -28,6 +29,7 @@ const BADGE_COLORS: Record<string, { bg: string; color: string }> = {
     ADMIN_ADJUSTMENT: { bg: 'rgba(108,117,125,0.10)', color: '#495057' },
     MANUAL_ADJUSTMENT: { bg: 'rgba(108,117,125,0.10)', color: '#495057' },
     EXPIRATION: { bg: 'rgba(220,53,69,0.10)', color: '#721c24' },
+    PENDING_RESERVE: { bg: 'rgba(253,126,20,0.12)', color: '#e67e22' }, // Orange styling for pending
 };
 
 interface BadgeProps {
