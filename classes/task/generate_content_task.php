@@ -26,93 +26,205 @@ class generate_content_task extends \core\task\adhoc_task
     {
         global $DB;
 
-        $data = $this->get_custom_data();
-        
-        // Fix: Ensure data is an object, as get_custom_data() might return an array
-        if (is_array($data)) {
-            $data = (object)$data;
-        }
-        
-        // Debugging: Log raw input data to identify missing fields
-        mtrace("Task Custom Data: " . json_encode($data));
-
-        $contentId = $data->content_id;
-        
-        // Optional params for decision making
-        $contentType = isset($data->content_type) ? $data->content_type : 'slides';
-        $avatarVideoNeeded = isset($data->avtar_video_needed) ? $data->avtar_video_needed : 'no';
-
-        // Get user's owner UUID for credit tracking
-        $userUuid = $this->getUserUuidForCredit($data);
-        mtrace("User UUID for credit tracking: " .
-        ($userUuid ? $userUuid : 'NULL - user may not have wallet allocated'));
-
-        mtrace("Starting content generation for content ID: $contentId. Type: $contentType");
+        $taskData = $this->initializeTaskData();
+        $contentId = $taskData['contentId'];
 
         try {
-            // Check if content still exists
             $content = $DB->get_record('local_lecturebot_content', ['id' => $contentId]);
             if (!$content) {
                 mtrace("Content record $contentId not found, aborting.");
                 return;
             }
 
-            // 1. Trigger generation with polling (new workflow)
-            // This ensures PDFs are processed before starting generation
-            $requestId = $this->triggerGenerationWithPolling($data, $userUuid);
-            
-            if ($requestId) {
-                mtrace("Generation triggered successfully. Request ID: $requestId");
-                // Store request_id in database for polling
-                $this->storeRequestId($contentId, $requestId, $data, $contentType, $avatarVideoNeeded);
-                mtrace("Content $contentId queued for async generation. " .
-                    "Polling task will check for completion.");
+            // Try new workflow first, then fallback to legacy workflow
+            if ($this->handleNewWorkflow($taskData)) {
                 return;
             }
 
-            // Fallback to old workflow if trigger_generation is not used
-            mtrace("Trigger generation returned no request_id, falling back to old workflow...");
-
-            // 2. Build API URL (old workflow)
-            $apiUrl = $this->getApiUrl($data, $contentType, $avatarVideoNeeded, $userUuid);
-            mtrace("Calling API URL: $apiUrl");
-
-            // 3. Execute API Call (returns immediately with request_id)
-            $apiResponse = $this->executeApiCall($apiUrl);
-
-            // 4. Process Response - Handle async/Kafka response
-            if ($this->isAsyncResponse($apiResponse)) {
-                // Extract request_id from response
-                $requestIdOld = $apiResponse['request_id'] ?? $apiResponse['content_request_id'] ?? null;
-                
-                if ($requestIdOld) {
-                    mtrace("Backend accepted request. Request ID: $requestIdOld, Status: " .
-                        ($apiResponse['status'] ?? 'unknown'));
-                    
-                    // Store request_id in database for polling
-                    $this->storeRequestId($contentId, $requestIdOld, $data, $contentType, $avatarVideoNeeded);
-                    
-                    mtrace("Content $contentId queued for async generation. " .
-                        "Polling task will check for completion.");
-                } else {
-                    throw new \local_lecturebot\exception\api_response_exception(
-                        'API returned processing status but no request_id'
-                    );
-                }
-            } elseif ($this->isApiSuccess($apiResponse)) {
-                // Legacy: Synchronous success response (keeping for backwards compatibility)
-                mtrace("Backend API returned synchronous success, fetching file from Azure Blob Storage");
-                $this->processSuccess($content, $data, $contentType, $avatarVideoNeeded);
-                mtrace("Content $contentId ($contentType) generated successfully.");
-            } else {
-                $errorMsg = isset($apiResponse['error']) ? $apiResponse['error'] : 'API returned unsuccessful response';
-                throw new \local_lecturebot\exception\api_response_exception($errorMsg);
-            }
+            $this->handleLegacyWorkflow($content, $taskData);
 
         } catch (\Exception $e) {
             mtrace("Error generating content: " . $e->getMessage());
             $this->handleFailure($contentId, $e->getMessage());
         }
+    }
+
+    /**
+     * Initialize and validate task data
+     *
+     * @return array Initialized task data
+     */
+    private function initializeTaskData()
+    {
+        $data = $this->get_custom_data();
+
+        // Fix: Ensure data is an object, as get_custom_data() might return an array
+        if (is_array($data)) {
+            $data = (object) $data;
+        }
+
+        mtrace("Task Custom Data: " . json_encode($data));
+
+        $contentId = $data->content_id;
+        $contentType = isset($data->content_type) ? $data->content_type : 'slides';
+        $avatarVideoNeeded = isset($data->avtar_video_needed) ? $data->avtar_video_needed : 'no';
+
+        $userUuid = $this->getUserUuidForCredit($data);
+        mtrace("User UUID for credit tracking: " .
+            ($userUuid ? $userUuid : 'NULL - user may not have wallet allocated'));
+
+        mtrace("Starting content generation for content ID: $contentId. Type: $contentType");
+
+        return [
+            'data' => $data,
+            'contentId' => $contentId,
+            'contentType' => $contentType,
+            'avatarVideoNeeded' => $avatarVideoNeeded,
+            'userUuid' => $userUuid
+        ];
+    }
+
+    /**
+     * Handle new workflow with polling
+     *
+     * @param array $taskData Initialized task data
+     * @return bool True if new workflow was successful, false to fallback to legacy
+     */
+    private function handleNewWorkflow($taskData)
+    {
+        $requestId = $this->triggerGenerationWithPolling($taskData['data'], $taskData['userUuid']);
+
+        if (!$requestId) {
+            mtrace("Trigger generation returned no request_id, falling back to old workflow...");
+            return false;
+        }
+
+        mtrace("Generation triggered successfully. Request ID: $requestId");
+        $this->storeRequestId(
+            $taskData['contentId'],
+            $requestId,
+            $taskData['data'],
+            $taskData['contentType'],
+            $taskData['avatarVideoNeeded']
+        );
+        mtrace("Content {$taskData['contentId']} queued for async generation. " .
+            "Polling task will check for completion.");
+        return true;
+    }
+
+    /**
+     * Handle legacy workflow
+     *
+     * @param object $content Content record
+     * @param array $taskData Initialized task data
+     */
+    private function handleLegacyWorkflow($content, $taskData)
+    {
+        $apiUrl = $this->getApiUrl(
+            $taskData['data'],
+            $taskData['contentType'],
+            $taskData['avatarVideoNeeded'],
+            $taskData['userUuid']
+        );
+        mtrace("Calling API URL: $apiUrl");
+
+        $apiResponse = $this->executeApiCall($apiUrl);
+        $this->processApiResponse($content, $apiResponse, $taskData);
+    }
+
+    /**
+     * Process API response from legacy workflow
+     *
+     * @param object $content Content record
+     * @param array $apiResponse API response
+     * @param array $taskData Initialized task data
+     */
+    private function processApiResponse($content, $apiResponse, $taskData)
+    {
+        if ($this->isAsyncResponse($apiResponse)) {
+            $this->handleAsyncResponse($apiResponse, $taskData);
+        } elseif ($this->isApiSuccess($apiResponse)) {
+            $this->handleSyncResponse($content, $taskData);
+        } else {
+            $errorMsg = $this->extractErrorMessage($apiResponse);
+            throw new \local_lecturebot\exception\api_response_exception($errorMsg);
+        }
+    }
+
+    /**
+     * Handle asynchronous API response
+     *
+     * @param array $apiResponse API response
+     * @param array $taskData Initialized task data
+     */
+    private function handleAsyncResponse($apiResponse, $taskData)
+    {
+        $requestId = $apiResponse['request_id'] ?? $apiResponse['content_request_id'] ?? null;
+
+        if (!$requestId) {
+            throw new \local_lecturebot\exception\api_response_exception(
+                'API returned processing status but no request_id'
+            );
+        }
+
+        mtrace("Backend accepted request. Request ID: $requestId, Status: " .
+            ($apiResponse['status'] ?? 'unknown'));
+
+        $this->storeRequestId(
+            $taskData['contentId'],
+            $requestId,
+            $taskData['data'],
+            $taskData['contentType'],
+            $taskData['avatarVideoNeeded']
+        );
+
+        mtrace("Content {$taskData['contentId']} queued for async generation. " .
+            "Polling task will check for completion.");
+    }
+
+    /**
+     * Handle synchronous API response
+     *
+     * @param object $content Content record
+     * @param array $taskData Initialized task data
+     */
+    private function handleSyncResponse($content, $taskData)
+    {
+        mtrace("Backend API returned synchronous success, fetching file from Azure Blob Storage");
+        $this->processSuccess(
+            $content,
+            $taskData['data'],
+            $taskData['contentType'],
+            $taskData['avatarVideoNeeded']
+        );
+        mtrace("Content {$taskData['contentId']} ({$taskData['contentType']}) generated successfully.");
+    }
+
+    /**
+     * Extract error message from API response
+     *
+     * @param array $apiResponse API response
+     * @return string Error message
+     */
+    private function extractErrorMessage($apiResponse)
+    {
+        $errorMsg = 'Generation failed';
+
+        if (isset($apiResponse['message'])) {
+            $errorMsg = is_string($apiResponse['message'])
+                ? $apiResponse['message']
+                : json_encode($apiResponse['message']);
+        } elseif (isset($apiResponse['error'])) {
+            $errorMsg = is_string($apiResponse['error'])
+                ? $apiResponse['error']
+                : json_encode($apiResponse['error']);
+        } elseif (isset($apiResponse['detail'])) {
+            $errorMsg = is_string($apiResponse['detail'])
+                ? $apiResponse['detail']
+                : json_encode($apiResponse['detail']);
+        }
+
+        return $errorMsg;
     }
 
     /**
@@ -123,7 +235,7 @@ class generate_content_task extends \core\task\adhoc_task
         if (!$apiResponse) {
             return false;
         }
-        
+
         // Check for Kafka-style response with status: "processing"
         $status = $apiResponse['status'] ?? '';
         return $status === 'processing' || $status === 'queued' || $status === 'pending';
@@ -146,32 +258,32 @@ class generate_content_task extends \core\task\adhoc_task
         if (empty($batchId)) {
             return null;
         }
-        
+
         mtrace("Found batch_id: $batchId");
-        
+
         $apiKey = get_config('local_lecturebot', 'api_key');
         if (empty($apiKey)) {
             throw new \local_lecturebot\exception\api_http_exception('API key is not configured');
         }
-        
+
         // Polling configuration - PDF processing can take several minutes
         $maxAttempts = 60; // Max 60 attempts (60 × 60s = 60 minutes)
         $pollInterval = 60; // 60 seconds (1 minute) between polls
-        
+
         mtrace("Starting trigger_generation polling (max $maxAttempts attempts, {$pollInterval}s interval, total ~" .
             ($maxAttempts * $pollInterval / 60) . " minutes)");
-        
+
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             mtrace("Attempt $attempt/$maxAttempts: Calling trigger_generation...");
-            
+
             $params = $this->buildTriggerParams($data, $batchId, $userUuid);
             $responseData = $this->callTriggerGenerationApi($params, $apiKey);
-            
+
             if ($responseData === null) {
                 sleep($pollInterval);
                 continue;
             }
-            
+
             $result = $this->processTriggerResponse($responseData, $pollInterval);
             if ($result !== false) {
                 return $result;
@@ -179,11 +291,11 @@ class generate_content_task extends \core\task\adhoc_task
             // PDFs not ready yet — wait before next attempt
             sleep($pollInterval);
         }
-        
+
         mtrace("✗ Failed to get content_request_id after $maxAttempts attempts");
         return null;
     }
-    
+
     /**
      * Get batch_id from sources table
      *
@@ -194,27 +306,27 @@ class generate_content_task extends \core\task\adhoc_task
     private function getBatchIdFromSources($courseid, $sectionid)
     {
         global $DB;
-        
+
         $sources = $DB->get_records('local_lecturebot_sources', [
             'courseid' => $courseid,
             'sectionid' => $sectionid
         ]);
-        
+
         if (empty($sources)) {
             mtrace("No sources found for course $courseid section $sectionid");
             return null;
         }
-        
+
         foreach ($sources as $source) {
             if (!empty($source->batch_id)) {
                 return $source->batch_id;
             }
         }
-        
+
         mtrace("No batch_id found in sources. Skipping trigger_generation workflow.");
         return null;
     }
-    
+
     /**
      * Build parameters for trigger_generation API call
      *
@@ -232,14 +344,14 @@ class generate_content_task extends \core\task\adhoc_task
             'video_length' => $data->video_length,
             'content_strategy' => $data->content_strategy
         ];
-        
+
         if ($userUuid) {
             $params['user_id'] = $userUuid;
         }
-        
+
         return $params;
     }
-    
+
     /**
      * Call trigger_generation API
      *
@@ -250,7 +362,7 @@ class generate_content_task extends \core\task\adhoc_task
     private function callTriggerGenerationApi($params, $apiKey)
     {
         $apiUrl = LECTUREBOT_API_TRIGGER_GENERATION . '?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
-        
+
         $ch = curl_init($apiUrl);
         curl_setopt_array($ch, [
             CURLOPT_POST => true,
@@ -265,17 +377,17 @@ class generate_content_task extends \core\task\adhoc_task
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_FOLLOWLOCATION => true
         ]);
-        
+
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlError = curl_error($ch);
         curl_close($ch);
-        
+
         if ($curlError) {
             mtrace("cURL error: $curlError");
             return null;
         }
-        
+
         // Validate HTTP response and parse JSON
         $responseData = null;
         if ($httpCode !== 200) {
@@ -288,10 +400,10 @@ class generate_content_task extends \core\task\adhoc_task
                 mtrace("Response: " . json_encode($responseData));
             }
         }
-        
+
         return $responseData;
     }
-    
+
     /**
      * Process trigger_generation API response
      *
@@ -303,25 +415,47 @@ class generate_content_task extends \core\task\adhoc_task
     {
         $status = $responseData['status'] ?? 'unknown';
         $contentRequestId = $responseData['content_request_id'] ?? null;
-        
+
         // Check for successful generation trigger
         if ($status === 'generation_triggered' && !empty($contentRequestId)) {
             $this->logSuccessfulTrigger($contentRequestId, $responseData);
             return $contentRequestId;
         }
-        
+
         // Handle failed status
-        if ($status === 'failed' || $status === 'error') {
-            $errorMsg = $responseData['message'] ?? $responseData['error'] ?? 'Generation failed';
-            mtrace("✗ FAILED: $errorMsg");
-            throw new \local_lecturebot\exception\api_response_exception($errorMsg);
+        if ($this->isFailedStatus($status)) {
+            $this->handleTriggerFailure($responseData);
         }
-        
+
         // Check upload status
         $this->logUploadStatus($responseData, $status, $pollInterval);
         return false; // Continue polling
     }
-    
+
+    /**
+     * Check if status indicates failure
+     *
+     * @param string $status Status value
+     * @return bool True if status is failed or error
+     */
+    private function isFailedStatus($status)
+    {
+        return $status === 'failed' || $status === 'error';
+    }
+
+    /**
+     * Handle trigger generation failure
+     *
+     * @param array $responseData Response data
+     * @throws \local_lecturebot\exception\api_response_exception
+     */
+    private function handleTriggerFailure($responseData)
+    {
+        $errorMsg = $this->extractErrorMessage($responseData);
+        mtrace("✗ FAILED: $errorMsg");
+        throw new \local_lecturebot\exception\api_response_exception($errorMsg);
+    }
+
     /**
      * Log successful trigger
      *
@@ -337,7 +471,7 @@ class generate_content_task extends \core\task\adhoc_task
             ($responseData['should_trigger_generation'] ? 'true' : 'false'));
         mtrace("  - message: " . ($responseData['message'] ?? 'N/A'));
     }
-    
+
     /**
      * Log upload status and sleep
      *
@@ -349,11 +483,11 @@ class generate_content_task extends \core\task\adhoc_task
     {
         $allUploadsCompleted = $responseData['all_uploads_completed'] ?? false;
         $shouldTrigger = $responseData['should_trigger_generation'] ?? false;
-        
+
         mtrace("  - all_uploads_completed: " . ($allUploadsCompleted ? 'true' : 'false'));
         mtrace("  - should_trigger_generation: " . ($shouldTrigger ? 'true' : 'false'));
         mtrace("  - status: $status");
-        
+
         if (!$allUploadsCompleted) {
             mtrace("  ⏳ PDFs still being processed. Waiting {$pollInterval}s...");
         } elseif (!$shouldTrigger) {
@@ -369,7 +503,7 @@ class generate_content_task extends \core\task\adhoc_task
     private function storeRequestId($contentId, $requestId, $data, $contentType, $avatarVideoNeeded)
     {
         global $DB;
-        
+
         $tenantId = $data->tenant_id;
         $courseid = $data->course_id;
         $sectionid = $data->section_id;
@@ -377,7 +511,7 @@ class generate_content_task extends \core\task\adhoc_task
 
         $containerName = strtolower('Blob-Tutorial-Gen-' . $tenantId);
         $folderName = "Tutorial_{$courseid}_{$sectionid}_{$regenCount}";
-        
+
         $isVideo = ($contentType === 'video' || $avatarVideoNeeded === 'yes');
 
         // Update content record with request_id and Azure blob info
@@ -389,7 +523,7 @@ class generate_content_task extends \core\task\adhoc_task
             $generationData['azure_folder'] = $folderName;
             $generationData['is_video'] = $isVideo;
             $generationData['async_initiated_at'] = time();
-            
+
             $content->request_id = $requestId;
             $content->generationdata = json_encode($generationData);
             $content->timemodified = time();
@@ -420,54 +554,54 @@ class generate_content_task extends \core\task\adhoc_task
 
         // Check if Video Generation is requested
         if ($contentType === 'video' || $avatarVideoNeeded === 'yes') {
-             $baseUrl = LECTUREBOT_API_GENERATE_VIDEO;
-             $videoUrl = $baseUrl .
-                  '?course_id=' . $courseid .
-                  '&organization_id=' . $tenantId .
-                  '&chapter_id=' . $sectionid .
-                  '&regen_count=' . $regenCount .
-                  '&language=' . urlencode($language) .
-                  '&voice_gender=' . urlencode($voiceGender) .
-                  '&avatar_strategy=' . urlencode($avatarStrategy) .
-                  '&content_strategy=' . urlencode($contentStrategy);
-             
-             // Add user_id for credit tracking
-             if ($userUuid) {
-                 $videoUrl .= '&user_id=' . urlencode($userUuid);
-             }
-             
-             return $videoUrl;
+            $baseUrl = LECTUREBOT_API_GENERATE_VIDEO;
+            $videoUrl = $baseUrl .
+                '?course_id=' . $courseid .
+                '&organization_id=' . $tenantId .
+                '&chapter_id=' . $sectionid .
+                '&regen_count=' . $regenCount .
+                '&language=' . urlencode($language) .
+                '&voice_gender=' . urlencode($voiceGender) .
+                '&avatar_strategy=' . urlencode($avatarStrategy) .
+                '&content_strategy=' . urlencode($contentStrategy);
+
+            // Add user_id for credit tracking
+            if ($userUuid) {
+                $videoUrl .= '&user_id=' . urlencode($userUuid);
+            }
+
+            return $videoUrl;
         } else {
-             // Fallback to existing PPTX endpoint logic
-             $pptxUrl = LECTUREBOT_API_GENERATE_PPTX .
-                  '?curriculum_text=' . urlencode(trim($curriculumText)) .
-                  '&organization_id=' . urlencode($tenantId) .
-                  '&course_id=' . $courseid .
-                  '&chapter_id=' . $sectionid .
-                  '&regen_count=' . $regenCount .
-                  '&video_length=' . $videoLength .
-                  '&content_strategy=' . urlencode($contentStrategy);
-             
-             // Add user_id for credit tracking
-             if ($userUuid) {
-                 $pptxUrl .= '&user_id=' . urlencode($userUuid);
-             }
+            // Fallback to existing PPTX endpoint logic
+            $pptxUrl = LECTUREBOT_API_GENERATE_PPTX .
+                '?curriculum_text=' . urlencode(trim($curriculumText)) .
+                '&organization_id=' . urlencode($tenantId) .
+                '&course_id=' . $courseid .
+                '&chapter_id=' . $sectionid .
+                '&regen_count=' . $regenCount .
+                '&video_length=' . $videoLength .
+                '&content_strategy=' . urlencode($contentStrategy);
 
-             // Append feedback_json if feedback data is present (regeneration with feedback)
-             if (!empty($data->feedback)) {
-                 $fb = is_array($data->feedback) ? $data->feedback : (array)$data->feedback;
-                 $feedbackJson = json_encode([
-                     'topics_needing_depth' => $fb['topics_needing_depth'] ?? [],
-                     'topics_overexplained' => $fb['topics_overexplained'] ?? [],
-                     'extra_topics'         => $fb['extra_topics'] ?? [],
-                     'missing_subtopics'    => $fb['missing_subtopics'] ?? [],
-                     'reordered_flow'       => $fb['reordered_flow'] ?? [],
-                 ]);
-                 $pptxUrl .= '&feedback_json=' . urlencode($feedbackJson);
-                 mtrace("Appending feedback_json to PPTX API call for regeneration.");
-             }
+            // Add user_id for credit tracking
+            if ($userUuid) {
+                $pptxUrl .= '&user_id=' . urlencode($userUuid);
+            }
 
-             return $pptxUrl;
+            // Append feedback_json if feedback data is present (regeneration with feedback)
+            if (!empty($data->feedback)) {
+                $fb = is_array($data->feedback) ? $data->feedback : (array) $data->feedback;
+                $feedbackJson = json_encode([
+                    'topics_needing_depth' => $fb['topics_needing_depth'] ?? [],
+                    'topics_overexplained' => $fb['topics_overexplained'] ?? [],
+                    'extra_topics' => $fb['extra_topics'] ?? [],
+                    'missing_subtopics' => $fb['missing_subtopics'] ?? [],
+                    'reordered_flow' => $fb['reordered_flow'] ?? [],
+                ]);
+                $pptxUrl .= '&feedback_json=' . urlencode($feedbackJson);
+                mtrace("Appending feedback_json to PPTX API call for regeneration.");
+            }
+
+            return $pptxUrl;
         }
     }
 
@@ -479,9 +613,30 @@ class generate_content_task extends \core\task\adhoc_task
      */
     private function executeApiCall($apiUrl)
     {
-        // Get API Key from settings
         $apiKey = get_config('local_lecturebot', 'api_key');
+        $ch = $this->initializeCurl($apiUrl, $apiKey);
 
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        $this->checkCurlErrors($ch);
+        curl_close($ch);
+
+        mtrace("API response code: $httpCode");
+
+        return $this->processApiCallResponse($httpCode, $response);
+    }
+
+    /**
+     * Initialize cURL with required options
+     *
+     * @param string $apiUrl API URL
+     * @param string $apiKey API key
+     * @return resource cURL handle
+     * @throws \local_lecturebot\exception\curl_init_exception
+     */
+    private function initializeCurl($apiUrl, $apiKey)
+    {
         $ch = curl_init($apiUrl);
         if ($ch === false) {
             throw new \local_lecturebot\exception\curl_init_exception('Failed to initialize cURL');
@@ -506,29 +661,76 @@ class generate_content_task extends \core\task\adhoc_task
             CURLOPT_SSL_VERIFYHOST => 2,
         ]);
 
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        
+        return $ch;
+    }
+
+    /**
+     * Check for cURL errors and throw exception if found
+     *
+     * @param resource $ch cURL handle
+     * @throws \local_lecturebot\exception\curl_execution_exception
+     */
+    private function checkCurlErrors($ch)
+    {
         if (curl_errno($ch)) {
             $curlError = curl_error($ch);
             curl_close($ch);
             throw new \local_lecturebot\exception\curl_execution_exception('cURL error: ' . $curlError);
         }
-        curl_close($ch);
+    }
 
-        mtrace("API response code: $httpCode");
-
+    /**
+     * Process API call response based on HTTP code
+     *
+     * @param int $httpCode HTTP status code
+     * @param string $response Response body
+     * @return array Decoded JSON response
+     * @throws \local_lecturebot\exception\api_http_exception
+     */
+    private function processApiCallResponse($httpCode, $response)
+    {
         if ($httpCode === 401) {
-            mtrace("API authentication failed: HTTP 401 (API key is missing or incorrect)");
-            throw new \local_lecturebot\exception\api_http_exception('API key is missing or incorrect.
-            Please check your settings.');
+            $this->handleAuthenticationError();
         }
 
         if ($httpCode === 200 && !empty($response)) {
             return json_decode($response, true);
         }
-        
-        throw new \local_lecturebot\exception\api_http_exception('API returned HTTP ' . $httpCode);
+
+        $this->handleApiError($httpCode, $response);
+    }
+
+    /**
+     * Handle authentication error (401)
+     *
+     * @throws \local_lecturebot\exception\api_http_exception
+     */
+    private function handleAuthenticationError()
+    {
+        mtrace("API authentication failed: HTTP 401 (API key is missing or incorrect)");
+        throw new \local_lecturebot\exception\api_http_exception('API key is missing or incorrect.
+            Please check your settings.');
+    }
+
+    /**
+     * Handle API error response
+     *
+     * @param int $httpCode HTTP status code
+     * @param string $response Response body
+     * @throws \local_lecturebot\exception\api_http_exception
+     */
+    private function handleApiError($httpCode, $response)
+    {
+        $errorMsg = 'API returned HTTP ' . $httpCode;
+
+        if (!empty($response)) {
+            $responseData = json_decode($response, true);
+            if ($responseData) {
+                $errorMsg = $this->extractErrorMessage($responseData);
+            }
+        }
+
+        throw new \local_lecturebot\exception\api_http_exception($errorMsg);
     }
 
     /**
@@ -537,7 +739,7 @@ class generate_content_task extends \core\task\adhoc_task
     private function isApiSuccess($apiResponse)
     {
         return $apiResponse && ((isset($apiResponse['success']) && $apiResponse['success'] === true) ||
-               (isset($apiResponse['Success']) && $apiResponse['Success'] === true));
+            (isset($apiResponse['Success']) && $apiResponse['Success'] === true));
     }
 
     /**
@@ -558,9 +760,9 @@ class generate_content_task extends \core\task\adhoc_task
 
         $containerName = strtolower('Blob-Tutorial-Gen-' . $tenantId);
         $folderName = "Tutorial_{$courseid}_{$sectionid}_{$regenCount}";
-        
+
         $isVideo = ($contentType === 'video' || $avatarVideoNeeded === 'yes');
-        
+
         if ($isVideo) {
             $remoteFileName = "video_tutorial_{$courseid}_{$sectionid}.mp4";
             $localFileName = 'video_' . $contentId . '_' . time() . '.mp4';
@@ -568,22 +770,22 @@ class generate_content_task extends \core\task\adhoc_task
             $remoteFileName = "slide_tutorial_{$courseid}_{$sectionid}.pptx";
             $localFileName = 'slides_' . $contentId . '_' . time() . '.pptx';
         }
-        
+
         $blobName = $folderName . '/' . $remoteFileName;
         $filepath = $CFG->tempdir . '/lecturebot/' . $localFileName;
-        
+
         if (!is_dir($CFG->tempdir . '/lecturebot')) {
             mkdir($CFG->tempdir . '/lecturebot', 0755, true);
         }
 
         $success = \local_lecturebot\Utils::downloadFileFromAzure($blobName, $filepath, $containerName);
-        
+
         if (!$success || !file_exists($filepath) || filesize($filepath) === 0) {
             throw new \local_lecturebot\exception\azure_download_exception(
                 "Failed to download file ($remoteFileName) from Azure Blob Storage (or empty file)"
             );
         }
-        
+
         $updateData = [
             'blobName' => $blobName,
             'containerName' => $containerName,
@@ -595,7 +797,7 @@ class generate_content_task extends \core\task\adhoc_task
             'courseid' => $courseid,
             'contentId' => $contentId
         ];
-        
+
         $this->updateContentRecord($content, $updateData);
     }
 
@@ -622,7 +824,7 @@ class generate_content_task extends \core\task\adhoc_task
             'azure_container' => $containerName,
             'azure_folder' => $folderName,
         ];
-        
+
         if ($isVideo) {
             $genDataUpdate['video_file'] = $localFileName;
             $genDataUpdate['video_path'] = $filepath;
@@ -633,7 +835,7 @@ class generate_content_task extends \core\task\adhoc_task
                     [
                         'topic' => "Section " . $sectionid,
                         'videoUrl' => "{$CFG->wwwroot}/local/lecturebot/api/stream_video.php?" .
-                                      "contentid={$contentId}&courseid={$courseid}",
+                            "contentid={$contentId}&courseid={$courseid}",
                         'videoDuration' => 0
                     ]
                 ]
@@ -672,7 +874,7 @@ class generate_content_task extends \core\task\adhoc_task
         global $DB;
         $DB->update_record(
             'local_lecturebot_content',
-            (object)[
+            (object) [
                 'id' => $contentId,
                 'status' => 'error',
                 'errormessage' => $errorMessage,
@@ -698,17 +900,17 @@ class generate_content_task extends \core\task\adhoc_task
 
         try {
             $result = null;
-            
+
             // First try to get user's personal wallet UUID
             $userUuid = get_user_preferences('lecturebot_wallet_sub_user_id', null, $data->user_id);
-            
+
             if (!empty($userUuid)) {
                 mtrace("Found personal wallet UUID: " . $userUuid);
                 $result = $userUuid;
             } else {
                 // If no personal wallet, check if user is admin and use organization wallet
                 mtrace("No personal wallet found, checking if user is admin...");
-                
+
                 // Check if user has admin/manager role (can access site administration)
                 $context = \context_system::instance();
                 if (has_capability('moodle/site:config', $context, $data->user_id)) {
@@ -718,14 +920,14 @@ class generate_content_task extends \core\task\adhoc_task
                         $result = $orgUuid;
                     }
                 }
-                
+
                 if (empty($result)) {
                     mtrace("No wallet UUID found for user");
                 }
             }
-            
+
             return $result;
-            
+
         } catch (\Exception $e) {
             mtrace("Warning: Could not retrieve user UUID: " . $e->getMessage());
             return null;
