@@ -26,6 +26,7 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once(__DIR__ . '/classes/Utils.php');
 require_once(__DIR__ . '/configurator_azure.php');
+require_once(__DIR__ . '/config_api.php');
 
 use local_lecturebot\Utils;
 
@@ -41,7 +42,7 @@ define('LECTUREBOT_SCRIPT_END', '</script>');
 function local_lecturebot_get_button_js($wwwroot)
 {
     $buttontext = get_string('generatelecture', 'local_lecturebot');
-    
+
     // Minified logic to inject button
     return <<<JS
         (function() {
@@ -110,7 +111,7 @@ function local_lecturebot_get_student_button_js($wwwroot)
     if (empty($buttontext) || $buttontext == '[[courseplayer]]') {
         $buttontext = 'Start Course';
     }
-    
+
     return <<<JS
         (function() {
             function initLectureBotStudent() {
@@ -179,7 +180,7 @@ function local_lecturebot_can_access()
 
     $isCourseView = strpos($PAGE->pagetype, 'course-view') === 0;
     $canUpdate = has_capability(
-        'moodle/course:update',
+        LECTUREBOT_CAPABILITY_GENERATE_CONTENT,
         context_course::instance($COURSE->id)
     );
 
@@ -196,7 +197,7 @@ function local_lecturebot_can_access_student()
     global $PAGE, $COURSE, $USER;
 
     $isCourseView = strpos($PAGE->pagetype, 'course-view') === 0;
-    
+
     // Check if course is valid
     if (!isset($COURSE->id) || $COURSE->id == 1) { // 1 is frontpage
         return false;
@@ -207,9 +208,9 @@ function local_lecturebot_can_access_student()
     // Allow if they can update (Teacher) OR are enrolled (Student)
     // is_enrolled(context, user, withcapability, onlyactive)
     $isEnrolled = is_enrolled($context, $USER, '', true);
-    
+
     // Also allow managers/teachers who might not be "enrolled" but have update rights
-    $canUpdate = has_capability('moodle/course:update', $context);
+    $canUpdate = has_capability(LECTUREBOT_CAPABILITY_GENERATE_CONTENT, $context);
 
     return $isCourseView && ($isEnrolled || $canUpdate);
 }
@@ -242,7 +243,7 @@ function local_lecturebot_before_footer()
     // 2. Student Button
     // We show this to students, AND teachers (so they can preview)
     $canAccessStudent = local_lecturebot_can_access_student();
-    
+
     if ($canAccessStudent) {
         if (!$contextPrepared) {
             $moodlecontext = Utils::prepareContext($COURSE, $CFG->wwwroot);
@@ -365,8 +366,8 @@ function local_lecturebot_is_login_page()
 function local_lecturebot_get_login_css()
 {
     return local_lecturebot_get_login_base_css()
-         . local_lecturebot_get_login_form_css()
-         . local_lecturebot_get_login_button_css();
+        . local_lecturebot_get_login_form_css()
+        . local_lecturebot_get_login_button_css();
 }
 
 /**
@@ -377,9 +378,9 @@ function local_lecturebot_get_login_css()
 function local_lecturebot_get_login_base_css()
 {
     return local_lecturebot_get_login_layout_css()
-         . local_lecturebot_get_login_welcome_css()
-         . local_lecturebot_get_login_footer_css()
-         . local_lecturebot_get_login_responsive_css();
+        . local_lecturebot_get_login_welcome_css()
+        . local_lecturebot_get_login_footer_css()
+        . local_lecturebot_get_login_responsive_css();
 }
 
 /**

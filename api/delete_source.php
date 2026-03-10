@@ -16,32 +16,32 @@ header('Content-Type: application/json');
 try {
     // Get POST data
     $input = json_decode(file_get_contents('php://input'), true);
-    
+
     if (!$input || !isset($input['sourceid'])) {
         throw new moodle_exception('Missing source ID');
     }
-    
+
     $sourceid = $input['sourceid'];
     $courseid = required_param('courseid', PARAM_INT);
-    
+
     // Require login and capability
     require_login($courseid);
     $context = context_course::instance($courseid);
-    require_capability('moodle/course:update', $context);
+    require_capability(LECTUREBOT_CAPABILITY_GENERATE_CONTENT, $context);
     require_sesskey();
 
-    
+
     // Get source record
     $source = $DB->get_record('local_lecturebot_sources', ['id' => $sourceid, 'courseid' => $courseid]);
-    
+
     if (!$source) {
         throw new moodle_exception('Source not found');
     }
-    
+
     // Delete document from Weaviate vector store
     require_once(__DIR__ . '/../config_api.php');
     $weaviateDeleteResult = null;
-    
+
     try {
         $deleteUrl = LECTUREBOT_API_DELETE_DOCUMENT . '?' . http_build_query([
             'course_id' => $courseid,
@@ -51,7 +51,7 @@ try {
         error_log('LectureBot delete URL: ' . $deleteUrl);
         // Get API Key from settings
         $apiKey = get_config('local_lecturebot', 'api_key');
-        
+
         $ch = curl_init();
         curl_setopt_array($ch, [
             CURLOPT_URL => $deleteUrl,
@@ -64,12 +64,12 @@ try {
                 'X-API-key: ' . $apiKey
             ]
         ]);
-        
+
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlError = curl_error($ch);
         curl_close($ch);
-        
+
         if ($curlError) {
             debugging('Weaviate delete API curl error: ' . $curlError, DEBUG_DEVELOPER);
         } elseif ($httpCode !== 200) {
@@ -82,7 +82,7 @@ try {
         // Log but don't block local deletion
         debugging('Weaviate delete API exception: ' . $weaviateEx->getMessage(), DEBUG_DEVELOPER);
     }
-    
+
     // Delete file from Moodle file storage
     $fs = get_file_storage();
     $files = $fs->get_area_files(
@@ -93,19 +93,19 @@ try {
         'id',
         false
     );
-    
+
     foreach ($files as $file) {
         $file->delete();
     }
-    
+
     // Delete database record
     $DB->delete_records('local_lecturebot_sources', ['id' => $sourceid]);
-    
+
     echo json_encode([
         'status' => 'success',
         'message' => 'Source deleted successfully'
     ]);
-    
+
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([

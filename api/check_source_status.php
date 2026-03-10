@@ -22,12 +22,12 @@ header('Content-Type: application/json');
 
 try {
     $courseid = required_param('courseid', PARAM_INT);
-    $sourceid  = required_param('sourceid', PARAM_INT);
+    $sourceid = required_param('sourceid', PARAM_INT);
 
     // Require login and capability.
     require_login($courseid);
     $context = context_course::instance($courseid);
-    require_capability('moodle/course:update', $context);
+    require_capability(LECTUREBOT_CAPABILITY_GENERATE_CONTENT, $context);
 
     // Fetch the source record.
     $source = $DB->get_record('local_lecturebot_sources', ['id' => $sourceid, 'courseid' => $courseid]);
@@ -51,7 +51,7 @@ try {
     // If the source was uploaded more than 30 minutes ago, it is definitely
     // processed — skip the backend API call entirely to avoid redundant requests
     // every time the Sources Modal is opened.
-    $uploadedSecondsAgo = time() - (int)$source->timecreated;
+    $uploadedSecondsAgo = time() - (int) $source->timecreated;
     if ($uploadedSecondsAgo > 1800) { // 30 minutes
         echo json_encode(['processed' => true]);
         exit;
@@ -68,18 +68,18 @@ try {
     $ch = curl_init($checkUrl);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 15,
+        CURLOPT_TIMEOUT => 15,
         CURLOPT_CONNECTTIMEOUT => 10,
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_HTTPHEADER     => [
+        CURLOPT_HTTPHEADER => [
             'X-Api-key: ' . $apiKey,
         ],
     ]);
 
-    $response     = curl_exec($ch);
-    $httpCode     = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError    = curl_error($ch);
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
     curl_close($ch);
 
     // On any transport or HTTP error, block deletion — we cannot confirm the status.

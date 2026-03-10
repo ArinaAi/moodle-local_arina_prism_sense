@@ -9,6 +9,7 @@
 
 define('AJAX_SCRIPT', true);
 require_once(__DIR__ . '/../../../config.php');
+require_once(__DIR__ . '/../config_api.php');
 
 header('Content-Type: application/json');
 
@@ -21,19 +22,18 @@ try {
     // Require login and capability
     require_login($courseid);
     $context = context_course::instance($courseid);
-    require_capability('moodle/course:update', $context);
-    
+    require_capability(LECTUREBOT_CAPABILITY_GENERATE_CONTENT, $context);
+
     // Release session lock to prevent blocking
     \core\session\manager::write_close();
-    
+
     $contents = [];
 
     // Helper to format content
-    $formatContent = function ($content) use ($DB, $courseid)
-    {
+    $formatContent = function ($content) use ($DB, $courseid) {
         // Parse generation data
         $generationData = json_decode($content->generationdata, true);
-        
+
         // Get approver information
         $approver = null;
         if ($content->approved && $content->approvedby) {
@@ -48,17 +48,17 @@ try {
                 ];
             }
         }
-        
-       // Get section name helper
-       static $sectionnames = null;
-       if ($sectionnames === null) {
-           $modinfo = get_fast_modinfo($courseid);
-           $sections = $modinfo->get_section_info_all();
-           $sectionnames = [];
-           foreach ($sections as $sec) {
-               $sectionnames[$sec->id] = $sec->name ?: "Section " . $sec->section;
-           }
-       }
+
+        // Get section name helper
+        static $sectionnames = null;
+        if ($sectionnames === null) {
+            $modinfo = get_fast_modinfo($courseid);
+            $sections = $modinfo->get_section_info_all();
+            $sectionnames = [];
+            foreach ($sections as $sec) {
+                $sectionnames[$sec->id] = $sec->name ?: "Section " . $sec->section;
+            }
+        }
 
         return [
             'id' => $content->id,
@@ -72,7 +72,7 @@ try {
             'timecreated' => $content->timecreated,
             'timemodified' => $content->timemodified,
             'result' => $generationData['result'] ?? null,
-            'approved' => (bool)$content->approved,
+            'approved' => (bool) $content->approved,
             'approvedby' => $content->approvedby,
             'timeapproved' => $content->timeapproved,
             'approver' => $approver,
@@ -95,9 +95,11 @@ try {
         $ids = explode(',', $idsParam);
         $cleanIds = [];
         foreach ($ids as $id) {
-            if (is_numeric($id)) {$cleanIds[] = (int)$id;}
+            if (is_numeric($id)) {
+                $cleanIds[] = (int) $id;
+            }
         }
-        
+
         if (!empty($cleanIds)) {
             list($insql, $inparams) = $DB->get_in_or_equal($cleanIds);
             // Verify courseid too for security
@@ -117,12 +119,12 @@ try {
             $contentList[] = $formatContent($c);
         }
     }
-        
+
     echo json_encode([
         'status' => 'success',
         'contents' => $contentList
     ]);
-    
+
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([

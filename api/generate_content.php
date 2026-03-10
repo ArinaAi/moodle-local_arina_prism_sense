@@ -19,7 +19,7 @@ require_login($courseid, false);
 require_sesskey();
 
 $context = context_course::instance($courseid);
-require_capability('moodle/course:update', $context);
+require_capability(LECTUREBOT_CAPABILITY_GENERATE_CONTENT, $context);
 
 // Set PAGE context to avoid debugging warnings
 $PAGE->set_context($context);
@@ -38,7 +38,7 @@ if (empty($apiKey)) {
     http_response_code(401);
     echo json_encode([
         'status' => 'error',
-        'error'  => 'API key is not configured. Please add your API key in the plugin settings.'
+        'error' => 'API key is not configured. Please add your API key in the plugin settings.'
     ]);
     exit;
 }
@@ -81,20 +81,20 @@ try {
 
     $sectionid = $input['section_id'];
     $contentStrategy = $input['content_strategy'] ?? 'standard';
-    $videoLength = isset($input['video_length']) ? (int)$input['video_length'] : LECTUREBOT_DEFAULT_VIDEO_LENGTH;
+    $videoLength = isset($input['video_length']) ? (int) $input['video_length'] : LECTUREBOT_DEFAULT_VIDEO_LENGTH;
     $language = $input['language'] ?? 'english';
     $voiceGender = $input['voice_gender'] ?? 'female';
     $avatarStrategy = $input['avatar_strategy'] ?? 'title_only';
     $avatarVideoNeeded = $input['avtar_video_needed'] ?? 'no';
-    
+
     // Determine content type
     $contentType = ($avatarVideoNeeded === 'yes') ? 'video' : 'slide-deck';
 
     // Fetch curriculum directly from the section's Page activity
     require_once($CFG->libdir . '/modinfolib.php');
-    
+
     $modinfo = get_fast_modinfo($courseid);
-    
+
     // Find the section
     $sectioninfo = null;
     foreach ($modinfo->get_section_info_all() as $section) {
@@ -103,17 +103,17 @@ try {
             break;
         }
     }
-    
+
     if (!$sectioninfo) {
-        throw new \local_lecturebot\exception\section_not_found_exception('Section not found');
+        throw new \moodle_exception('Section not found');
     }
-    
+
     // Check if source_content_id is provided (to use specific slide deck's text)
-    $sourceContentId = isset($input['source_content_id']) ? (int)$input['source_content_id'] : 0;
-    
+    $sourceContentId = isset($input['source_content_id']) ? (int) $input['source_content_id'] : 0;
+
     // Check for regeneration feedback
-    $parentContentId = isset($input['parent_content_id']) ? (int)$input['parent_content_id'] : 0;
-    $feedbackId = isset($input['feedback_id']) ? (int)$input['feedback_id'] : 0;
+    $parentContentId = isset($input['parent_content_id']) ? (int) $input['parent_content_id'] : 0;
+    $feedbackId = isset($input['feedback_id']) ? (int) $input['feedback_id'] : 0;
     $feedbackData = null;
 
     if ($feedbackId > 0) {
@@ -176,7 +176,7 @@ try {
 
     // If still empty, throw error with actionable instructions
     if (empty($curriculumText)) {
-        throw new \local_lecturebot\exception\curriculum_not_found_exception(
+        throw new \moodle_exception(
             'No "Curriculum" activity found in this section. ' .
             'Please add a Text and Media Area (or Page) titled exactly "Curriculum" ' .
             'under this section in the course, then try again.'
@@ -195,21 +195,21 @@ try {
     ]);
 
     if (empty($sources)) {
-        throw new \local_lecturebot\exception\source_not_found_exception('No source PDFs found for this section');
+        throw new \moodle_exception('No source PDFs found for this section');
     }
 
     // Note: The new API (http://0.0.0.0:8034/generate_pptx) doesn't require PDF upload
     // It generates slides based on curriculum text directly
-    
+
     // Get tenant ID from config or fallback to 1
     // The API requires an integer for organization_id
     $tenantConfig = defined('LECTUREBOT_TENANT_ID') ? LECTUREBOT_TENANT_ID : 1;
-    $tenantId = is_numeric($tenantConfig) ? (int)$tenantConfig : 1;
-    
+    $tenantId = is_numeric($tenantConfig) ? (int) $tenantConfig : 1;
+
     // Log warning if tenant ID was a string so admin knows to fix it
     if (!is_numeric($tenantConfig)) {
         error_log("LectureBot: LECTUREBOT_TENANT_ID ('$tenantConfig') is not numeric. " .
-                  "falling back to 1 for organization_id.");
+            "falling back to 1 for organization_id.");
     }
 
     // Calculate regen_count by querying Azure directly (Source of Truth)
@@ -220,9 +220,9 @@ try {
     // 2. regen_count from source content (if source_content_id provided)
     // 3. Calculate next available index from Azure
     $regenCount = null;
-    
+
     if (isset($input['regen_count']) && is_numeric($input['regen_count'])) {
-        $regenCount = (int)$input['regen_count'];
+        $regenCount = (int) $input['regen_count'];
         error_log("LectureBot: Using explicit regen_count $regenCount from request");
     } elseif (!empty($sourceRegenCount)) {
         $regenCount = $sourceRegenCount;
@@ -252,7 +252,7 @@ try {
     $content->title = ($contentType === 'video' ? 'Video: ' : 'Slides: ') . $sectionName;
     $content->parent_content_id = $parentContentId > 0 ? $parentContentId : null;
     $content->feedback_id = $feedbackId > 0 ? $feedbackId : null;
-    
+
     // Prepare feedback for AI backend
     $feedbackDetails = null;
     if ($feedbackData) {
@@ -286,7 +286,7 @@ try {
     $content->timemodified = time();
 
     $contentId = $DB->insert_record('local_lecturebot_content', $content);
-    
+
     // ==========================================
     // NEW: Queue Adhoc Task
     // ==========================================
@@ -313,21 +313,21 @@ try {
     if (defined('DEVELOPER_MODE') && DEVELOPER_MODE) {
         $task = new \local_lecturebot\task\generate_content_task_mock();
         $task->set_custom_data($task_data);
-        
+
         // DEVELOPER MODE: EXECUTE SYNCHRONOUSLY
         // Bypassing Adhoc Queue to avoid Cron dependencies in local dev
         error_log("LectureBot: [DEV] Executing mock task synchronously for content $contentId");
         $task->execute();
-        
+
     } else {
         $task = new \local_lecturebot\task\generate_content_task();
         $task->set_custom_data($task_data);
-        
+
         // PRODUCTION: Queue the task
         \core\task\manager::queue_adhoc_task($task);
         error_log("LectureBot: Queued generation task for content $contentId");
     }
-    
+
     error_log("LectureBot: Queued generation task for content $contentId");
 
     // Return success immediately
@@ -337,7 +337,7 @@ try {
         'message' => 'Generation queued successfully',
         'is_queued' => true
     ]);
-    
+
 } catch (Exception $e) {
     error_log('LectureBot: Exception caught: ' . $e->getMessage());
     http_response_code(500);

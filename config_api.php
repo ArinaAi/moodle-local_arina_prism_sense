@@ -9,6 +9,9 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+// Capability constants - change here to update across all plugin files.
+define('LECTUREBOT_CAPABILITY_GENERATE_CONTENT', 'local/lecturebot:generatecontent');
+
 // Load environment variables from .env file
 $envFile = __DIR__ . '/.env';
 if (file_exists($envFile)) {

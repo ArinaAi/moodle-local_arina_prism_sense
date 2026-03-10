@@ -57,7 +57,7 @@ try {
     $content = $DB->get_record('local_lecturebot_content', ['id' => $contentid], '*', MUST_EXIST);
 
     $context = context_course::instance($content->courseid);
-    require_capability('moodle/course:update', $context);
+    require_capability(LECTUREBOT_CAPABILITY_GENERATE_CONTENT, $context);
 
     // ----------------------------------------------------------------
     // 1. Read all feedback fields

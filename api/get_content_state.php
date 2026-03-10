@@ -10,31 +10,32 @@
 
 define('AJAX_SCRIPT', true);
 require_once(__DIR__ . '/../../../config.php');
+require_once(__DIR__ . '/../config_api.php');
 
 header('Content-Type: application/json');
 
 try {
     // Get parameters
     $courseid = required_param('courseid', PARAM_INT);
-    
+
     // Require login and capability
     require_login($courseid);
     $context = context_course::instance($courseid);
-    require_capability('moodle/course:update', $context);
-    
+    require_capability(LECTUREBOT_CAPABILITY_GENERATE_CONTENT, $context);
+
     // Release session lock to improve concurrency
     \core\session\manager::write_close();
-    
+
     // Self-healing: Auto-cleanup error content on refresh
     // This ensures the generated content list stays clean
     $DB->delete_records('local_lecturebot_content', [
         'courseid' => $courseid,
         'status' => 'error'
     ]);
-    
+
     // Get all content for this course
     $contents = $DB->get_records('local_lecturebot_content', ['courseid' => $courseid], 'timecreated DESC');
-    
+
     // Get section names
     $modinfo = get_fast_modinfo($courseid);
     $sections = $modinfo->get_section_info_all();
@@ -42,12 +43,12 @@ try {
     foreach ($sections as $section) {
         $section_names[$section->id] = $section->name ?: "Section " . $section->section;
     }
-    
+
     $result = [];
     foreach ($contents as $content) {
         // Self-healing: Check if published content was deleted from course manually
         $generationData = json_decode($content->generationdata, true);
-        
+
         // Get approver information if content is approved
         $approver = null;
         if ($content->approved && $content->approvedby) {
@@ -62,15 +63,17 @@ try {
                 ];
             }
         }
-        
+
         // If PPTX file exists but no result data, count slides
-        if (isset($generationData['pptx_path']) &&
+        if (
+            isset($generationData['pptx_path']) &&
             file_exists($generationData['pptx_path']) &&
-            empty($generationData['result'])) {
-            
+            empty($generationData['result'])
+        ) {
+
             require_once(__DIR__ . '/generate_content.php');
             $slideCount = countSlidesInPptx($generationData['pptx_path']);
-            
+
             if ($slideCount > 0) {
                 // Create minimal result structure
                 $resultsData = [
@@ -79,18 +82,18 @@ try {
                         'slideCount' => $slideCount
                     ]
                 ];
-                
+
                 // Update the generation data
                 $generationData['result'] = [
                     'status' => 'success',
                     'results' => $resultsData
                 ];
                 $generationData['slide_count'] = $slideCount;
-                
+
                 // Update database
                 $DB->update_record(
                     'local_lecturebot_content',
-                    (object)[
+                    (object) [
                         'id' => $content->id,
                         'generationdata' => json_encode($generationData),
                         'timemodified' => time()
@@ -106,7 +109,7 @@ try {
             'userid' => $USER->id,
             'contentid' => $content->id
         ]);
-        $isCompleted = $tracking ? (bool)$tracking->status : false;
+        $isCompleted = $tracking ? (bool) $tracking->status : false;
 
         $result[] = [
             'id' => $content->id,
@@ -123,7 +126,7 @@ try {
             'result' => $generationData['result'] ?? null,
             'generationdata' => $content->generationdata,
             'content_strategy' => $generationData['content_strategy'] ?? 'standard',
-            'approved' => (bool)$content->approved,
+            'approved' => (bool) $content->approved,
             'approvedby' => $content->approvedby,
             'timeapproved' => $content->timeapproved,
             'approver' => $approver,
@@ -132,12 +135,12 @@ try {
             'isCompleted' => $isCompleted
         ];
     }
-    
+
     echo json_encode([
         'success' => true,
         'contents' => $result
     ]);
-    
+
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([
