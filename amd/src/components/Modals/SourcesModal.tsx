@@ -677,6 +677,22 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
 
   const isAnyUploading = boxes.some(box => box.type === 'uploading');
 
+  // Calculate credit label based on scanned/unscanned files
+  const getCreditLabel = () => {
+    const hasScanned = boxes.some((box) => (box.type === 'pending_details' || box.type === 'uploading') && box.isScanned);
+    const hasUnscanned = boxes.some((box) => (box.type === 'pending_details' || box.type === 'uploading') && !box.isScanned);
+
+    if (hasScanned && hasUnscanned) {
+      return '0.20-0.30 Credits / Page';
+    } else if (hasScanned) {
+      return '0.30 Credits / Page';
+    } else if (hasUnscanned) {
+      return '0.20 Credits / Page';
+    }
+    // Default when no files are pending/uploading
+    return '0.20-0.30 Credits / Page';
+  };
+
   return (
     <Modal
       open={open}
@@ -709,7 +725,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
               Manage Sources
             </Typography>
             <Chip
-              label="0.30 Credits / Page"
+              label={getCreditLabel()}
               size="small"
               sx={{
                 bgcolor: 'rgba(15, 108, 191, 0.1)',
