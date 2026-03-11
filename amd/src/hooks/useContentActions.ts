@@ -177,7 +177,7 @@ export const useContentActions = (
     const handleGenerateVideoLecture = async (
         contentId: number,
         contentStrategy: 'standard' | 'example_driven',
-        language: 'en' | 'hi' | 'mr',
+        language: 'en' | 'hi' | 'mr' | 'kn' | 'ta' | 'si',
         voiceGender: 'female' | 'male',
         avatarStrategy: 'none' | 'title_only'
     ) => {

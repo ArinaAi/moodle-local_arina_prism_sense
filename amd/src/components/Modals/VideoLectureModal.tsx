@@ -23,7 +23,7 @@ import type { ContentItem } from '../../types/app';
 import SectionGroup from './video-lecture/SectionGroup';
 import { getModalBoxStyles, getModalLayoutStyles } from '../../utils/modalStyles';
 
-type Language = 'en' | 'hi' | 'mr';
+type Language = 'en' | 'hi' | 'mr' | 'kn' | 'ta' | 'si';
 
 const OPTION_PAPER_STYLE = {
     // Fluid padding
@@ -77,7 +77,7 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
     const styles = getVideoModalStyles(isMobile);
 
     const [selectedSlideId, setSelectedSlideId] = useState<number | null>(null);
-    const [contentStrategy, setContentStrategy] = useState<'standard' | 'example_driven'>('standard');
+
     const [language, setLanguage] = useState<Language>('en');
     const [voiceGender, setVoiceGender] = useState<'female' | 'male'>('female');
     const [avatarStrategy, setAvatarStrategy] = useState<'none' | 'title_only'>('none');
@@ -111,7 +111,6 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
     useEffect(() => {
         if (open) {
             setSelectedSlideId(null);
-            setContentStrategy('standard');
             setLanguage('en');
             setVoiceGender('female');
             setAvatarStrategy('none');
@@ -124,7 +123,7 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
 
     const handleGenerate = () => {
         if (!selectedSlideId) { return; }
-        onGenerate(selectedSlideId, contentStrategy, language, voiceGender, avatarStrategy);
+        onGenerate(selectedSlideId, 'standard', language, voiceGender, avatarStrategy);
         onClose();
     };
 
@@ -187,41 +186,7 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                             Video Options
                         </Typography>
 
-                        <Paper
-                            variant="outlined"
-                            sx={{ ...OPTION_PAPER_STYLE, mb: 2 }}
-                        >
-                            <FormControl component="fieldset">
-                                <FormLabel
-                                    component="legend"
-                                    sx={{
-                                        fontWeight: 600,
-                                        color: '#1a1a1a',
-                                        mb: 1.5,
-                                        '&.Mui-focused': { color: '#1a1a1a' },
-                                    }}
-                                >
-                                    Content Type
-                                </FormLabel>
-                                <RadioGroup value={contentStrategy} onChange={(e) => setContentStrategy(e.target.value as 'standard' | 'example_driven')}>
-                                    <FormControlLabel
-                                        value="standard"
-                                        control={<Radio />}
-                                        label={
-                                            <Box>
-                                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                    Standard
-                                                </Typography>
-                                                <Typography variant="caption" color="text.secondary">
-                                                    Theory-focused approach
-                                                </Typography>
-                                            </Box>
-                                        }
-                                        sx={{ mb: 1, ml: 0, alignItems: 'flex-start' }}
-                                    />
-                                </RadioGroup>
-                            </FormControl>
-                        </Paper>
+
 
                         <Paper
                             variant="outlined"
@@ -240,9 +205,14 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                                     Language
                                 </FormLabel>
                                 <RadioGroup value={language} onChange={(e) => setLanguage(e.target.value as Language)}>
-                                    <FormControlLabel value="en" control={<Radio />} label="English" sx={{ mb: 1, ml: 0 }} />
-                                    <FormControlLabel value="hi" control={<Radio />} label="Hindi" sx={{ mb: 1, ml: 0 }} />
-                                    <FormControlLabel value="mr" control={<Radio />} label="Marathi" sx={{ ml: 0 }} />
+                                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+                                        <FormControlLabel value="en" control={<Radio />} label="English" sx={{ ml: 0 }} />
+                                        <FormControlLabel value="hi" control={<Radio />} label="Hindi" sx={{ ml: 0 }} />
+                                        <FormControlLabel value="mr" control={<Radio />} label="Marathi" sx={{ ml: 0 }} />
+                                        <FormControlLabel value="kn" control={<Radio />} label="Kannada" sx={{ ml: 0 }} />
+                                        <FormControlLabel value="ta" control={<Radio />} label="Tamil" sx={{ ml: 0 }} />
+                                        <FormControlLabel value="si" control={<Radio />} label="Sinhala" sx={{ ml: 0 }} />
+                                    </Box>
                                 </RadioGroup>
                             </FormControl>
                         </Paper>
