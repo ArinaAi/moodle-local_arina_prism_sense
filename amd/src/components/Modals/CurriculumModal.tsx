@@ -19,11 +19,14 @@ import {
   RadioGroup,
   Fade,
   Chip,
+  Collapse,
+  TextField,
+  CircularProgress,
   Tooltip,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import { Close, CheckCircle, WarningAmber } from '@mui/icons-material';
+import { Close, CheckCircle, WarningAmber, Add } from '@mui/icons-material';
 import { FileText, FolderOpen } from 'lucide-react';
 import { getModalBoxStyles, getModalLayoutStyles } from '../../utils/modalStyles';
 import type { MoodleContext } from '../../types/moodle';
@@ -90,6 +93,12 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
   const [error, setError] = useState('');
   const [showCurriculum, setShowCurriculum] = useState(false);
   const [curriculumText, setCurriculumText] = useState('');
+
+  // Add-curriculum inline panel state
+  const [addingCurriculumSectionId, setAddingCurriculumSectionId] = useState<number | null>(null);
+  const [newCurriculumText, setNewCurriculumText] = useState('');
+  const [isSavingCurriculum, setIsSavingCurriculum] = useState(false);
+  const [saveCurriculumError, setSaveCurriculumError] = useState('');
 
   // Use external helper function
   const styles = getModalStyles(isMobile);
@@ -188,6 +197,58 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
     if (!section) { return; }
     setCurriculumText(section.curriculum || '');
     setShowCurriculum(true);
+  };
+
+  const handleOpenAddCurriculum = (e: React.MouseEvent, sectionId: number) => {
+    e.stopPropagation();
+    setNewCurriculumText('');
+    setSaveCurriculumError('');
+    setAddingCurriculumSectionId((prev) => (prev === sectionId ? null : sectionId));
+  };
+
+  const handleSaveCurriculum = async (e: React.MouseEvent, sectionId: number) => {
+    e.stopPropagation();
+    if (!newCurriculumText.trim()) {
+      setSaveCurriculumError('Please enter curriculum content before saving.');
+      return;
+    }
+    setIsSavingCurriculum(true);
+    setSaveCurriculumError('');
+    try {
+      const response = await fetch(
+        `${moodleContext.wwwroot}/local/lecturebot/api/add_curriculum.php`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            courseid: moodleContext.courseid,
+            sectionid: sectionId,
+            curriculum_text: newCurriculumText.trim(),
+          }),
+        }
+      );
+      const data = await response.json();
+      if (data.status !== 'success') {
+        throw new Error(data.error || 'Failed to save curriculum.');
+      }
+      // Update section in-place so it becomes selectable
+      setSectionsWithSources((prev) =>
+        prev.map((s) =>
+          s.id === sectionId
+            ? { ...s, hasCurriculum: true, curriculum: newCurriculumText.trim(), curriculumChecked: true }
+            : s
+        )
+      );
+      // Auto-select this section if nothing is selected yet
+      setSelectedSectionId((prev) => prev ?? sectionId);
+      setAddingCurriculumSectionId(null);
+      setNewCurriculumText('');
+    } catch (err: any) {
+      setSaveCurriculumError(err.message || 'Something went wrong.');
+    } finally {
+      setIsSavingCurriculum(false);
+    }
   };
 
   const handleGenerate = () => {
@@ -455,20 +516,30 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
                             </Button>
                           )}
 
-                          {/* Inline warning when curriculum is missing */}
+                          {/* Inline "Add Curriculum" button when curriculum is missing */}
                           {missingCurriculum && (
-                            <Typography
-                              variant="caption"
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              startIcon={<Add sx={{ fontSize: '0.9rem !important' }} />}
+                              onClick={(e) => handleOpenAddCurriculum(e, section.id)}
                               sx={{
+                                fontSize: '0.72rem',
+                                textTransform: 'none',
+                                minWidth: 'auto',
+                                padding: '2px 8px',
+                                fontWeight: 600,
+                                borderRadius: 2,
                                 color: '#b45309',
-                                fontWeight: 500,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 0.5,
+                                borderColor: '#d97706',
+                                '&:hover': {
+                                  bgcolor: 'rgba(217, 119, 6, 0.08)',
+                                  borderColor: '#b45309',
+                                },
                               }}
                             >
-                              No curriculum · Add a <em>Text &amp; Media</em> area titled &ldquo;Curriculum&rdquo;
-                            </Typography>
+                              Add Curriculum
+                            </Button>
                           )}
                         </Box>
                       </Box>
@@ -485,6 +556,84 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
                         }}
                       />
                     </Box>
+
+                    {/* Inline Add Curriculum panel — expands below the card row */}
+                    <Collapse in={addingCurriculumSectionId === section.id} timeout={250} unmountOnExit>
+                      <Box
+                        onClick={(e) => e.stopPropagation()}
+                        sx={{
+                          mt: 1.5,
+                          pt: 1.5,
+                          borderTop: '1px solid #f0e8d8',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 1.5,
+                        }}
+                      >
+                        <Typography variant="caption" sx={{ color: '#92400e', fontWeight: 600 }}>
+                          Paste or type the curriculum for this section:
+                        </Typography>
+                        <TextField
+                          multiline
+                          minRows={4}
+                          maxRows={10}
+                          fullWidth
+                          placeholder="e.g. Week 1: Introduction to...&#10;Week 2: Core concepts of..."
+                          value={newCurriculumText}
+                          onChange={(e) => {
+                            setNewCurriculumText(e.target.value);
+                            if (saveCurriculumError) { setSaveCurriculumError(''); }
+                          }}
+                          disabled={isSavingCurriculum}
+                          size="small"
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              fontSize: '0.82rem',
+                              borderRadius: '10px',
+                              '& fieldset': { borderColor: '#d97706' },
+                              '&:hover fieldset': { borderColor: '#b45309' },
+                              '&.Mui-focused fieldset': { borderColor: '#b45309' },
+                            },
+                          }}
+                        />
+                        {saveCurriculumError && (
+                          <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 500 }}>
+                            {saveCurriculumError}
+                          </Typography>
+                        )}
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                          <Button
+                            size="small"
+                            variant="text"
+                            disabled={isSavingCurriculum}
+                            onClick={(e) => { e.stopPropagation(); setAddingCurriculumSectionId(null); setNewCurriculumText(''); setSaveCurriculumError(''); }}
+                            sx={{ fontSize: '0.78rem', textTransform: 'none', color: 'text.secondary' }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            disabled={isSavingCurriculum || !newCurriculumText.trim()}
+                            onClick={(e) => handleSaveCurriculum(e, section.id)}
+                            sx={{
+                              fontSize: '0.78rem',
+                              textTransform: 'none',
+                              fontWeight: 600,
+                              bgcolor: '#b45309',
+                              '&:hover': { bgcolor: '#92400e' },
+                              '&:disabled': { bgcolor: 'rgba(0,0,0,0.12)' },
+                              minWidth: 120,
+                            }}
+                          >
+                            {isSavingCurriculum ? (
+                              <CircularProgress size={14} sx={{ color: 'white', mr: 1 }} />
+                            ) : null}
+                            {isSavingCurriculum ? 'Saving…' : 'Save & Add'}
+                          </Button>
+                        </Box>
+                      </Box>
+                    </Collapse>
                   </CardContent>
                 </Card>
               </Fade>
