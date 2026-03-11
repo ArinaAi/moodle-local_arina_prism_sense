@@ -696,21 +696,23 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
 
   const isAnyUploading = boxes.some(box => box.type === 'uploading');
 
-  // Calculate credit label based on scanned/unscanned files
-  const getCreditLabel = () => {
+  // Calculate credit label and colors based on scanned/unscanned files
+  const getCreditBadgeProps = () => {
     const hasScanned = boxes.some((box) => (box.type === 'pending_details' || box.type === 'uploading') && box.isScanned);
     const hasUnscanned = boxes.some((box) => (box.type === 'pending_details' || box.type === 'uploading') && !box.isScanned);
 
     if (hasScanned && hasUnscanned) {
-      return '0.20-0.30 Credits / Page';
+      return { label: 'Up to 0.30 Credits / Page', isOrange: true };
     } else if (hasScanned) {
-      return '0.30 Credits / Page';
+      return { label: '0.30 Credits / Page', isOrange: true };
     } else if (hasUnscanned) {
-      return '0.20 Credits / Page';
+      return { label: '0.20 Credits / Page', isOrange: false };
     }
     // Default when no files are pending/uploading
-    return '0.20-0.30 Credits / Page';
+    return { label: '0.20 Credits / Page', isOrange: false };
   };
+
+  const badgeProps = getCreditBadgeProps();
 
   return (
     <Modal
@@ -744,14 +746,14 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
               Manage Sources
             </Typography>
             <Chip
-              label={getCreditLabel()}
+              label={badgeProps.label}
               size="small"
               sx={{
-                bgcolor: 'rgba(15, 108, 191, 0.1)',
-                color: '#0f6cbf',
+                bgcolor: badgeProps.isOrange ? 'rgba(249, 115, 22, 0.1)' : 'rgba(15, 108, 191, 0.1)',
+                color: badgeProps.isOrange ? '#f97316' : '#0f6cbf',
                 fontWeight: 600,
                 fontSize: '0.75rem',
-                border: '1px solid rgba(15, 108, 191, 0.2)'
+                border: badgeProps.isOrange ? '1px solid rgba(249, 115, 22, 0.2)' : '1px solid rgba(15, 108, 191, 0.2)'
               }}
             />
           </Box>
@@ -1046,7 +1048,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
                                             color: isUploading ? 'text.disabled' : 'text.secondary',
                                           }}
                                         >
-                                          Scanned document
+                                          Scanned document (0.30 Credits/Page)
                                         </Typography>
                                         <Tooltip
                                           title="Check this if the PDF is a scanned/photographed document. Digital PDFs have selectable text."

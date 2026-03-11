@@ -1,7 +1,7 @@
 // components/docks/ContentTypeDock.tsx
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { Box } from '@mui/material';
-import { Presentation, Play, Wallet, Network, BookOpen, Briefcase } from 'lucide-react';
+import { Presentation, Play, Wallet, BookOpen } from 'lucide-react';
 import ContentTypeButton, { ContentTypeDefinition } from './ContentTypeButton';
 
 interface ContentTypeDockProps {
@@ -40,25 +40,11 @@ const contentTypes: ContentTypeDefinition[] = [
     description: 'Create study flashcards with questions and answers for quick review'
   },
   {
-    id: 'mind-map',
-    label: 'Mind Map',
-    icon: Network,
-    color: '#fd7e14',
-    description: 'Visualize concepts and their relationships in an organized structure'
-  },
-  {
     id: 'practice',
     label: 'Practice Exercise',
     icon: BookOpen,
     color: '#e83e8c',
     description: 'Generate practice problems and exercises to reinforce learning'
-  },
-  {
-    id: 'case-study',
-    label: 'Case Study',
-    icon: Briefcase,
-    color: '#20c997',
-    description: 'Create real-world scenarios and case studies for applied learning'
   },
 ];
 
