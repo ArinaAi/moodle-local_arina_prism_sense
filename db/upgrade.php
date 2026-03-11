@@ -69,6 +69,10 @@ function xmldb_local_lecturebot_upgrade($oldversion)
         local_lecturebot_upgrade_2026030200($dbman);
     }
 
+    if ($oldversion < 2026031000) {
+        local_lecturebot_upgrade_2026031000($dbman);
+    }
+
     return true;
 }
 
@@ -295,11 +299,11 @@ function local_lecturebot_upgrade_2026020500($dbman)
     if (!$dbman->field_exists($table, $field)) {
         $dbman->add_field($table, $field);
     }
-    
+
     // Add foreign keys
     $key = new xmldb_key('createdby', XMLDB_KEY_FOREIGN, ['createdby'], 'user', ['id']);
     $dbman->add_key($table, $key);
-    
+
     $key = new xmldb_key('publishedby', XMLDB_KEY_FOREIGN, ['publishedby'], 'user', ['id']);
     $dbman->add_key($table, $key);
 
@@ -339,7 +343,7 @@ function local_lecturebot_upgrade_2026020600($dbman)
         ['parent_content_id'],
         'local_lecturebot_content',
         ['id']
-        );
+    );
     $dbman->add_key($table, $key);
 
     // Create local_lecturebot_feedback table.
@@ -408,4 +412,29 @@ function local_lecturebot_upgrade_2026030200($dbman)
     }
 
     upgrade_plugin_savepoint(true, 2026030200, 'local', 'lecturebot');
+}
+
+/**
+ * Upgrade to add processing_status field for tracking doc processing state
+ */
+function local_lecturebot_upgrade_2026031000($dbman)
+{
+    $table = new xmldb_table('local_lecturebot_sources');
+
+    // Add processing_status field. Default 'uploaded' keeps existing rows unaffected.
+    $field = new xmldb_field(
+        'processing_status',
+        XMLDB_TYPE_CHAR,
+        '20',
+        null,
+        XMLDB_NOTNULL,
+        null,
+        'uploaded',
+        'batch_id'
+    );
+    if (!$dbman->field_exists($table, $field)) {
+        $dbman->add_field($table, $field);
+    }
+
+    upgrade_plugin_savepoint(true, 2026031000, 'local', 'lecturebot');
 }

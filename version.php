@@ -24,7 +24,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version = 2026030701;
+$plugin->version = 2026031000;
 $plugin->requires = 2025040800;
 $plugin->component = 'local_lecturebot';
 $plugin->maturity = MATURITY_STABLE;

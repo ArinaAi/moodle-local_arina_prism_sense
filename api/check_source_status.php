@@ -2,12 +2,15 @@
 /**
  * API endpoint to check if a source PDF's backend batch has finished processing.
  *
- * Returns { "processed": true } when it is safe to delete the source,
- * or { "processed": false } when the batch is still in progress.
+ * Now also writes the resolved processing_status back to the DB so the
+ * poll_processing_status.php endpoint (and future callers) always have
+ * an up-to-date cached status.
  *
- * Network safety: Returns { "processed": false, "network_error": true } on any
- * network/connectivity error to prevent deletion during uncertain state.
- * This ensures data integrity over convenience.
+ * Returns:
+ *   { "processed": true,  "processing_status": "uploaded" }  — done
+ *   { "processed": true,  "processing_status": "failed"   }  — doc processing failed
+ *   { "processed": false, "processing_status": "processing" } — still in progress
+ *   { "processed": false, "processing_status": "processing", "network_error": true } — cannot reach backend
  *
  * @package    local_lecturebot
  * @copyright  2025
@@ -34,28 +37,30 @@ try {
 
     if (!$source) {
         // Source not found — treat as processed (fail-safe).
-        echo json_encode(['processed' => true]);
+        echo json_encode(['processed' => true, 'processing_status' => 'uploaded']);
         exit;
     }
 
     // No batch_id means the file was stored locally only (backend upload disabled).
-    // Always allow deletion.
+    // Always allow deletion and treat as uploaded.
     if (empty($source->batch_id)) {
-        echo json_encode(['processed' => true]);
+        echo json_encode(['processed' => true, 'processing_status' => 'uploaded']);
+        exit;
+    }
+
+    // If already resolved in DB, return cached status immediately — no backend call needed.
+    if (isset($source->processing_status) && $source->processing_status !== 'processing') {
+        $isProcessed = $source->processing_status !== 'processing';
+        echo json_encode([
+            'processed' => $isProcessed,
+            'processing_status' => $source->processing_status,
+        ]);
         exit;
     }
 
     $batchId = $source->batch_id;
 
-    // Backend batch processing completes within a few minutes at most.
-    // If the source was uploaded more than 30 minutes ago, it is definitely
-    // processed — skip the backend API call entirely to avoid redundant requests
-    // every time the Sources Modal is opened.
-    $uploadedSecondsAgo = time() - (int) $source->timecreated;
-    if ($uploadedSecondsAgo > 1800) { // 30 minutes
-        echo json_encode(['processed' => true]);
-        exit;
-    }
+
 
 
     $apiKey = get_config('local_lecturebot', 'api_key');
@@ -89,7 +94,7 @@ try {
             $batchId .
             ' (HTTP ' . $httpCode . '): ' . $curlError
         );
-        echo json_encode(['processed' => false, 'network_error' => true]);
+        echo json_encode(['processed' => false, 'processing_status' => 'processing', 'network_error' => true]);
         exit;
     }
 
@@ -98,22 +103,48 @@ try {
     if (!is_array($data)) {
         // Malformed JSON — block deletion, cannot confirm status.
         error_log('LectureBot check_source_status: invalid JSON for batch ' . $batchId);
-        echo json_encode(['processed' => false, 'network_error' => true]);
+        echo json_encode(['processed' => false, 'processing_status' => 'processing', 'network_error' => true]);
         exit;
     }
 
-    // The batch is considered processed only when all uploads are completed.
-    $allDone = isset($data['all_uploads_completed']) && $data['all_uploads_completed'] === true;
+    // Determine processing outcome from the batch response.
+    // A batch is complete when all_uploads_completed === true.
+    $allUploadsCompleted = isset($data['all_uploads_completed']) && $data['all_uploads_completed'] === true;
 
-    error_log(
-        'LectureBot check_source_status: batch ' . $batchId .
-        ' all_uploads_completed=' . ($allDone ? 'true' : 'false')
-    );
+    if ($allUploadsCompleted) {
+        // Check if any individual upload has a failed/error status.
+        // The backend uses 'completed' for success and any other non-processing value
+        // (e.g. 'failed', 'error') indicates a failure.
+        $hasFailed = false;
+        if (!empty($data['upload_details']) && is_array($data['upload_details'])) {
+            foreach ($data['upload_details'] as $detail) {
+                $uploadStatus = isset($detail['status']) ? $detail['status'] : '';
+                if ($uploadStatus !== 'completed' && $uploadStatus !== 'processing') {
+                    $hasFailed = true;
+                    break;
+                }
+            }
+        }
 
-    echo json_encode(['processed' => $allDone]);
+        $newStatus = $hasFailed ? 'failed' : 'uploaded';
+        $DB->set_field('local_lecturebot_sources', 'processing_status', $newStatus, ['id' => $sourceid]);
+
+        error_log(
+            'LectureBot check_source_status: batch ' . $batchId .
+            ' resolved to processing_status=' . $newStatus
+        );
+
+        echo json_encode(['processed' => true, 'processing_status' => $newStatus]);
+    } else {
+        // Still processing.
+        error_log(
+            'LectureBot check_source_status: batch ' . $batchId . ' still processing'
+        );
+        echo json_encode(['processed' => false, 'processing_status' => 'processing']);
+    }
 
 } catch (Exception $e) {
     // Block deletion on unexpected exceptions — status is unknown.
     error_log('LectureBot check_source_status exception: ' . $e->getMessage());
-    echo json_encode(['processed' => false, 'network_error' => true]);
+    echo json_encode(['processed' => false, 'processing_status' => 'processing', 'network_error' => true]);
 }

@@ -190,6 +190,7 @@ try {
         $record->filesize = $storedfile->get_filesize();
         $record->is_scanned = ($isPhotograph === 'true') ? 1 : 0;
         $record->batch_id = null; // Will be set after batch creation
+        $record->processing_status = 'processing'; // Set after batch creation; default for backend-disabled path
         $record->timecreated = time();
         $record->timemodified = time();
 
@@ -392,8 +393,9 @@ try {
 
                     // Check success
                     if ($httpCode === 200 || $httpCode === 201) {
-                        // Backend upload succeeded - add batch_id and insert DB record
+                        // Backend upload succeeded - add batch_id, set processing status, insert DB record
                         $fileData['record']->batch_id = $batchId;
+                        $fileData['record']->processing_status = 'processing';
                         $dbId = $DB->insert_record('local_lecturebot_sources', $fileData['record']);
                         $uploadResult['success'] = true;
                         $uploadResult['db_id'] = $dbId;
@@ -444,9 +446,10 @@ try {
             exit;
         }
     } else {
-        // Backend upload disabled - insert all records to DB
+        // Backend upload disabled - insert all records to DB with 'uploaded' status
         error_log('LectureBot: Backend PDF upload is disabled');
         foreach ($storedFiles as $fileData) {
+            $fileData['record']->processing_status = 'uploaded';
             $dbId = $DB->insert_record('local_lecturebot_sources', $fileData['record']);
             $uploadResults[] = [
                 'filename' => $fileData['file']->get_filename(),
@@ -472,6 +475,7 @@ try {
                 'author' => $fileData['author'],
                 'filesize' => $fileData['record']->filesize,
                 'sectionid' => $sectionid,
+                'processing_status' => $fileData['record']->processing_status,
                 'timecreated' => $fileData['record']->timecreated,
                 'fileitemid' => $fileData['record']->fileitemid
             ];

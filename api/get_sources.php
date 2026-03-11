@@ -57,6 +57,7 @@ try {
                 'fileitemid' => $source->fileitemid,
                 'view_url' => $view_url->out(false),
                 'is_scanned' => isset($source->is_scanned) ? (int) $source->is_scanned : null,
+                'processing_status' => isset($source->processing_status) ? $source->processing_status : 'uploaded',
                 'timecreated' => $source->timecreated
             ];
         }
@@ -83,6 +84,7 @@ try {
                 'sectionname' => $section_names[$source->sectionid] ?? "Unknown Section",
                 'view_url' => $view_url->out(false),
                 'is_scanned' => isset($source->is_scanned) ? (int) $source->is_scanned : null,
+                'processing_status' => isset($source->processing_status) ? $source->processing_status : 'uploaded',
                 'timecreated' => $source->timecreated
             ];
         }

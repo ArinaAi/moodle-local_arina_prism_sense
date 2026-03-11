@@ -10,7 +10,7 @@
 define('AJAX_SCRIPT', true);
 require_once(__DIR__ . '/../../../config.php');
 require_once($CFG->libdir . '/filelib.php');
-
+require_once(__DIR__ . '/../config_api.php');
 header('Content-Type: application/json');
 
 try {

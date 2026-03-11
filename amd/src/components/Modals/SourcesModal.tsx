@@ -54,6 +54,7 @@ interface ExistingSource {
   title?: string;
   author?: string;
   is_scanned?: number | null;
+  processing_status?: 'uploaded' | 'processing' | 'failed';
 }
 
 interface BoxState {
@@ -64,14 +65,21 @@ interface BoxState {
   title: string;
   author: string;
   isScanned: boolean;
+  /** Only set for 'existing' boxes; mirrors existingSource.processing_status */
+  processingStatus?: 'uploaded' | 'processing' | 'failed';
 }
 
 // Helper function to get border color based on box type
-const getBorderColor = (boxType: BoxState['type']): string => {
+const getBorderColor = (
+  boxType: BoxState['type'],
+  processingStatus?: 'uploaded' | 'processing' | 'failed'
+): string => {
   if (boxType === 'error') {
     return '#dc3545';
   }
   if (boxType === 'existing') {
+    if (processingStatus === 'processing') { return '#0D5CA2'; }
+    if (processingStatus === 'failed') { return '#dc3545 '; }
     return '#28a745';
   }
   if (boxType === 'uploading' || boxType === 'pending_details') {
@@ -81,8 +89,13 @@ const getBorderColor = (boxType: BoxState['type']): string => {
 };
 
 // Helper function to get background color based on box type
-const getBackgroundColor = (boxType: BoxState['type']): string => {
+const getBackgroundColor = (
+  boxType: BoxState['type'],
+  processingStatus?: 'uploaded' | 'processing' | 'failed'
+): string => {
   if (boxType === 'existing') {
+    if (processingStatus === 'processing') { return '#f0f7ff'; }
+    if (processingStatus === 'failed') { return '#fff5f5'; }
     return '#f0fff4';
   }
   if (boxType === 'error') {
@@ -136,8 +149,52 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
   const [loading, setLoading] = useState(true);
   const [sectionSources, setSectionSources] = useState<Record<number, ExistingSource[]>>({});
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ open: boolean; boxIndex: number | null; sourceId: number | null }>({ open: false, boxIndex: null, sourceId: null });
-  // Tracks which sourceId's delete button is currently doing a status check (shows spinner)
-  const [checkingDeleteId, setCheckingDeleteId] = useState<number | null>(null);
+
+  // ── Polling ────────────────────────────────────────────────────────────────
+  // Start a 60-second poll when the modal is open and at least one box is
+  // still 'processing'. Stops automatically when all resolve or modal closes.
+  useEffect(() => {
+    if (!open || !moodleContext || selectedSection === null) { return; }
+
+    const hasProcessing = boxes.some(
+      (b) => b.type === 'existing' && b.processingStatus === 'processing'
+    );
+    if (!hasProcessing) { return; }
+
+    const intervalId = setInterval(async () => {
+      try {
+        const res = await fetch(
+          `${moodleContext.wwwroot}/local/lecturebot/api/poll_processing_status.php` +
+          `?courseid=${moodleContext.courseid}&sectionid=${selectedSection}`,
+          { method: 'GET', credentials: 'include' }
+        );
+        const data: { success: boolean; statuses: Record<string, string> } = await res.json();
+        if (!data.success || !data.statuses) { return; }
+
+        setBoxes((prevBoxes) => {
+          let changed = false;
+          const newBoxes = [...prevBoxes] as [BoxState, BoxState, BoxState];
+          prevBoxes.forEach((box, idx) => {
+            if (box.type !== 'existing' || !box.existingSource) { return; }
+            const newStatus = data.statuses[String(box.existingSource.id)] as
+              | 'uploaded' | 'processing' | 'failed'
+              | undefined;
+            if (newStatus && newStatus !== box.processingStatus) {
+              newBoxes[idx] = { ...box, processingStatus: newStatus };
+              changed = true;
+            }
+          });
+          return changed ? newBoxes : prevBoxes;
+        });
+      } catch {
+        // Network error — skip tick, try again next interval.
+      }
+    }, 60000);
+
+    return () => clearInterval(intervalId);
+    // Re-run when boxes change so we stop polling once everything resolves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, moodleContext, selectedSection, boxes]);
 
   // Load sections when modal opens
   useEffect(() => {
@@ -239,6 +296,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
           title: fallbackTitle,
           author: source.author || '',
           isScanned: false,
+          processingStatus: source.processing_status ?? 'uploaded',
         };
       }
     });
@@ -492,49 +550,11 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
     }
   };
 
-  // Called when user clicks the delete icon. Checks batch status first;
-  // if still processing shows a warning; if done opens the confirmation dialog.
-  const handleDeleteIconClick = async (boxIndex: number, sourceId: number) => {
-    setCheckingDeleteId(sourceId);
-    // Clear any stale warning from a previous attempt
+  // Called when user clicks the delete icon.
+  // No pre-check API call needed — delete eligibility is driven entirely by local processingStatus.
+  const handleDeleteIconClick = (boxIndex: number, sourceId: number) => {
     setErrors((prev) => ({ ...prev, deleteBlocked: '', general: '' }));
-    try {
-      const res = await fetch(
-        `${moodleContext.wwwroot}/local/lecturebot/api/check_source_status.php` +
-        `?courseid=${moodleContext.courseid}&sourceid=${sourceId}`,
-        { method: 'GET', credentials: 'include' }
-      );
-      const data: { processed?: boolean; network_error?: boolean } = await res.json();
-
-      if (data.network_error) {
-        // Cannot reach the backend API — block deletion until connectivity is restored
-        setErrors((prev) => ({
-          ...prev,
-          deleteBlocked: 'Unable to verify processing status. Please check your internet connection and try again.',
-        }));
-        return;
-      }
-
-      if (data.processed === false) {
-        // Still processing — show a warning instead of the delete dialog
-        setErrors((prev) => ({
-          ...prev,
-          deleteBlocked: 'This PDF is still being processed by the backend. Please wait a moment before deleting.',
-        }));
-        return;
-      }
-
-      // Processing done (or no batch) — open the normal confirmation dialog
-      setDeleteConfirmation({ open: true, boxIndex, sourceId });
-    } catch {
-      // The request to our own server failed (e.g. MAMP is down) — block deletion
-      setErrors((prev) => ({
-        ...prev,
-        deleteBlocked: 'Unable to verify processing status. Please check your connection and try again.',
-      }));
-    } finally {
-      setCheckingDeleteId(null);
-    }
+    setDeleteConfirmation({ open: true, boxIndex, sourceId });
   };
 
   const closeDeleteConfirmation = () => {
@@ -651,19 +671,18 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
     try {
       const result = await uploadFiles(boxesToUpload);
 
-      // Check if any uploads failed
       if (result && result.failures && result.failures.length > 0) {
-        // Don't close - user needs to see errors and retry
+        // Partial failures — stay open so user can retry
         setErrors({ general: `${result.failures.length} file(s) failed to upload. Please retry.` });
       } else {
-        // All succeeded - refresh credits and close modal
+        // All succeeded — close immediately. The modal will show Processing state on next open.
         refreshCredits();
         onClose();
       }
     } catch (err) {
       console.error('Upload failed:', err);
       setErrors({ general: 'Some files failed to upload. Please try again.' });
-      // Don't close - let user see error and retry
+      // Don't close — let user see error and retry
     }
   };
 
@@ -812,16 +831,6 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
             </Alert>
           )}
 
-          {!loading && errors.deleteBlocked && (
-            <Alert
-              severity="warning"
-              sx={{ mb: 3 }}
-              onClose={() => setErrors((prev) => ({ ...prev, deleteBlocked: '' }))}
-            >
-              {errors.deleteBlocked}
-            </Alert>
-          )}
-
           {!loading && sections.length === 0 && (
             <Alert severity="warning">
               No sections found in this course. Please create a section first.
@@ -841,8 +850,8 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
               >
                 {boxes.map((box, boxIndex) => {
                   const { isUploading, isExisting, isError, isEmpty, isPending } = getBoxTypeFlags(box.type);
-                  const borderColor = getBorderColor(box.type);
-                  const backgroundColor = getBackgroundColor(box.type);
+                  const borderColor = getBorderColor(box.type, box.processingStatus);
+                  const backgroundColor = getBackgroundColor(box.type, box.processingStatus);
                   const boxId = `source-upload-slot-${boxIndex + 1}`;
 
                   return (
@@ -1078,91 +1087,235 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
 
                         {isExisting && box.existingSource && (
                           <>
-                            <Box sx={{ position: 'relative', mb: 1.5 }}>
-                              <FileText size={40} color="#28a745" style={{ opacity: 0.9 }} />
-                              <Box
-                                sx={{
-                                  position: 'absolute',
-                                  bottom: -4,
-                                  right: -4,
-                                  width: 18,
-                                  height: 18,
-                                  borderRadius: '50%',
-                                  backgroundColor: '#28a745',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  border: '2px solid #ffffff',
-                                }}
-                              >
-                                <Check sx={{ fontSize: 10, color: '#ffffff' }} />
-                              </Box>
-                            </Box>
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                fontWeight: 700,
-                                mb: 0.5,
-                                color: '#1a1a1a',
-                                textAlign: 'center',
-                                px: 1,
-                                fontSize: 'clamp(0.75rem, 0.5vw + 0.7rem, 0.85rem)',
-                                wordBreak: 'break-word',
-                              }}
-                            >
-                              {truncateFilename(box.existingSource.filename)}
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: '#6c757d', mb: 1 }}>
-                              {formatFileSize(box.existingSource.filesize)}
-                            </Typography>
-
-                            {/* Scanned Badge - Centered Below */}
-                            {box.existingSource.is_scanned === 1 && (
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  justifyContent: 'center',
-                                  mt: 1,
-                                }}
-                              >
-                                <Box
+                            {/* ── PROCESSING state ── */}
+                            {box.processingStatus === 'processing' && (
+                              <>
+                                <Box sx={{ position: 'relative', mb: 1.5 }}>
+                                  <FileText size={40} color="#0D5CA2" style={{ opacity: 0.7 }} />
+                                  {/* Spinner overlay badge */}
+                                  <Box
+                                    sx={{
+                                      position: 'absolute',
+                                      bottom: -4,
+                                      right: -4,
+                                      width: 20,
+                                      height: 20,
+                                      borderRadius: '50%',
+                                      backgroundColor: '#ffffff',
+                                      border: '2px solid #0D5CA2',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                    }}
+                                  >
+                                    <CircularProgress size={11} thickness={5} sx={{ color: '#0D5CA2' }} />
+                                  </Box>
+                                </Box>
+                                <Typography
+                                  variant="body2"
                                   sx={{
-                                    background: 'linear-gradient(135deg, #f8f8f8 0%, #ececec 100%)',
-                                    color: '#666',
-                                    border: '1px solid #ddd',
-                                    borderRadius: '12px',
-                                    padding: '1px 6px',
-                                    fontSize: '0.6rem',
-                                    fontWeight: 500,
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.3px',
+                                    fontWeight: 700,
+                                    mb: 0.5,
+                                    color: '#1a1a1a',
+                                    textAlign: 'center',
+                                    px: 1,
+                                    fontSize: 'clamp(0.75rem, 0.5vw + 0.7rem, 0.85rem)',
+                                    wordBreak: 'break-word',
                                   }}
                                 >
-                                  Scanned
+                                  {truncateFilename(box.existingSource.filename)}
+                                </Typography>
+                                <Box
+                                  sx={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 0.5,
+                                    px: 1.5,
+                                    py: 0.4,
+                                    mt: 0.5,
+                                    borderRadius: '12px',
+                                    backgroundColor: 'rgba(13, 92, 162, 0.1)',
+                                    border: '1px solid rgba(13, 92, 162, 0.2)',
+                                  }}
+                                >
+                                  <CircularProgress size={9} thickness={5} sx={{ color: '#0D5CA2' }} />
+                                  <Typography
+                                    variant="caption"
+                                    sx={{ fontWeight: 600, color: '#0D5CA2', fontSize: '0.68rem' }}
+                                  >
+                                    Processing…
+                                  </Typography>
                                 </Box>
-                              </Box>
+                                {/* Delete button — disabled while processing */}
+                                <IconButton
+                                  disabled
+                                  size="small"
+                                  sx={{
+                                    position: 'absolute',
+                                    top: 8,
+                                    right: 8,
+                                    color: 'rgba(0,0,0,0.2)',
+                                    backgroundColor: 'rgba(255,255,255,0.6)',
+                                  }}
+                                >
+                                  <Delete fontSize="small" />
+                                </IconButton>
+                              </>
                             )}
 
-                            <IconButton
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void handleDeleteIconClick(boxIndex, box.existingSource!.id);
-                              }}
-                              disabled={checkingDeleteId === box.existingSource!.id}
-                              size="small"
-                              sx={{
-                                position: 'absolute',
-                                top: 8,
-                                right: 8,
-                                color: '#dc3545',
-                                backgroundColor: 'rgba(255,255,255,0.8)',
-                                '&:hover': { backgroundColor: '#fff', color: '#bd2130' },
-                              }}
-                            >
-                              {checkingDeleteId === box.existingSource!.id
-                                ? <CircularProgress size={14} thickness={4} sx={{ color: '#dc3545' }} />
-                                : <Delete fontSize="small" />}
-                            </IconButton>
+                            {/* ── FAILED state ── */}
+                            {box.processingStatus === 'failed' && (
+                              <>
+                                <Box sx={{ position: 'relative', mb: 1.5 }}>
+                                  <FileText size={40} color="#dc3545" style={{ opacity: 0.8 }} />
+                                  <Box
+                                    sx={{
+                                      position: 'absolute',
+                                      bottom: -4,
+                                      right: -4,
+                                      width: 18,
+                                      height: 18,
+                                      borderRadius: '50%',
+                                      backgroundColor: '#dc3545',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      border: '2px solid #ffffff',
+                                    }}
+                                  >
+                                    <ErrorIcon sx={{ fontSize: 10, color: '#ffffff' }} />
+                                  </Box>
+                                </Box>
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    fontWeight: 700,
+                                    mb: 0.5,
+                                    color: '#1a1a1a',
+                                    textAlign: 'center',
+                                    px: 1,
+                                    fontSize: 'clamp(0.75rem, 0.5vw + 0.7rem, 0.85rem)',
+                                    wordBreak: 'break-word',
+                                  }}
+                                >
+                                  {truncateFilename(box.existingSource.filename)}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    color: '#dc3545',
+                                    textAlign: 'center',
+                                    display: 'block',
+                                    px: 1,
+                                    mt: 0.5,
+                                    lineHeight: 1.4,
+                                    fontSize: '0.7rem',
+                                  }}
+                                >
+                                  Processing failed. Please delete and re-upload.
+                                </Typography>
+                                {/* Delete button — enabled for failed state */}
+                                <IconButton
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteIconClick(boxIndex, box.existingSource!.id);
+                                  }}
+                                  size="small"
+                                  sx={{
+                                    position: 'absolute',
+                                    top: 8,
+                                    right: 8,
+                                    color: '#dc3545',
+                                    backgroundColor: 'rgba(255,255,255,0.8)',
+                                    '&:hover': { backgroundColor: '#fff', color: '#bd2130' },
+                                  }}
+                                >
+                                  <Delete fontSize="small" />
+                                </IconButton>
+                              </>
+                            )}
+
+                            {/* ── UPLOADED (default) state ── */}
+                            {(box.processingStatus === 'uploaded' || !box.processingStatus) && (
+                              <>
+                                <Box sx={{ position: 'relative', mb: 1.5 }}>
+                                  <FileText size={40} color="#28a745" style={{ opacity: 0.9 }} />
+                                  <Box
+                                    sx={{
+                                      position: 'absolute',
+                                      bottom: -4,
+                                      right: -4,
+                                      width: 18,
+                                      height: 18,
+                                      borderRadius: '50%',
+                                      backgroundColor: '#28a745',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      border: '2px solid #ffffff',
+                                    }}
+                                  >
+                                    <Check sx={{ fontSize: 10, color: '#ffffff' }} />
+                                  </Box>
+                                </Box>
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    fontWeight: 700,
+                                    mb: 0.5,
+                                    color: '#1a1a1a',
+                                    textAlign: 'center',
+                                    px: 1,
+                                    fontSize: 'clamp(0.75rem, 0.5vw + 0.7rem, 0.85rem)',
+                                    wordBreak: 'break-word',
+                                  }}
+                                >
+                                  {truncateFilename(box.existingSource.filename)}
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: '#6c757d', mb: 1 }}>
+                                  {formatFileSize(box.existingSource.filesize)}
+                                </Typography>
+
+                                {/* Scanned Badge - Centered Below */}
+                                {box.existingSource.is_scanned === 1 && (
+                                  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
+                                    <Box
+                                      sx={{
+                                        background: 'linear-gradient(135deg, #f8f8f8 0%, #ececec 100%)',
+                                        color: '#666',
+                                        border: '1px solid #ddd',
+                                        borderRadius: '12px',
+                                        padding: '1px 6px',
+                                        fontSize: '0.6rem',
+                                        fontWeight: 500,
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.3px',
+                                      }}
+                                    >
+                                      Scanned
+                                    </Box>
+                                  </Box>
+                                )}
+
+                                <IconButton
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteIconClick(boxIndex, box.existingSource!.id);
+                                  }}
+                                  size="small"
+                                  sx={{
+                                    position: 'absolute',
+                                    top: 8,
+                                    right: 8,
+                                    color: '#dc3545',
+                                    backgroundColor: 'rgba(255,255,255,0.8)',
+                                    '&:hover': { backgroundColor: '#fff', color: '#bd2130' },
+                                  }}
+                                >
+                                  <Delete fontSize="small" />
+                                </IconButton>
+                              </>
+                            )}
                           </>
                         )}
 

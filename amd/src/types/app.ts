@@ -13,6 +13,7 @@ export interface SourceFile {
   title?: string;
   author?: string;
   view_url?: string;
+  processing_status?: 'uploaded' | 'processing' | 'failed';
 }
 
 export interface CurriculumSubtopic {
