@@ -265,6 +265,7 @@ export const App: React.FC = () => {
               onClose={handleCloseCurriculumModal}
               onGenerate={handleGenerateSlides}
               moodleContext={state.moodleContext}
+              availableBalance={availableBalance}
             />
           )}
 

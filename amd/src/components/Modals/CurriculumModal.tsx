@@ -35,8 +35,10 @@ import type { CurriculumStructure } from '../../types/app';
 interface CurriculumModalProps {
   open: boolean;
   onClose: () => void;
-  onGenerate: (curriculum: CurriculumStructure, contentStrategy: 'standard' | 'example_driven', sectionId: number, videoLength: string) => void;
+  onGenerate: (curriculum: CurriculumStructure, contentStrategy: 'standard' | 'example_driven', sectionId: number, videoLength: string, parentContentId?: number, feedbackId?: number) => void;
   moodleContext: MoodleContext;
+  /** User's current available credit balance */
+  availableBalance: number;
 }
 
 interface SectionWithSources {
@@ -76,11 +78,19 @@ const getModalStyles = (isMobile: boolean) => {
   };
 };
 
+// Map videoLength values to credit costs
+const CREDIT_COST: Record<string, number> = {
+  '5': 6,   // Express
+  '15': 8,  // Standard
+  '30': 10, // Extensive / Deep Dive
+};
+
 const CurriculumModal: React.FC<CurriculumModalProps> = ({
   open,
   onClose,
   onGenerate,
   moodleContext,
+  availableBalance,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -89,6 +99,10 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
   const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
   const [contentStrategy, setContentStrategy] = useState<'standard' | 'example_driven'>('standard');
   const [videoLength, setVideoLength] = useState<string>('5');
+
+  // Credit check
+  const requiredCredits = CREDIT_COST[videoLength] ?? 6;
+  const hasInsufficientCredits = availableBalance < requiredCredits;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCurriculum, setShowCurriculum] = useState(false);
@@ -761,6 +775,46 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
 
             </RadioGroup>
           </FormControl>
+
+          {/* Insufficient credits warning — shown inside the depth card */}
+          {hasInsufficientCredits && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 1,
+                mt: 1.5,
+                p: 1.5,
+                borderRadius: '8px',
+                bgcolor: 'rgba(249, 115, 22, 0.08)',
+                border: '1px solid rgba(249, 115, 22, 0.3)',
+              }}
+            >
+              <Box
+                component="span"
+                sx={{
+                  mt: '2px',
+                  flexShrink: 0,
+                  width: 16,
+                  height: 16,
+                  borderRadius: '50%',
+                  bgcolor: '#f97316',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  color: 'white',
+                }}
+              >
+                !
+              </Box>
+              <Typography variant="caption" sx={{ color: '#c2410c', fontWeight: 500, lineHeight: 1.5 }}>
+                You need <strong>{requiredCredits} credits</strong> for this option, but you only have{' '}
+                <strong>{Math.floor(availableBalance)} credit{Math.floor(availableBalance) !== 1 ? 's' : ''}</strong> available. Please choose a lower depth or contact your admin.
+              </Typography>
+            </Box>
+          )}
         </Paper>
 
         {/* Content Strategy */}
@@ -954,29 +1008,42 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
             >
               Cancel
             </Button>
-            <Button
-              variant="contained"
-              onClick={handleGenerate}
-              disabled={!selectedSectionId || loading}
-              fullWidth={isMobile}
-              sx={{
-                fontWeight: 600,
-                px: 4,
-                py: 1.25,
-                ...styles.touchTarget,
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  background: 'linear-gradient(135deg, #0a5a9d 0%, #084a82 100%)',
-                  boxShadow: '0 4px 12px rgba(15, 108, 191, 0.4)',
-                },
-                '&:disabled': {
-                  background: '#e0e0e0',
-                  color: '#9e9e9e',
-                },
-              }}
+            <Tooltip
+              title={
+                hasInsufficientCredits
+                  ? `You need ${requiredCredits} credits but only have ${availableBalance} available`
+                  : ''
+              }
+              arrow
+              disableHoverListener={!hasInsufficientCredits}
+              PopperProps={{ sx: { zIndex: 100003 } }}
             >
-              Generate Slides
-            </Button>
+              <span>
+                <Button
+                  variant="contained"
+                  onClick={handleGenerate}
+                  disabled={!selectedSectionId || loading || hasInsufficientCredits}
+                  fullWidth={isMobile}
+                  sx={{
+                    fontWeight: 600,
+                    px: 4,
+                    py: 1.25,
+                    ...styles.touchTarget,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #0a5a9d 0%, #084a82 100%)',
+                      boxShadow: '0 4px 12px rgba(15, 108, 191, 0.4)',
+                    },
+                    '&:disabled': {
+                      background: '#e0e0e0',
+                      color: '#9e9e9e',
+                    },
+                  }}
+                >
+                  Generate Slides
+                </Button>
+              </span>
+            </Tooltip>
           </Box>
         </Box>
       </Modal>
