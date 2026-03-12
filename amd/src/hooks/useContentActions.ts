@@ -529,6 +529,14 @@ export const useContentActions = (
                 const updatedItems = state.contentItems.filter(item => item.id !== contentId);
                 dispatch({ type: 'SET_CONTENT_ITEMS', payload: updatedItems });
 
+                // Clear preview if the deleted item is currently being previewed
+                if (state.currentContentId === contentId) {
+                    dispatch({ type: 'SET_GENERATED_CONTENT', payload: null });
+                    dispatch({ type: 'SET_GENERATED_SLIDES', payload: null });
+                    dispatch({ type: 'SET_CURRENT_CONTENT_ID', payload: null });
+                    dispatch({ type: 'SET_SLIDES_APPROVED', payload: false });
+                }
+
                 showNotification('Content deleted successfully!', 'success');
             } else {
                 throw new Error(result.error || 'Failed to delete content');
@@ -537,7 +545,7 @@ export const useContentActions = (
             console.error('Delete content error:', error);
             showNotification('Something went wrong while deleting content. Please try again.', 'error');
         }
-    }, [state.moodleContext, state.contentItems, dispatch, showNotification]);
+    }, [state.moodleContext, state.contentItems, state.currentContentId, dispatch, showNotification]);
 
     return {
         isLoadingContent,
