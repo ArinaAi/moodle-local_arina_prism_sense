@@ -327,9 +327,10 @@ export const useContentActions = (
             } else {
                 throw new Error(result.error || 'Failed to approve content');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Approval error:', error);
-            showNotification('Something went wrong while approving content. Please try again.', 'error');
+            const errorMsg = error?.message || 'Something went wrong while approving content. Please try again.';
+            showNotification(errorMsg, 'error');
         }
     }, [state.moodleContext, state.currentContentId, dispatch, showNotification, loadContentState]);
 

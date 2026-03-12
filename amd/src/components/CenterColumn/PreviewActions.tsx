@@ -1,10 +1,11 @@
 import React from 'react';
-import { Stack, Button, Box } from '@mui/material';
+import { Stack, Button, Box, Tooltip } from '@mui/material';
 import { Check, Refresh, Download } from '@mui/icons-material';
 import type { ContentItem } from '../../types/app';
 
 interface PreviewActionsProps {
     isApproved: boolean;
+    canApprove?: boolean;
     onApprove: () => void;
     onRegenerate: () => void;
     onDownload: () => void;
@@ -39,6 +40,7 @@ const getResponsiveStyles = () => ({
 });
 
 // Helper to get approve button styles (moved outside component)
+// canApprove: if false, the button is disabled due to lack of permission, not because it's already approved.
 const getApproveButtonStyles = (isApproved: boolean) => ({
     border: isApproved ? 'none' : '1px solid #28A745',
     color: isApproved ? '#fff' : '#28A745',
@@ -48,16 +50,21 @@ const getApproveButtonStyles = (isApproved: boolean) => ({
         transform: isApproved ? 'none' : 'translateY(-2px)',
         borderColor: '#28A745',
     },
-    '&.Mui-disabled': {
-        backgroundColor: '#28A745',
-        color: '#fff',
-        opacity: 0.9,
-    },
+    // Only override the disabled style with green when content is actually approved.
+    // If the user simply lacks permission, let MUI render its default grey disabled style.
+    ...(isApproved ? {
+        '&.Mui-disabled': {
+            backgroundColor: '#28A745',
+            color: '#fff',
+            opacity: 0.9,
+        },
+    } : {}),
 });
 
 // Helper to determine label (moved outside component)
-const getApproveLabel = (isApproved: boolean, isVideo: boolean): string => {
-    if (isApproved) { return 'Approved'; }
+const getApproveLabel = (isApproved: boolean, isVideo: boolean, canApprove: boolean): string => {
+    // If they can't approve it, it should just say 'Approve Slides' / 'Approve Video', not 'Approved'
+    if (isApproved && canApprove) { return 'Approved'; }
     if (isVideo) { return 'Approve Video'; }
     return 'Approve Slides';
 };
@@ -85,6 +92,7 @@ const sparkleStyles = {
 
 const PreviewActions: React.FC<PreviewActionsProps> = ({
     isApproved,
+    canApprove = true,
     onApprove,
     onRegenerate,
     onDownload,
@@ -96,8 +104,50 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
 
     // Use external helper functions (no longer needs isMobile)
     const styles = getResponsiveStyles();
-    const approveStyles = getApproveButtonStyles(isApproved);
-    const approveLabel = getApproveLabel(isApproved, isVideo ?? false);
+
+    // If the user can't approve, we don't want the button to look / say 'Approved'
+    // in the context of their own action.
+    const isEffectivelyApproved = isApproved && canApprove;
+    const approveStyles = getApproveButtonStyles(isEffectivelyApproved);
+    const approveLabel = getApproveLabel(isApproved, isVideo ?? false, canApprove);
+
+    const approveButton = (
+        <Button
+            variant={isEffectivelyApproved ? 'contained' : 'outlined'}
+            color={isEffectivelyApproved ? 'success' : 'primary'}
+            startIcon={<Check />}
+            onClick={onApprove}
+            disabled={isApproved || !canApprove}
+            sx={{ ...styles.button, ...approveStyles }}
+        >
+            {approveLabel}
+            <Box
+                className={isEffectivelyApproved ? "animate-pop" : ""}
+                sx={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
+                    transform: 'translate(-50%, -50%)',
+                    overflow: 'hidden',
+                    display: isEffectivelyApproved ? 'block' : 'none',
+                }}
+            >
+                {[0, 1, 2, 3, 4, 5].map((i) => (
+                    <Box
+                        key={i}
+                        sx={{
+                            ...sparkleStyles.base,
+                            animation: `sparkle-${i} 0.6s ease-out forwards`,
+                            ...sparkleStyles.keyframes,
+                        }}
+                    />
+                ))}
+            </Box>
+        </Button>
+    );
 
     return (
         <Stack
@@ -105,41 +155,22 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
             spacing={styles.stack.spacing}
             sx={{ mt: styles.stack.mt, flexWrap: 'wrap', gap: 'clamp(4px, 1vw, 8px)' }}
         >
-            <Button
-                variant={isApproved ? 'contained' : 'outlined'}
-                color={isApproved ? 'success' : 'primary'}
-                startIcon={<Check />}
-                onClick={onApprove}
-                disabled={isApproved}
-                sx={{ ...styles.button, ...approveStyles }}
-            >
-                {approveLabel}
-                <Box
-                    className={isApproved ? "animate-pop" : ""}
-                    sx={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        width: '100%',
-                        height: '100%',
-                        pointerEvents: 'none',
-                        transform: 'translate(-50%, -50%)',
-                        overflow: 'hidden',
-                        display: isApproved ? 'block' : 'none',
+            {!canApprove ? (
+                <Tooltip
+                    title="You do not have the capability to approve content. Please contact the admin."
+                    arrow
+                    placement="top"
+                    componentsProps={{
+                        popper: {
+                            style: { zIndex: 100010 },
+                        },
                     }}
                 >
-                    {[0, 1, 2, 3, 4, 5].map((i) => (
-                        <Box
-                            key={i}
-                            sx={{
-                                ...sparkleStyles.base,
-                                animation: `sparkle-${i} 0.6s ease-out forwards`,
-                                ...sparkleStyles.keyframes,
-                            }}
-                        />
-                    ))}
-                </Box>
-            </Button>
+                    <span style={{ display: 'inline-flex' }}>{approveButton}</span>
+                </Tooltip>
+            ) : (
+                approveButton
+            )}
 
             {showRegenerate && (
                 <Button

@@ -147,6 +147,7 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
           />
           <PreviewActions
             isApproved={isApproved}
+            canApprove={moodleContext?.canApprove ?? false}
             onApprove={onApproveSlides}
             onRegenerate={onOpenFeedbackModal}
             onDownload={handleDownloadSlides}
@@ -168,6 +169,7 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
         />
         <PreviewActions
           isApproved={isApproved}
+          canApprove={moodleContext?.canApprove ?? false}
           onApprove={onApproveSlides}
           onRegenerate={onOpenFeedbackModal}
           onDownload={handleDownloadSlides}
