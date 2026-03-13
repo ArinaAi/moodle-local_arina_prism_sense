@@ -66,7 +66,7 @@ class CreditServiceClient
         $decodedData = json_decode($response, true);
         return [
             'status' => $httpCode,
-            'data' => $decodedData
+            'data'   => $decodedData
         ];
     }
     
@@ -205,6 +205,25 @@ class CreditServiceClient
         return $this->makeRequest('GET', "/wallets/{$walletId}/transactions?{$query}");
     }
 
+    /**
+     * Get aggregated transactions for all child (sub-user) wallets under an org wallet.
+     * Returns ChildTransactionList: {transactions[], total, parent_wallet_id, child_wallet_count}
+     * Each transaction includes owner_id, external_sub_user_id, wallet_type metadata.
+     *
+     * @param string $orgWalletId The organization wallet ID
+     * @param int    $limit       Max records (default 100)
+     * @param int    $skip        Pagination offset
+     * @return array API response
+     */
+    public function getChildTransactions($orgWalletId, $limit = 100, $skip = 0)
+    {
+        $query = http_build_query([
+            'limit' => $limit,
+            'skip'  => $skip
+        ]);
+        return $this->makeRequest('GET', "/wallets/{$orgWalletId}/child-transactions?{$query}");
+    }
+
     public function allocateCredits($sourceWalletId, $targetWalletIds, $amountPerWallet, $performedByUserId = null)
     {
         $payload = [
@@ -216,6 +235,25 @@ class CreditServiceClient
             $payload['performed_by_user_id'] = $performedByUserId;
         }
         return $this->makeRequest('POST', '/wallets/allocate', $payload);
+    }
+
+    /**
+     * Reclaim credits from a sub-user wallet back to the parent organization.
+     * Uses the dedicated POST /wallets/{sub_wallet_id}/reclaim endpoint.
+     * Authorization headers (X-User-ID, X-User-Role) are injected by nginx.
+     *
+     * @param string $subWalletId  The sub-user's actual wallet ID (UUID)
+     * @param float  $amount       Amount of credits to reclaim (must be > 0)
+     * @param string|null $reason  Optional audit trail reason
+     * @return array API response
+     */
+    public function reclaimCredits($subWalletId, $amount, $reason = null)
+    {
+        $payload = ['amount' => $amount];
+        if ($reason !== null) {
+            $payload['reason'] = $reason;
+        }
+        return $this->makeRequest('POST', "/wallets/{$subWalletId}/reclaim", $payload);
     }
 
     /**

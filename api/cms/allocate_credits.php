@@ -54,9 +54,6 @@ try {
     // Target Wallet: JIT creation if needed, returns wallet ID directly
     $targetWalletId = $client->getOrInitializeSubUserWallet($targetUserId);
 
-    // Get the staff member's owner UUID (needed for recall authorization)
-    $targetUserUuid = $client->getUserOwnerUuid($targetUserId);
-
     // Determine direction and authorization
     if ($action === 'distribute') {
         // For distribute, check if the organization has sufficient balance
@@ -73,11 +70,10 @@ try {
             }
         }
 
-        $sourceWalletId = $orgWalletId;
-        $targetWalletIds = [$targetWalletId];
-        $performedByUuid = $orgUuid; // Org authorizes distribution
+        // Perform allocation: org -> sub-user
+        $response = $client->allocateCredits($orgWalletId, [$targetWalletId], $amount, $orgUuid);
     } elseif ($action === 'recall') {
-        // For recall, check if staff has sufficient balance
+        // For recall, check if staff has sufficient balance before calling the API
         $staffBalanceRes = $client->getWalletBalance($targetWalletId);
         if ($staffBalanceRes['status'] >= 200 && $staffBalanceRes['status'] < 300) {
             $availableBalance = floatval($staffBalanceRes['data']['available_balance'] ?? 0);
@@ -91,22 +87,19 @@ try {
             }
         }
 
-        $sourceWalletId = $targetWalletId;
-        $targetWalletIds = [$orgWalletId];
-        $performedByUuid = $targetUserUuid; // Staff member authorizes their own wallet allocation
+        // Use the dedicated reclaim endpoint: POST /wallets/{sub_wallet_id}/reclaim
+        $response = $client->reclaimCredits($targetWalletId, $amount, 'Admin recall via CMS dashboard');
     } else {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Invalid action. Must be distribute or recall']);
         exit;
     }
 
-    // Perform allocation with correct authorization
-    $response = $client->allocateCredits($sourceWalletId, $targetWalletIds, $amount, $performedByUuid);
-
     if ($response['status'] >= 200 && $response['status'] < 300) {
+        $successMessage = ($action === 'recall') ? 'Credits successfully reclaimed' : 'Credits successfully allocated';
         echo json_encode([
             'success' => true,
-            'message' => 'Credits successfully allocated'
+            'message' => $successMessage
         ]);
     } else {
         $backendError = '';
@@ -136,8 +129,13 @@ try {
         // Map technical backend errors to user-friendly messages
         $errorMessage = 'Allocation failed. Please try again or contact support.';
         if (stripos($backendError, 'Insufficient active batch credits') !== false) {
-            $errorMessage = "Cannot recall credits: The user's allocated
-            credits have already been consumed or have expired.";
+            if ($action === 'recall') {
+                $errorMessage = "Cannot recall credits:
+                The user's allocated credits have already been consumed or have expired.";
+            } else {
+                $errorMessage = "Cannot distribute credits: The organization's credit
+                batches have been fully consumed or have expired. Please add more credits.";
+            }
         } elseif (stripos($backendError, 'greater than 0') !== false) {
             $errorMessage = "Please enter a valid credit amount greater than 0.";
         } elseif (!empty($backendError)) {
