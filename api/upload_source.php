@@ -393,15 +393,22 @@ try {
 
                     // Check success
                     if ($httpCode === 200 || $httpCode === 201) {
-                        // Backend upload succeeded - add batch_id, set processing status, insert DB record
+                        // Decode backend response to grab the per-file upload_id.
+                        $backendData = json_decode($backendResponse, true);
+                        $uploadId = is_array($backendData) && isset($backendData['upload_id'])
+                            ? $backendData['upload_id']
+                            : null;
+
+                        // Backend upload succeeded - add batch_id + upload_id, set processing status, insert DB record
                         $fileData['record']->batch_id = $batchId;
+                        $fileData['record']->upload_id = $uploadId;
                         $fileData['record']->processing_status = 'processing';
                         $dbId = $DB->insert_record('local_lecturebot_sources', $fileData['record']);
                         $uploadResult['success'] = true;
                         $uploadResult['db_id'] = $dbId;
                         error_log(
                             "LectureBot: Successfully uploaded
-                             file $index to backend and saved to DB (ID: $dbId, Batch: $batchId)"
+                             file $index to backend and saved to DB (ID: $dbId, Batch: $batchId, Upload: $uploadId)"
                         );
                     } elseif ($httpCode === 401) {
                         throw new \moodle_exception('API key is missing or incorrect.

@@ -73,6 +73,10 @@ function xmldb_local_lecturebot_upgrade($oldversion)
         local_lecturebot_upgrade_2026031000($dbman);
     }
 
+    if ($oldversion < 2026031200) {
+        local_lecturebot_upgrade_2026031200($dbman);
+    }
+
     return true;
 }
 
@@ -437,4 +441,22 @@ function local_lecturebot_upgrade_2026031000($dbman)
     }
 
     upgrade_plugin_savepoint(true, 2026031000, 'local', 'lecturebot');
+}
+
+/**
+ * Upgrade to add upload_id field for per-file PDF processing status tracking.
+ * Each PDF now stores its own upload_id from the backend so the poller can
+ * match it to the correct entry in upload_details and read per-file status.
+ */
+function local_lecturebot_upgrade_2026031200($dbman)
+{
+    $table = new xmldb_table('local_lecturebot_sources');
+
+    // Add upload_id field — stores the UUID returned by /uploadpdf per file.
+    $field = new xmldb_field('upload_id', XMLDB_TYPE_CHAR, '36', null, null, null, null, 'batch_id');
+    if (!$dbman->field_exists($table, $field)) {
+        $dbman->add_field($table, $field);
+    }
+
+    upgrade_plugin_savepoint(true, 2026031200, 'local', 'lecturebot');
 }

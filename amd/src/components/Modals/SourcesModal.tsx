@@ -151,8 +151,10 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ open: boolean; boxIndex: number | null; sourceId: number | null }>({ open: false, boxIndex: null, sourceId: null });
 
   // ── Polling ────────────────────────────────────────────────────────────────
-  // Start a 60-second poll when the modal is open and at least one box is
-  // still 'processing'. Stops automatically when all resolve or modal closes.
+  // Fire immediately when the modal opens with a processing source, then
+  // repeat every 60 s. Stops automatically when all resolve or modal closes.
+  // Immediate first call prevents stale "processing" state if the user
+  // closed and reopened the modal after the PDF already finished.
   useEffect(() => {
     if (!open || !moodleContext || selectedSection === null) { return; }
 
@@ -161,7 +163,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
     );
     if (!hasProcessing) { return; }
 
-    const intervalId = setInterval(async () => {
+    const runPoll = async () => {
       try {
         const res = await fetch(
           `${moodleContext.wwwroot}/local/lecturebot/api/poll_processing_status.php` +
@@ -189,7 +191,11 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
       } catch {
         // Network error — skip tick, try again next interval.
       }
-    }, 60000);
+    };
+
+    // Fire immediately so stale DB status is fixed the moment the modal opens.
+    runPoll();
+    const intervalId = setInterval(runPoll, 60000);
 
     return () => clearInterval(intervalId);
     // Re-run when boxes change so we stop polling once everything resolves.
@@ -204,13 +210,17 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, moodleContext]);
 
-  // Load sources for selected section
+  // Load sources for selected section.
+  // Depends only on selectedSection — NOT sectionSources.
+  // If sectionSources were included, every delete would re-fire loadSectionSources,
+  // rebuilding boxes from the stale original API data and reverting the poller's
+  // in-place processingStatus updates (e.g. 'failed' → 'processing' flash).
   useEffect(() => {
     if (selectedSection !== null && sectionSources[selectedSection] !== undefined) {
       loadSectionSources(selectedSection);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSection, sectionSources]);
+  }, [selectedSection]);
 
   const loadSections = async () => {
     setLoading(true);

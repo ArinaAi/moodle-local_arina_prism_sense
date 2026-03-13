@@ -16,6 +16,7 @@
         <FIELD NAME="author" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Source author"/>
         <FIELD NAME="is_scanned" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" COMMENT="Is this a scanned PDF (1) or digital PDF (0/null)"/>
         <FIELD NAME="batch_id" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Backend batch upload ID for PDF processing"/>
+        <FIELD NAME="upload_id" TYPE="char" LENGTH="36" NOTNULL="false" SEQUENCE="false" COMMENT="Per-file upload UUID returned by the backend uploadpdf endpoint"/>
         <FIELD NAME="processing_status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="uploaded" SEQUENCE="false" COMMENT="Doc processing status: uploaded, processing, failed"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Time created"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Time modified"/>
