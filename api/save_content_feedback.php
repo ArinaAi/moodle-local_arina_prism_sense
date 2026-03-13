@@ -114,6 +114,7 @@ try {
     // ----------------------------------------------------------------
     // 3. POST to Arina Feedback Service
     // ----------------------------------------------------------------
+    $apiKey = get_config('local_lecturebot', 'api_key');
     $ch = curl_init(LECTUREBOT_CONTENT_REGEN_FEEDBACK_URL);
 
     curl_setopt_array($ch, [
@@ -125,6 +126,7 @@ try {
         CURLOPT_HTTPHEADER => [
             'Content-Type: application/json',
             'Accept: application/json',
+            'X-Api-key: ' . $apiKey,
         ],
     ]);
 

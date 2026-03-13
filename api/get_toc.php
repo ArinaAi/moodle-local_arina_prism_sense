@@ -30,9 +30,9 @@ try {
     // Get the content record
     $content = $DB->get_record('local_lecturebot_content', ['id' => $contentid], '*', MUST_EXIST);
 
-    // Verify user has access to this course
+    // Verify user has permission to generate content in this course
     $context = context_course::instance($content->courseid);
-    require_capability('moodle/course:view', $context);
+    require_capability('local/lecturebot:generatecontent', $context);
 
     // Release session lock to prevent blocking
     \core\session\manager::write_close();

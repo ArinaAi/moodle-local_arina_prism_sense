@@ -156,6 +156,7 @@ try {
     // ----------------------------------------------------------------
     // 5. Execute cURL request to Arina Feedback Service
     // ----------------------------------------------------------------
+    $apiKey = get_config('local_lecturebot', 'api_key');
     $ch = curl_init(LECTUREBOT_FEEDBACK_SERVICE_URL);
 
     curl_setopt_array($ch, [
@@ -167,6 +168,7 @@ try {
         CURLOPT_HTTPHEADER     => [
             "Content-Type: multipart/form-data; boundary={$boundary}",
             'Content-Length: ' . strlen($body),
+            'X-Api-key: ' . $apiKey,
         ],
     ]);
 
