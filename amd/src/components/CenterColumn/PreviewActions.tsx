@@ -62,9 +62,10 @@ const getApproveButtonStyles = (isApproved: boolean) => ({
 });
 
 // Helper to determine label (moved outside component)
-const getApproveLabel = (isApproved: boolean, isVideo: boolean, canApprove: boolean): string => {
-    // If they can't approve it, it should just say 'Approve Slides' / 'Approve Video', not 'Approved'
-    if (isApproved && canApprove) { return 'Approved'; }
+const getApproveLabel = (isApproved: boolean, isVideo: boolean, _canApprove: boolean): string => {
+    // Show "Approved" for all users when content is approved
+    if (isApproved) { return 'Approved'; }
+    // Show "Approve [Type]" when not yet approved
     if (isVideo) { return 'Approve Video'; }
     return 'Approve Slides';
 };
@@ -105,16 +106,29 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
     // Use external helper functions (no longer needs isMobile)
     const styles = getResponsiveStyles();
 
-    // If the user can't approve, we don't want the button to look / say 'Approved'
-    // in the context of their own action.
-    const isEffectivelyApproved = isApproved && canApprove;
-    const approveStyles = getApproveButtonStyles(isEffectivelyApproved);
+    // Show "Approved" state if content is approved (regardless of user permission)
+    // This keeps the UI consistent and shows the current state
+    const showApprovedState = isApproved;
+    const approveStyles = getApproveButtonStyles(showApprovedState);
     const approveLabel = getApproveLabel(isApproved, isVideo ?? false, canApprove);
+
+    // Determine tooltip message
+    const getTooltipMessage = () => {
+        if (!canApprove && !isApproved) {
+            // User lacks permission and content is not approved
+            return "You do not have the permission. Please contact admin";
+        }
+        if (isApproved && currentContentItem?.approver) {
+            // Content is approved, show approver info if available
+            return `Approved by ${currentContentItem.approver.fullname}`;
+        }
+        return "";
+    };
 
     const approveButton = (
         <Button
-            variant={isEffectivelyApproved ? 'contained' : 'outlined'}
-            color={isEffectivelyApproved ? 'success' : 'primary'}
+            variant={showApprovedState ? 'contained' : 'outlined'}
+            color={showApprovedState ? 'success' : 'primary'}
             startIcon={<Check />}
             onClick={onApprove}
             disabled={isApproved || !canApprove}
@@ -122,7 +136,7 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
         >
             {approveLabel}
             <Box
-                className={isEffectivelyApproved ? "animate-pop" : ""}
+                className={showApprovedState && canApprove ? "animate-pop" : ""}
                 sx={{
                     position: 'absolute',
                     top: '50%',
@@ -132,7 +146,7 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
                     pointerEvents: 'none',
                     transform: 'translate(-50%, -50%)',
                     overflow: 'hidden',
-                    display: isEffectivelyApproved ? 'block' : 'none',
+                    display: showApprovedState && canApprove ? 'block' : 'none',
                 }}
             >
                 {[0, 1, 2, 3, 4, 5].map((i) => (
@@ -155,9 +169,9 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
             spacing={styles.stack.spacing}
             sx={{ mt: styles.stack.mt, flexWrap: 'wrap', gap: 'clamp(4px, 1vw, 8px)' }}
         >
-            {!canApprove ? (
+            {(!canApprove || isApproved) && getTooltipMessage() ? (
                 <Tooltip
-                    title="You do not have the capability to approve content. Please contact the admin."
+                    title={getTooltipMessage()}
                     arrow
                     placement="top"
                     componentsProps={{

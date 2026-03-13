@@ -11,6 +11,7 @@ import {
   Menu,
   MenuItem,
   Typography,
+  Tooltip,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
@@ -214,44 +215,68 @@ const RightColumn: React.FC<RightColumnProps> = ({
           </Typography>
         </MenuItem>
         {menuSelectedItem?.status === 'published' && (
-          <MenuItem
-            onClick={handleUnpublishClick}
-            sx={{
-              color: 'warning.main',
-              gap: 1.5,
-              py: styles.menuItemPy,
-              px: 2,
-              minHeight: styles.menuItemMinHeight,
-              '&:hover': {
-                backgroundColor: 'rgba(237, 108, 2, 0.08)',
-              },
+          <Tooltip
+            title={!state.moodleContext?.canApprove ? "You do not have the permission. Please contact admin" : ""}
+            arrow
+            placement="left"
+            PopperProps={{
+              sx: { zIndex: 100015 }
             }}
           >
-            <UnpublishedOutlined fontSize="small" />
-            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-              Unpublish
-            </Typography>
-          </MenuItem>
+            <span style={{ width: '100%' }}>
+              <MenuItem
+                onClick={handleUnpublishClick}
+                disabled={!state.moodleContext?.canApprove}
+                sx={{
+                  color: !state.moodleContext?.canApprove ? 'text.disabled' : 'warning.main',
+                  gap: 1.5,
+                  py: styles.menuItemPy,
+                  px: 2,
+                  minHeight: styles.menuItemMinHeight,
+                  '&:hover': {
+                    backgroundColor: !state.moodleContext?.canApprove ? 'transparent' : 'rgba(237, 108, 2, 0.08)',
+                  },
+                }}
+              >
+                <UnpublishedOutlined fontSize="small" />
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                  Unpublish
+                </Typography>
+              </MenuItem>
+            </span>
+          </Tooltip>
         )}
         {menuSelectedItem?.status !== 'published' && (
-          <MenuItem
-            onClick={handleDeleteClick}
-            sx={{
-              color: 'error.main',
-              gap: 1.5,
-              py: styles.menuItemPy,
-              px: 2,
-              minHeight: styles.menuItemMinHeight,
-              '&:hover': {
-                backgroundColor: 'rgba(220, 53, 69, 0.08)',
-              },
+          <Tooltip
+            title={menuSelectedItem?.approved && !state.moodleContext?.canApprove ? "You do not have the permission. Please contact admin" : ""}
+            arrow
+            placement="left"
+            PopperProps={{
+              sx: { zIndex: 100015 }
             }}
           >
-            <Delete fontSize="small" />
-            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-              Delete
-            </Typography>
-          </MenuItem>
+            <span style={{ width: '100%' }}>
+              <MenuItem
+                onClick={handleDeleteClick}
+                disabled={menuSelectedItem?.approved && !state.moodleContext?.canApprove}
+                sx={{
+                  color: (menuSelectedItem?.approved && !state.moodleContext?.canApprove) ? 'text.disabled' : 'error.main',
+                  gap: 1.5,
+                  py: styles.menuItemPy,
+                  px: 2,
+                  minHeight: styles.menuItemMinHeight,
+                  '&:hover': {
+                    backgroundColor: (menuSelectedItem?.approved && !state.moodleContext?.canApprove) ? 'transparent' : 'rgba(220, 53, 69, 0.08)',
+                  },
+                }}
+              >
+                <Delete fontSize="small" />
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                  Delete
+                </Typography>
+              </MenuItem>
+            </span>
+          </Tooltip>
         )}
       </Menu>
 

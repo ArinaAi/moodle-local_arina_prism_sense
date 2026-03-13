@@ -245,49 +245,60 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                     </Box>
                 </Box>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'clamp(4px, 1vw, 8px)', flexShrink: 0, alignItems: 'center' }}>
-                    {item.approved && !isPublished && moodleContext.canApprove && (
+                    {item.approved && !isPublished && (
                         <Tooltip
-                            title="Publish to course page"
-                            {...TOOLTIP_CONFIG}
+                            title={moodleContext.canApprove ? "Publish to course page" : "You do not have the permission. Please contact admin"}
+                            arrow={true}
+                            placement="top"
+                            enterDelay={300}
+                            enterTouchDelay={300}
+                            PopperProps={{ sx: { zIndex: 100015 } }}
                         >
-                            <IconButton
-                                size="small"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onPublish(`content-${item.id}`);
-                                }}
-                                sx={{
-                                    width: 'clamp(20px, 3vw, 24px)',
-                                    height: 'clamp(20px, 3vw, 24px)',
-                                    backgroundColor: 'success.main',
-                                    color: 'white',
-                                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                                    transform: 'scale(1)',
-                                    '&:hover': {
-                                        backgroundColor: 'success.dark',
-                                        transform: 'scale(1.1)',
-                                        boxShadow: '0 4px 12px rgba(40, 167, 69, 0.4)',
-                                    },
-                                    '&:active': {
-                                        transform: 'scale(0.95)',
-                                    },
-                                }}
-                            >
-                                <Box
+                            <span>
+                                <IconButton
+                                    size="small"
+                                    disabled={!moodleContext.canApprove}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onPublish(`content-${item.id}`);
+                                    }}
                                     sx={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                        transform: 'rotate(0deg)',
+                                        width: 'clamp(20px, 3vw, 24px)',
+                                        height: 'clamp(20px, 3vw, 24px)',
+                                        backgroundColor: 'success.main',
+                                        color: 'white',
+                                        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        transform: 'scale(1)',
+                                        '&:hover': {
+                                            backgroundColor: 'success.dark',
+                                            transform: 'scale(1.1)',
+                                            boxShadow: '0 4px 12px rgba(40, 167, 69, 0.4)',
+                                        },
+                                        '&:active': {
+                                            transform: 'scale(0.95)',
+                                        },
+                                        '&.Mui-disabled': {
+                                            backgroundColor: 'grey.400',
+                                            color: 'grey.300',
+                                        },
                                     }}
                                 >
-                                    <Add fontSize="small" sx={{
-                                        fontSize: 'clamp(14px, 2vw, 16px)',
-                                        transition: 'opacity 0.2s ease',
-                                    }} />
-                                </Box>
-                            </IconButton>
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                            transform: 'rotate(0deg)',
+                                        }}
+                                    >
+                                        <Add fontSize="small" sx={{
+                                            fontSize: 'clamp(14px, 2vw, 16px)',
+                                            transition: 'opacity 0.2s ease',
+                                        }} />
+                                    </Box>
+                                </IconButton>
+                            </span>
                         </Tooltip>
                     )}
 
