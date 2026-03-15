@@ -307,24 +307,31 @@ class generate_content_task extends \core\task\adhoc_task
     {
         global $DB;
 
-        $sources = $DB->get_records('local_lecturebot_sources', [
-            'courseid' => $courseid,
-            'sectionid' => $sectionid
-        ]);
+        // Get the most recently uploaded source that has a batch_id.
+        // If multiple PDFs were uploaded one-at-a-time (each getting their own batch_id),
+        // we must use the LAST one. The backend's trigger_generation endpoint uses the
+        // latest batch_id to determine whether ALL uploads in the section are processed.
+        // Using an earlier batch_id would cause generation to fire before the last PDF finishes.
+        $sources = $DB->get_records_select(
+            'local_lecturebot_sources',
+            'courseid = :courseid AND sectionid = :sectionid AND batch_id IS NOT NULL AND batch_id <> :empty',
+            ['courseid' => $courseid, 'sectionid' => $sectionid, 'empty' => ''],
+            'timecreated DESC',
+            'id, batch_id, timecreated',
+            0,
+            1
+        );
 
         if (empty($sources)) {
-            mtrace("No sources found for course $courseid section $sectionid");
+            mtrace("No batch_id found in sources for course $courseid section $sectionid.
+            Skipping trigger_generation workflow.");
             return null;
         }
 
-        foreach ($sources as $source) {
-            if (!empty($source->batch_id)) {
-                return $source->batch_id;
-            }
-        }
-
-        mtrace("No batch_id found in sources. Skipping trigger_generation workflow.");
-        return null;
+        $latest = reset($sources);
+        mtrace("Using latest batch_id '{$latest->batch_id}'
+        from most recently uploaded PDF (source ID: {$latest->id}).");
+        return $latest->batch_id;
     }
 
     /**

@@ -39,3 +39,4 @@ $string['invalidfiletype'] = 'File is not a valid PDF';
 
 // Capabilities
 $string['lecturebot:approvecontent'] = 'Approve AI-generated content';
+$string['lecturebot:generatecontent'] = 'Generate AI content';
