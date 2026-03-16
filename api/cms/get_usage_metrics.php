@@ -26,10 +26,13 @@ try {
     // 1-2. Fetch Org Owner UUID and resolve the actual wallet ID
     $walletId = get_wallet_id_or_exit($client);
     
-    // 3. Fetch transactions (fetching up to 1000 to get a good sample for the chart)
-    $res = $client->getTransactions($walletId, 1000);
+    // 3. Fetch all child-wallet transactions so sub-user (teacher) usage is
+    //    included in the chart alongside any org-level consumption.
+    //    Fetching up to 1000 to get a good sample per service category.
+    $res = $client->getChildTransactions($walletId, 1000);
     
     if ($res['status'] >= 200 && $res['status'] < 300) {
+        // getChildTransactions returns {transactions[], total, parent_wallet_id, child_wallet_count}
         $txs = $res['data']['transactions'] ?? [];
         
         $metrics = [

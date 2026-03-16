@@ -27,6 +27,9 @@ require_capability('moodle/site:config', $context);
 
 header('Content-Type: application/json');
 
+// ── Date format constant (avoids sonar duplicate-literal warning) ───────────
+define('TS_FORMAT', 'M d, Y, H:i');
+
 // ── Friendly type labels ──────────────────────────────────────────────────────
 $typeLabels = [
     'PURCHASE'           => 'Credit Purchase',
@@ -191,7 +194,7 @@ function buildMeta($tx, $uuidNameCache, $walletIdNameCache, $actionLabels)
  */
 function formatTx($tx, $typeLabels, $uuidNameCache, $walletIdNameCache, $actionLabels, $staffName = null)
 {
-    $ts    = date('M d, Y, H:i', strtotime($tx['created_at']));
+    $ts    = date(TS_FORMAT, strtotime($tx['created_at']));
     $tsRaw = date('Y-m-d', strtotime($tx['created_at']));
     $type  = strtoupper($tx['transaction_type'] ?? $tx['type'] ?? 'UNKNOWN');
     $typeLabel = $typeLabels[$type] ?? ucwords(str_replace('_', ' ', strtolower($type)));
@@ -342,21 +345,50 @@ try {
         $fetchWalletId = $orgWalletId;
     }
 
-    // ── Append Reserved Credits row (if any) ─────────────────────────────────
-    $balRes = $client->getWalletBalance($fetchWalletId);
-    if ($balRes['status'] >= 200 && $balRes['status'] < 300 && !empty($balRes['data'])) {
-        $reserved = (float) ($balRes['data']['reserved_credits'] ?? 0);
-        if ($reserved > 0) {
-            array_unshift($ledger, [
-                'id'        => 'reserve-' . time(),
-                'ts'        => date('M d, Y, H:i'),
-                'tsRaw'     => date('Y-m-d'),
-                'type'      => 'PENDING_RESERVE',
-                'typeLabel' => 'Credits Reserved (Processing)',
-                'meta'      => 'Locked for pending generation requests',
-                'amount'    => -$reserved,
-                'balance'   => $balRes['data']['current_balance'] ?? 0,
-            ]);
+    // ── Append Reserved Credits row ───────────────────────────────────────────
+    // Per-staff view  → show only that user's wallet reserved_credits.
+    // Org-wide view   → show total_reserved (org + all sub-users) via the
+    //                   dedicated /credits/usage/reserved/org/{uuid} endpoint.
+    if ($subUserRequested) {
+        // Per-staff: read reserved_credits straight from the sub-user wallet.
+        $balRes   = $client->getWalletBalance($subWalletId);
+        if ($balRes['status'] >= 200 && $balRes['status'] < 300 && !empty($balRes['data'])) {
+            $reserved = (float) ($balRes['data']['reserved_credits'] ?? 0);
+            if ($reserved > 0) {
+                array_unshift($ledger, [
+                    'id'        => 'reserve-' . time(),
+                    'ts'        => date(TS_FORMAT),
+                    'tsRaw'     => date('Y-m-d'),
+                    'type'      => 'PENDING_RESERVE',
+                    'typeLabel' => 'Credits Reserved (Processing)',
+                    'meta'      => 'Locked for pending AI operations',
+                    'amount'    => -$reserved,
+                    'balance'   => (float) ($balRes['data']['current_balance'] ?? 0),
+                ]);
+            }
+        }
+    } else {
+        // Org-wide: use total_reserved (org wallet + all child wallets).
+        $reservedRes = $client->getOrgReservedCredits($orgUuid);
+        if ($reservedRes['status'] >= 200 && $reservedRes['status'] < 300 && !empty($reservedRes['data'])) {
+            $reserved = (float) ($reservedRes['data']['total_reserved'] ?? 0);
+            if ($reserved > 0) {
+                $balRes   = $client->getWalletBalance($orgWalletId);
+                $balAfter = ($balRes['status'] >= 200 && $balRes['status'] < 300)
+                    ? ($balRes['data']['current_balance'] ?? 0)
+                    : 0;
+
+                array_unshift($ledger, [
+                    'id'        => 'reserve-' . time(),
+                    'ts'        => date(TS_FORMAT),
+                    'tsRaw'     => date('Y-m-d'),
+                    'type'      => 'PENDING_RESERVE',
+                    'typeLabel' => 'Credits Reserved (Processing)',
+                    'meta'      => 'Locked for pending AI operations (org-wide)',
+                    'amount'    => -$reserved,
+                    'balance'   => $balAfter,
+                ]);
+            }
         }
     }
 
