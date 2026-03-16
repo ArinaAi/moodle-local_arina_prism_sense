@@ -113,14 +113,20 @@ try {
 
     // Check for regeneration feedback
     $parentContentId = isset($input['parent_content_id']) ? (int) $input['parent_content_id'] : 0;
-    $feedbackId = isset($input['feedback_id']) ? (int) $input['feedback_id'] : 0;
-    $feedbackData = null;
+    $feedbackId      = isset($input['feedback_id'])      ? (int) $input['feedback_id']      : 0;
 
-    if ($feedbackId > 0) {
-        $feedbackData = $DB->get_record('local_lecturebot_feedback', ['id' => $feedbackId]);
-        if ($feedbackData && $parentContentId === 0) {
-            $parentContentId = $feedbackData->contentid;
-        }
+    // Feedback fields are sent directly from the frontend (the external Arina service
+    // stores the canonical copy; there is no local local_lecturebot_feedback record to look up).
+    $rawFeedback = null;
+    if ($parentContentId > 0 && isset($input['feedback_topics_needing_depth'])) {
+        $rawFeedback = [
+            'topics_needing_depth' => $input['feedback_topics_needing_depth']  ?? [],
+            'topics_overexplained' => $input['feedback_topics_overexplained']  ?? [],
+            'extra_topics'         => $input['feedback_extra_topics']          ?? [],
+            'missing_subtopics'    => $input['feedback_missing_subtopics']     ?? [],
+            'reordered_flow'       => $input['feedback_reordered_flow']        ?? [],
+            'selected_categories'  => $input['feedback_selected_categories']   ?? [],
+        ];
     }
 
     $curriculumText = '';
@@ -253,20 +259,9 @@ try {
     $content->parent_content_id = $parentContentId > 0 ? $parentContentId : null;
     $content->feedback_id = $feedbackId > 0 ? $feedbackId : null;
 
-    // Prepare feedback for AI backend
-    $feedbackDetails = null;
-    if ($feedbackData) {
-        $feedbackDetails = [
-            'type' => $feedbackData->feedback_type,
-            'selected_categories' => json_decode($feedbackData->selected_categories),
-            'topics_needing_depth' => json_decode($feedbackData->topics_needing_depth),
-            'topics_overexplained' => json_decode($feedbackData->topics_overexplained),
-            'extra_topics' => json_decode($feedbackData->extra_topics),
-            'missing_subtopics' => json_decode($feedbackData->missing_subtopics),
-            'reordered_flow' => json_decode($feedbackData->reordered_flow),
-            'comments' => $feedbackData->comments
-        ];
-    }
+    // Build feedbackDetails from the raw fields passed directly by the frontend.
+    // (The external Arina service is the canonical store; no local DB record exists.)
+    $feedbackDetails = $rawFeedback;  // null when not a regeneration, array otherwise
 
     $content->generationdata = json_encode([
         'curriculum_text' => $curriculumText,

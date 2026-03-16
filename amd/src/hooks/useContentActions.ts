@@ -47,7 +47,15 @@ export const useContentActions = (
         sectionId: number,
         videoLength: string,
         parentContentId?: number,
-        feedbackId?: number
+        feedbackId?: number,
+        feedbackData?: {
+            topicsNeedingDepth: string[];
+            topicsOverExplained: string[];
+            extraTopics: string[];
+            missingSubtopics: string[];
+            reorderedTopicFlow: string[];
+            selectedCategories: string[];
+        }
     ) => {
         if (!state.moodleContext) {
             showNotification('Moodle context not available', 'error');
@@ -103,13 +111,25 @@ export const useContentActions = (
             // Use generate_content.php for real backend integration
             const proxyUrl = `${state.moodleContext.wwwroot}/local/lecturebot/api/generate_content.php?courseid=${state.moodleContext.courseid}&sesskey=${state.moodleContext.sesskey}`;
 
-            const requestBody = {
+            const requestBody: Record<string, unknown> = {
                 section_id: sectionId,
                 content_strategy: contentStrategy,
                 video_length: videoLength,
                 parent_content_id: parentContentId,
-                feedback_id: feedbackId
+                feedback_id: feedbackId,
             };
+
+            // Pass raw feedback fields so generate_content.php can forward them
+            // as feedback_json to generate_pptx (external service stores feedback,
+            // so local DB lookup is not possible).
+            if (feedbackData) {
+                requestBody.feedback_topics_needing_depth  = feedbackData.topicsNeedingDepth;
+                requestBody.feedback_topics_overexplained  = feedbackData.topicsOverExplained;
+                requestBody.feedback_extra_topics          = feedbackData.extraTopics;
+                requestBody.feedback_missing_subtopics     = feedbackData.missingSubtopics;
+                requestBody.feedback_reordered_flow        = feedbackData.reorderedTopicFlow;
+                requestBody.feedback_selected_categories   = feedbackData.selectedCategories;
+            }
 
             const response = await fetch(proxyUrl, {
                 method: 'POST',

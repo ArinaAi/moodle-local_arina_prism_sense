@@ -36,8 +36,18 @@ class generate_content_task extends \core\task\adhoc_task
                 return;
             }
 
-            // Try new workflow first, then fallback to legacy workflow
-            if ($this->handleNewWorkflow($taskData)) {
+            // Skip trigger_generation for:
+            // 1. Feedback-based regenerations — detected via parent_content_id > 0.
+            //    NOTE: we cannot use $taskData['data']->feedback because save_content_feedback.php
+            //    stores feedback in the external Arina service, not local_lecturebot_feedback,
+            //    so feedbackDetails is always null here. parent_content_id is the reliable signal.
+            // 2. Video generation — trigger_generation doesn't support video params
+            //    (language, voice_gender, avatar_strategy); use generate_video directly.
+            $isRegeneration = !empty($taskData['data']->parent_content_id) &&
+                ((int) $taskData['data']->parent_content_id) > 0;
+            $isVideo = ($taskData['contentType'] === 'video' || $taskData['avatarVideoNeeded'] === 'yes');
+
+            if (!$isRegeneration && !$isVideo && $this->handleNewWorkflow($taskData)) {
                 return;
             }
 
@@ -246,7 +256,10 @@ class generate_content_task extends \core\task\adhoc_task
      *
      * This method calls the /trigger_generation endpoint which checks if PDFs
      * are processed before starting generation. Polls until content_request_id
-     * is received or max attempts reached.
+     * is received or one of the abort conditions is met:
+     *   - Content record deleted mid-poll (orphaned task)
+     *   - Backend reports uploads not complete for MAX_UPLOAD_WAIT_ATTEMPTS consecutive polls
+     *   - Hard wall-clock timeout elapsed
      *
      * @param object $data Task custom data
      * @param string|null $userUuid User's owner UUID for credit tracking
@@ -254,6 +267,8 @@ class generate_content_task extends \core\task\adhoc_task
      */
     private function triggerGenerationWithPolling($data, $userUuid = null)
     {
+        global $DB;
+
         $batchId = $this->getBatchIdFromSources($data->course_id, $data->section_id);
         if (empty($batchId)) {
             return null;
@@ -266,34 +281,158 @@ class generate_content_task extends \core\task\adhoc_task
             throw new \local_lecturebot\exception\api_http_exception('API key is not configured');
         }
 
-        // Polling configuration - PDF processing can take several minutes
-        $maxAttempts = 60; // Max 60 attempts (60 × 60s = 60 minutes)
-        $pollInterval = 60; // 60 seconds (1 minute) between polls
+        // Polling configuration and mutable state bundled together
+        $pollCfg = [
+            'maxAttempts'           => 60,       // absolute maximum (60 × 60 s = 60 min)
+            'pollInterval'          => 60,       // seconds between each poll
+            'maxUploadWaitAttempts' => 10,       // consecutive "uploads not ready" before abort
+            'hardTimeoutSeconds'    => 20 * 60,  // 20-minute absolute wall-clock limit
+            'uploadNotReadyCount'   => 0,        // mutable: updated each iteration
+            'startTime'             => time(),   // mutable: wall-clock anchor
+        ];
 
-        mtrace("Starting trigger_generation polling (max $maxAttempts attempts, {$pollInterval}s interval, total ~" .
-            ($maxAttempts * $pollInterval / 60) . " minutes)");
+        mtrace("Starting trigger_generation polling (max {$pollCfg['maxAttempts']} attempts, " .
+            "{$pollCfg['pollInterval']}s interval, " .
+            "upload-not-ready limit: {$pollCfg['maxUploadWaitAttempts']}, hard timeout: " .
+            ($pollCfg['hardTimeoutSeconds'] / 60) . " min)");
 
-        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
-            mtrace("Attempt $attempt/$maxAttempts: Calling trigger_generation...");
+        for ($attempt = 1; $attempt <= $pollCfg['maxAttempts']; $attempt++) {
+            $pollCfg['elapsed'] = time() - $pollCfg['startTime'];
+            $iterResult = $this->runPollIteration($data, $batchId, $apiKey, $userUuid, $attempt, $pollCfg);
 
-            $params = $this->buildTriggerParams($data, $batchId, $userUuid);
-            $responseData = $this->callTriggerGenerationApi($params, $apiKey);
-
-            if ($responseData === null) {
-                sleep($pollInterval);
+            if ($iterResult === false) {
+                // Transient failure — reset counter and continue
+                $pollCfg['uploadNotReadyCount'] = 0;
                 continue;
             }
 
-            $result = $this->processTriggerResponse($responseData, $pollInterval);
-            if ($result !== false) {
-                return $result;
+            if (is_int($iterResult)) {
+                // Uploads not ready — updated counter, keep looping
+                $pollCfg['uploadNotReadyCount'] = $iterResult;
+                continue;
             }
-            // PDFs not ready yet — wait before next attempt
-            sleep($pollInterval);
+
+            // null → abort; string → success (content_request_id)
+            return $iterResult;
         }
 
-        mtrace("✗ Failed to get content_request_id after $maxAttempts attempts");
+        mtrace("✗ Failed to get content_request_id after {$pollCfg['maxAttempts']} attempts");
         return null;
+    }
+
+    /**
+     * Execute a single poll iteration of trigger_generation.
+     *
+     * Return values:
+     *   - string : content_request_id — generation successfully triggered
+     *   - null   : abort the polling loop (timeout / orphan / upload limit)
+     *   - int    : new uploadNotReadyCount — uploads pending, keep looping
+     *   - false  : transient failure — caller resets counter and keeps looping
+     *
+     * @param object      $data
+     * @param string      $batchId
+     * @param string      $apiKey
+     * @param string|null $userUuid
+     * @param int         $attempt
+     * @param array       $pollCfg  Keys: maxAttempts, pollInterval, maxUploadWaitAttempts,
+     *                              hardTimeoutSeconds, elapsed, uploadNotReadyCount, startTime
+     * @return string|null|int|false
+     */
+    private function runPollIteration($data, $batchId, $apiKey, $userUuid, $attempt, array $pollCfg)
+    {
+        // Guards 1 & 2: timeout / orphan — abort immediately
+        if ($this->checkAbortConditions($data, $pollCfg) !== null) {
+            return null;
+        }
+
+        $maxAttempts  = $pollCfg['maxAttempts'];
+        $pollInterval = $pollCfg['pollInterval'];
+        $elapsed      = $pollCfg['elapsed'];
+
+        mtrace("Attempt $attempt/$maxAttempts (elapsed: {$elapsed}s): Calling trigger_generation...");
+
+        $params       = $this->buildTriggerParams($data, $batchId, $userUuid);
+        $responseData = $this->callTriggerGenerationApi($params, $apiKey);
+
+        // null response = transient failure; delegate all other outcomes then sleep once
+        $iterReturn = ($responseData === null)
+            ? false
+            : $this->resolveIterationResult($responseData, $pollCfg, $pollInterval);
+
+        sleep($pollInterval);
+        return $iterReturn;
+    }
+
+    /**
+     * Resolve the outcome of a successful API response.
+     *
+     * @param array $responseData
+     * @param array $pollCfg
+     * @param int   $pollInterval
+     * @return string|null|int|false
+     */
+    private function resolveIterationResult(array $responseData, array $pollCfg, $pollInterval)
+    {
+        $result = $this->processTriggerResponse($responseData);
+
+        if ($result !== 'UPLOADS_NOT_READY') {
+            return $result; // string (success) or false (transient error)
+        }
+
+        return $this->handleUploadsNotReady(
+            $pollCfg['uploadNotReadyCount'],
+            $pollCfg['maxUploadWaitAttempts'],
+            $pollInterval
+        );
+    }
+
+    /**
+     * Check whether the polling loop should be aborted.
+     *
+     * Returns a non-null reason string if the loop must stop, or null if it may proceed.
+     *
+     * @param object $data
+     * @param array  $pollCfg
+     * @return string|null  Reason message on abort, null when safe to proceed
+     */
+    private function checkAbortConditions($data, array $pollCfg)
+    {
+        global $DB;
+
+        if ($pollCfg['elapsed'] >= $pollCfg['hardTimeoutSeconds']) {
+            mtrace("✗ Hard timeout reached after {$pollCfg['elapsed']}s. Aborting poll.");
+            return 'timeout';
+        }
+
+        if (!$DB->record_exists('local_lecturebot_content', ['id' => $data->content_id])) {
+            mtrace("✗ Content record {$data->content_id} no longer exists. Aborting orphaned poll.");
+            return 'orphan';
+        }
+
+        return null;
+    }
+
+    /**
+     * Handle an "uploads not ready" poll result.
+     *
+     * @param int $uploadNotReadyCount
+     * @param int $maxUploadWaitAttempts
+     * @param int $pollInterval
+     * @return int|null  Updated counter (keep looping) or null (abort)
+     */
+    private function handleUploadsNotReady($uploadNotReadyCount, $maxUploadWaitAttempts, $pollInterval)
+    {
+        $uploadNotReadyCount++;
+        mtrace("  ⏳ Uploads not ready (consecutive count: $uploadNotReadyCount/$maxUploadWaitAttempts)");
+
+        if ($uploadNotReadyCount >= $maxUploadWaitAttempts) {
+            mtrace("✗ Uploads did not complete after $maxUploadWaitAttempts consecutive attempts. " .
+                "The backend may have lost the batch. Aborting.");
+            return null;
+        }
+
+        sleep($pollInterval);
+        return $uploadNotReadyCount;
     }
 
     /**
@@ -323,14 +462,14 @@ class generate_content_task extends \core\task\adhoc_task
         );
 
         if (empty($sources)) {
-            mtrace("No batch_id found in sources for course $courseid section $sectionid.
-            Skipping trigger_generation workflow.");
+            mtrace("No batch_id found in sources for course $courseid section $sectionid. " .
+                "Skipping trigger_generation workflow.");
             return null;
         }
 
         $latest = reset($sources);
-        mtrace("Using latest batch_id '{$latest->batch_id}'
-        from most recently uploaded PDF (source ID: {$latest->id}).");
+        mtrace("Using latest batch_id '{$latest->batch_id}' from most recently uploaded PDF " .
+            "(source ID: {$latest->id}).");
         return $latest->batch_id;
     }
 
@@ -415,10 +554,12 @@ class generate_content_task extends \core\task\adhoc_task
      * Process trigger_generation API response
      *
      * @param array $responseData API response data
-     * @param int $pollInterval Polling interval in seconds
-     * @return string|null|false Content request ID on success, null to retry, false to continue polling
+     * @return string|'UPLOADS_NOT_READY'|false
+     *   - string: the content_request_id (success)
+     *   - 'UPLOADS_NOT_READY': backend confirmed uploads incomplete (counted toward abort limit)
+     *   - false: transient/unknown state (does NOT count toward abort limit)
      */
-    private function processTriggerResponse($responseData, $pollInterval)
+    private function processTriggerResponse($responseData)
     {
         $status = $responseData['status'] ?? 'unknown';
         $contentRequestId = $responseData['content_request_id'] ?? null;
@@ -429,14 +570,21 @@ class generate_content_task extends \core\task\adhoc_task
             return $contentRequestId;
         }
 
-        // Handle failed status
+        // Handle failed status — throws, so never returns
         if ($this->isFailedStatus($status)) {
             $this->handleTriggerFailure($responseData);
         }
 
-        // Check upload status
-        $this->logUploadStatus($responseData, $status, $pollInterval);
-        return false; // Continue polling
+        // Log current upload state
+        $this->logUploadStatus($responseData, $status);
+
+        // Distinguish "backend explicitly says uploads not done" from any other state
+        $allUploadsCompleted = $responseData['all_uploads_completed'] ?? false;
+        if (!$allUploadsCompleted) {
+            return 'UPLOADS_NOT_READY';
+        }
+
+        return false; // uploads done but trigger not fired yet — retry without counting
     }
 
     /**
@@ -480,13 +628,12 @@ class generate_content_task extends \core\task\adhoc_task
     }
 
     /**
-     * Log upload status and sleep
+     * Log upload status
      *
      * @param array $responseData Response data
      * @param string $status Status
-     * @param int $pollInterval Polling interval
      */
-    private function logUploadStatus($responseData, $status, $pollInterval)
+    private function logUploadStatus($responseData, $status)
     {
         $allUploadsCompleted = $responseData['all_uploads_completed'] ?? false;
         $shouldTrigger = $responseData['should_trigger_generation'] ?? false;
@@ -496,11 +643,11 @@ class generate_content_task extends \core\task\adhoc_task
         mtrace("  - status: $status");
 
         if (!$allUploadsCompleted) {
-            mtrace("  ⏳ PDFs still being processed. Waiting {$pollInterval}s...");
+            mtrace("  ⏳ PDFs still being processed...");
         } elseif (!$shouldTrigger) {
-            mtrace("  ⚠️ Uploads complete but generation not triggered");
+            mtrace("  ⚠️ Uploads complete but generation not triggered — retrying...");
         } else {
-            mtrace("  ⚠️ Unexpected state - retrying...");
+            mtrace("  ⚠️ Unexpected state — retrying...");
         }
     }
 

@@ -379,7 +379,8 @@ export const App: React.FC = () => {
                         currentItem.sectionid,
                         generationData.video_length || '30',
                         state.currentContentId ?? undefined,
-                        result.feedback_id
+                        result.feedback_id,
+                        feedback  // pass raw feedback fields so generate_pptx gets feedback_json
                       );
                     } else if (!result.success) {
                       console.error('Failed to save feedback:', result.error);
