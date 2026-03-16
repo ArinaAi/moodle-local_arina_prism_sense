@@ -138,12 +138,12 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
                 fontSize: 'clamp(0.9rem, 2vw + 0.5rem, 1.25rem)',
               }}
             >
-              {generatedContent.results[0].topic || 'Video Lecture'}
+              {currentContentItem?.sectionname || generatedContent.results[0].topic || 'Video Lecture'}
             </Typography>
           </Box>
           <VideoViewer
             videoUrl={videoUrl}
-            title={generatedContent.results[0].topic || 'Video Lecture'}
+            title={currentContentItem?.sectionname || generatedContent.results[0].topic || 'Video Lecture'}
           />
           <PreviewActions
             isApproved={isApproved}

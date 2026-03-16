@@ -93,23 +93,23 @@ const GeneratedContentList: React.FC<GeneratedContentListProps> = ({
         return (
             <List sx={{ flex: 1, overflow: 'auto', p: 0, pr: 1, scrollbarWidth: 'thin' }}>
                 <TransitionGroup component={null}>
+                    {errorItems.map((item, index) => (
+                        <Collapse key={item.id} timeout={400}>
+                            <Box sx={staggeredAnimation(index, 0)}>
+                                <GeneratedContentItem item={item} onPublish={onPublish} onUnpublish={onUnpublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} moodleContext={moodleContext} />
+                            </Box>
+                        </Collapse>
+                    ))}
                     {generatingItems.map((item, index) => (
                         <Collapse key={item.id} timeout={400}>
-                            <Box sx={staggeredAnimation(index)}>
+                            <Box sx={staggeredAnimation(errorItems.length + index, 0.05)}>
                                 <GeneratedContentItem item={item} onPublish={onPublish} onUnpublish={onUnpublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} moodleContext={moodleContext} />
                             </Box>
                         </Collapse>
                     ))}
                     {readyItems.map((item, index) => (
                         <Collapse key={item.id} timeout={400}>
-                            <Box sx={staggeredAnimation(generatingItems.length + index, 0.05)}>
-                                <GeneratedContentItem item={item} onPublish={onPublish} onUnpublish={onUnpublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} moodleContext={moodleContext} />
-                            </Box>
-                        </Collapse>
-                    ))}
-                    {errorItems.map((item, index) => (
-                        <Collapse key={item.id} timeout={400}>
-                            <Box sx={staggeredAnimation(generatingItems.length + readyItems.length + index, 0.1)}>
+                            <Box sx={staggeredAnimation(errorItems.length + generatingItems.length + index, 0.1)}>
                                 <GeneratedContentItem item={item} onPublish={onPublish} onUnpublish={onUnpublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} moodleContext={moodleContext} />
                             </Box>
                         </Collapse>
