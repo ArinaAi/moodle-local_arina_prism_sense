@@ -55,14 +55,14 @@ try {
         }
     }
 
-    // 2. Fetch all Moodle teachers (excluding site admins)
+    // 2. Fetch all Moodle teachers (excluding site admins — they are fetched separately below)
     $siteAdmins = isset($CFG->siteadmins) ? $CFG->siteadmins : '';
-    $excludeIds = array_filter(explode(',', $siteAdmins));
+    $adminIds = array_filter(array_map('intval', explode(',', $siteAdmins)));
 
     $excludeClause = '';
     $params = [];
-    if (!empty($excludeIds)) {
-        list($inSql, $params) = $DB->get_in_or_equal($excludeIds, SQL_PARAMS_QM, 'param', false); // false = NOT IN
+    if (!empty($adminIds)) {
+        list($inSql, $params) = $DB->get_in_or_equal($adminIds, SQL_PARAMS_QM, 'param', false); // false = NOT IN
         $excludeClause = "AND u.id {$inSql}";
     }
 
@@ -75,34 +75,58 @@ try {
 
     $teachers = $DB->get_records_sql($sql, $params);
 
+    // 3. Fetch site admin users (they get personal wallets just like sub-users now)
+    $adminUsers = [];
+    if (!empty($adminIds)) {
+        list($adminInSql, $adminParams) = $DB->get_in_or_equal($adminIds, SQL_PARAMS_QM, 'aparam');
+        $adminSql = "SELECT u.id, u.firstname, u.lastname, u.email, u.department
+                     FROM {user} u
+                     WHERE u.deleted = 0 AND u.suspended = 0 AND u.id {$adminInSql}";
+        $adminUsers = $DB->get_records_sql($adminSql, $adminParams);
+    }
+
+    // Helper to build a single staff row
+    $buildRow = function ($user, $isAdmin) use ($subWallets) {
+        $uuid = get_user_preferences('lecturebot_wallet_sub_user_id', null, $user->id);
+
+        $balance = 0;
+        $reservedCredits = 0;
+        $status = 'pending'; // no wallet yet
+        $walletId = null;
+
+        if ($uuid && isset($subWallets[$uuid])) {
+            $status = 'active';
+            $balance = $subWallets[$uuid]['balance'];
+            $walletId = $subWallets[$uuid]['wallet_id'];
+            $reservedCredits = $subWallets[$uuid]['reserved_credits'];
+        }
+
+        $defaultDepartment = $isAdmin ? 'Administrator' : 'Faculty';
+        return [
+            'id'              => $user->id,
+            'uuid'            => $uuid,
+            'wallet_id'       => $walletId,
+            'name'            => fullname($user),
+            'email'           => $user->email,
+            'department'      => !empty($user->department) ? $user->department : $defaultDepartment,
+            'status'          => $status,
+            'balance'         => $balance,
+            'reserved_credits'=> $reservedCredits,
+            'is_admin'        => $isAdmin,
+        ];
+    };
+
     $staffData = [];
+
+    // Add site admins first (they appear at the top with is_admin = true)
+    foreach ($adminUsers as $admin) {
+        $staffData[] = $buildRow($admin, true);
+    }
+
+    // Then teachers
     if ($teachers) {
         foreach ($teachers as $t) {
-            $uuid = get_user_preferences('lecturebot_wallet_sub_user_id', null, $t->id);
-
-            $balance = 0;
-            $reservedCredits = 0;
-            $status = 'pending'; // no wallet yet
-            $walletId = null;
-
-            if ($uuid && isset($subWallets[$uuid])) {
-                $status = 'active';
-                $balance = $subWallets[$uuid]['balance'];
-                $walletId = $subWallets[$uuid]['wallet_id'];
-                $reservedCredits = $subWallets[$uuid]['reserved_credits'];
-            }
-
-            $staffData[] = [
-                'id' => $t->id,  // Moodle ID
-                'uuid' => $uuid,   // Credit Service Owner ID
-                'wallet_id' => $walletId,
-                'name' => fullname($t),
-                'email' => $t->email,
-                'department' => !empty($t->department) ? $t->department : 'Faculty',
-                'status' => $status,
-                'balance' => $balance,
-                'reserved_credits' => $reservedCredits,
-            ];
+            $staffData[] = $buildRow($t, false);
         }
     }
 

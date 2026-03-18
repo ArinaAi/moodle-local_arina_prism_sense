@@ -208,22 +208,13 @@ try {
     // while we wait for the potentially slow backend upload
     \core\session\manager::write_close();
 
-    // Get user's owner UUID for credit tracking
+    // Get user's personal wallet UUID for credit tracking.
+    // Admins and sub-users both use the same lecturebot_wallet_sub_user_id preference.
+    // If the user has no personal wallet yet (no allocation received), $userUuid stays null
+    // and the user_id param is simply omitted from the backend API call.
     $userUuid = null;
     try {
-        // First try to get user's personal wallet UUID
         $userUuid = get_user_preferences('lecturebot_wallet_sub_user_id', null, $USER->id);
-
-        if (empty($userUuid)) {
-            // If no personal wallet, check if user is admin and use organization wallet
-            $context = \context_system::instance();
-            if (has_capability('moodle/site:config', $context, $USER->id)) {
-                $userUuid = get_config('local_lecturebot', 'org_wallet_owner_id');
-                if (!empty($userUuid)) {
-                    error_log("LectureBot: User is admin, using organization wallet UUID for upload");
-                }
-            }
-        }
     } catch (\Exception $e) {
         // Continue anyway, backend will return appropriate error if UUID is required
         error_log("LectureBot: Failed to get user UUID: " . $e->getMessage());

@@ -1038,10 +1038,15 @@ class generate_content_task extends \core\task\adhoc_task
     }
 
     /**
-     * Get user's owner UUID for credit tracking
+     * Get user's personal wallet UUID for credit tracking.
+     *
+     * All users (admins and sub-users) use the same lecturebot_wallet_sub_user_id
+     * preference. An admin's personal wallet is created JIT on first allocation from
+     * the org wallet. If no wallet exists yet, returns null (generation still works
+     * but credits won't be tracked against any specific wallet).
      *
      * @param object $data Task custom data
-     * @return string|null User's owner UUID or null if not available
+     * @return string|null User's personal wallet owner UUID, or null if not available
      */
     private function getUserUuidForCredit($data)
     {
@@ -1050,42 +1055,23 @@ class generate_content_task extends \core\task\adhoc_task
             return null;
         }
 
-        mtrace("Looking up UUID for user_id: " . $data->user_id);
+        mtrace("Looking up personal wallet UUID for user_id: " . $data->user_id);
 
+        $result = null;
         try {
-            $result = null;
-
-            // First try to get user's personal wallet UUID
             $userUuid = get_user_preferences('lecturebot_wallet_sub_user_id', null, $data->user_id);
 
             if (!empty($userUuid)) {
                 mtrace("Found personal wallet UUID: " . $userUuid);
                 $result = $userUuid;
             } else {
-                // If no personal wallet, check if user is admin and use organization wallet
-                mtrace("No personal wallet found, checking if user is admin...");
-
-                // Check if user has admin/manager role (can access site administration)
-                $context = \context_system::instance();
-                if (has_capability('moodle/site:config', $context, $data->user_id)) {
-                    $orgUuid = get_config('local_lecturebot', 'org_wallet_owner_id');
-                    if (!empty($orgUuid)) {
-                        mtrace("User is admin, using organization wallet UUID: " . $orgUuid);
-                        $result = $orgUuid;
-                    }
-                }
-
-                if (empty($result)) {
-                    mtrace("No wallet UUID found for user");
-                }
+                mtrace("No personal wallet UUID found for user {$data->user_id} — credit tracking skipped");
             }
-
-            return $result;
-
         } catch (\Exception $e) {
             mtrace("Warning: Could not retrieve user UUID: " . $e->getMessage());
-            return null;
         }
+
+        return $result;
     }
 
 }

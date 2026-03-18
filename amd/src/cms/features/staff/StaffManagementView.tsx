@@ -16,6 +16,7 @@ export interface ApiStaffMember {
     status: 'active' | 'pending';
     balance: number;
     reserved_credits: number;
+    is_admin?: boolean;
 }
 
 interface StaffManagementViewProps {
@@ -93,9 +94,9 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ onView
             {/* Header row */}
             <motion.div variants={fadeIn} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                    <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--tp)', margin: 0 }}>Active Teaching Staff</h2>
+                    <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--tp)', margin: 0 }}>Staff &amp; Admins</h2>
                     <p style={{ fontSize: '0.875rem', color: 'var(--ts)', marginTop: 4 }}>
-                        Manage credit limits and allocations for your professors and researchers.
+                        Manage credit limits and allocations for your professors, researchers, and administrators.
                     </p>
                 </div>
                 <div style={{ position: 'relative' }}>
@@ -259,7 +260,22 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ onView
                                                         {(s.name || 'U').slice(0, 2).toUpperCase()}
                                                     </div>
                                                     <div>
-                                                        <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--tp)', lineHeight: 1.3 }}>{s.name}</div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, lineHeight: 1.3 }}>
+                                                            <span style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--tp)' }}>{s.name}</span>
+                                                            {s.is_admin && (
+                                                                <span style={{
+                                                                    display: 'inline-block',
+                                                                    padding: '1px 7px',
+                                                                    borderRadius: 5,
+                                                                    background: 'rgba(111,66,193,0.10)',
+                                                                    color: '#6f42c1',
+                                                                    fontSize: '0.6875rem',
+                                                                    fontWeight: 700,
+                                                                    letterSpacing: '0.04em',
+                                                                    textTransform: 'uppercase',
+                                                                }}>Admin</span>
+                                                            )}
+                                                        </div>
                                                         <div style={{ fontSize: '0.75rem', color: 'var(--ts)', marginTop: 1 }}>{s.email}</div>
                                                     </div>
                                                 </div>

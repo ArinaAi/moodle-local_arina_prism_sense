@@ -2,7 +2,8 @@
 /**
  * API: Get Teacher's Credit Balance
  *
- * Returns the logged-in teacher's sub-user wallet balance.
+ * Returns the logged-in user's personal wallet balance.
+ * Works for both admins (personal wallet, distinct from org wallet) and sub-users.
  * Does NOT require admin capabilities — any logged-in user can check their own balance.
  *
  * @package    local_lecturebot
@@ -20,24 +21,14 @@ require_login();
 header('Content-Type: application/json');
 
 try {
-    // 1. Determine which wallet UUID to use based on user role
+    // 1. Get this user's personal wallet UUID (same key for admins and sub-users)
     $uuid = null;
     $client = new \local_lecturebot\cms\CreditServiceClient();
 
-    if (has_capability('moodle/site:config', context_system::instance())) {
-        // User is a site admin. Use the organization\'s main wallet.
-        $uuid = get_config('local_lecturebot', 'org_wallet_owner_id');
-        
-        // Ensure org wallet exists
-        if (empty($uuid)) {
-            $uuid = $client->generateV4UUID();
-            set_config('org_wallet_owner_id', $uuid, 'local_lecturebot');
-            $client->createWallet($uuid, 'ORGANIZATION');
-        }
-    } else {
-        // Normal teacher. Use their specific sub-user wallet UUID.
-        $uuid = get_user_preferences('lecturebot_wallet_sub_user_id', null, $USER->id);
-    }
+    // All users — admins and sub-users alike — use their personal lecturebot_wallet_sub_user_id.
+    // An admin's personal wallet is created JIT on first allocation from the org wallet,
+    // so it may not exist yet (uuid will be empty → return has_wallet: false below).
+    $uuid = get_user_preferences('lecturebot_wallet_sub_user_id', null, $USER->id);
 
     if (empty($uuid)) {
         // No wallet has been created for this user yet
