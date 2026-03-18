@@ -77,6 +77,10 @@ function xmldb_local_lecturebot_upgrade($oldversion)
         local_lecturebot_upgrade_2026031200($dbman);
     }
 
+    if ($oldversion < 2026031800) {
+        local_lecturebot_upgrade_2026031800($dbman);
+    }
+
     return true;
 }
 
@@ -459,4 +463,37 @@ function local_lecturebot_upgrade_2026031200($dbman)
     }
 
     upgrade_plugin_savepoint(true, 2026031200, 'local', 'lecturebot');
+}
+
+/**
+ * Phase 1 IOMAD: add per-company config table for API key and org wallet owner ID.
+ * tenant_id is read directly from mdl_company.code — no column needed here.
+ */
+function local_lecturebot_upgrade_2026031700($dbman)
+{
+    $table = new xmldb_table('local_lecturebot_company_config');
+
+    $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+    $table->add_field('companyid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+    $table->add_field('api_key', XMLDB_TYPE_TEXT, null, null, null, null, null);
+    $table->add_field('org_wallet_owner_id', XMLDB_TYPE_CHAR, '100', null, null, null, null);
+    $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+    $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+
+    $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+    $table->add_index('companyid', XMLDB_INDEX_UNIQUE, ['companyid']);
+
+    if (!$dbman->table_exists($table)) {
+        $dbman->create_table($table);
+    }
+
+    upgrade_plugin_savepoint(true, 2026031700, 'local', 'lecturebot');
+}
+
+/**
+ * Version stub — no schema changes, just a version bump.
+ */
+function local_lecturebot_upgrade_2026031800($dbman)
+{
+    upgrade_plugin_savepoint(true, 2026031800, 'local', 'lecturebot');
 }

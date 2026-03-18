@@ -108,5 +108,21 @@
         <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
       </KEYS>
     </TABLE>
+    <TABLE NAME="local_lecturebot_company_config" COMMENT="Stores per-company IOMAD config: API key and org wallet owner ID">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="companyid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="IOMAD company ID (mdl_company.id)"/>
+        <FIELD NAME="api_key" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Arina API key for this company"/>
+        <FIELD NAME="org_wallet_owner_id" TYPE="char" LENGTH="100" NOTNULL="false" SEQUENCE="false" COMMENT="Credit Service org wallet owner UUID (JIT-created)"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Time created"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Time last modified"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="companyid" UNIQUE="true" FIELDS="companyid"/>
+      </INDEXES>
+    </TABLE>
   </TABLES>
 </XMLDB>
