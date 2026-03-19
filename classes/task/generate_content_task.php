@@ -48,10 +48,19 @@ class generate_content_task extends \core\task\adhoc_task
                 ((int) $taskData['data']->parent_content_id) > 0;
             $isVideo = ($taskData['contentType'] === 'video' || $taskData['avatarVideoNeeded'] === 'yes');
 
-            if (!$isRegeneration && !$isVideo && $this->handleNewWorkflow($taskData)) {
+            if (!$isRegeneration && !$isVideo) {
+                if (!$this->handleNewWorkflow($taskData)) {
+                    // Polling exhausted after 3 hours without a content_request_id.
+                    // Do NOT fall back to generate_pptx; surface the error to the user.
+                    $this->handleFailure(
+                        $contentId,
+                        'Generating failed, please try again.'
+                    );
+                }
                 return;
             }
 
+            // Video / regeneration paths still use the legacy workflow.
             $this->handleLegacyWorkflow($content, $taskData);
 
         } catch (\Exception $e) {
@@ -289,20 +298,22 @@ class generate_content_task extends \core\task\adhoc_task
             throw new \local_lecturebot\exception\api_http_exception('API key is not configured');
         }
 
-        // Polling configuration and mutable state bundled together
+        // Polling configuration and mutable state bundled together.
+        // Total window: 180 attempts × 60 s = 180 min (3 hours).
+        // The hard timeout acts as an absolute safety net for the same period.
         $pollCfg = [
-            'maxAttempts'           => 60,       // absolute maximum (60 × 60 s = 60 min)
-            'pollInterval'          => 60,       // seconds between each poll
-            'maxUploadWaitAttempts' => 10,       // consecutive "uploads not ready" before abort
-            'hardTimeoutSeconds'    => 20 * 60,  // 20-minute absolute wall-clock limit
-            'uploadNotReadyCount'   => 0,        // mutable: updated each iteration
-            'startTime'             => time(),   // mutable: wall-clock anchor
+            'maxAttempts'           => 180,          // 180 × 60 s = 3 hours
+            'pollInterval'          => 60,            // seconds between each poll
+            'maxUploadWaitAttempts' => 10,            // consecutive "uploads not ready" before abort
+            'hardTimeoutSeconds'    => 3 * 60 * 60,  // 3-hour absolute wall-clock limit
+            'uploadNotReadyCount'   => 0,             // mutable: updated each iteration
+            'startTime'             => time(),        // mutable: wall-clock anchor
         ];
 
         mtrace("Starting trigger_generation polling (max {$pollCfg['maxAttempts']} attempts, " .
             "{$pollCfg['pollInterval']}s interval, " .
             "upload-not-ready limit: {$pollCfg['maxUploadWaitAttempts']}, hard timeout: " .
-            ($pollCfg['hardTimeoutSeconds'] / 60) . " min)");
+            ($pollCfg['hardTimeoutSeconds'] / 3600) . " h)");
 
         for ($attempt = 1; $attempt <= $pollCfg['maxAttempts']; $attempt++) {
             $pollCfg['elapsed'] = time() - $pollCfg['startTime'];
@@ -324,7 +335,7 @@ class generate_content_task extends \core\task\adhoc_task
             return $iterResult;
         }
 
-        mtrace("✗ Failed to get content_request_id after {$pollCfg['maxAttempts']} attempts");
+        mtrace("✗ Failed to get content_request_id after {$pollCfg['maxAttempts']} attempts (3-hour limit reached).");
         return null;
     }
 
