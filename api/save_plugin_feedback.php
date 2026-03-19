@@ -14,12 +14,16 @@
 define('AJAX_SCRIPT', true);
 
 require_once __DIR__ . '/../../../config.php';
+
+use local_lecturebot\CompanyConfig;
+
 require_once __DIR__ . '/../config_api.php';
 
 use local_lecturebot\exception\ValidationException;
 
 // User must be logged in
 require_login();
+CompanyConfig::bootstrap($USER->id);
 require_sesskey();
 
 header('Content-Type: application/json');
@@ -156,7 +160,7 @@ try {
     // ----------------------------------------------------------------
     // 5. Execute cURL request to Arina Feedback Service
     // ----------------------------------------------------------------
-    $apiKey = get_config('local_lecturebot', 'api_key');
+    $apiKey = CompanyConfig::getApiKey();
     $ch = curl_init(LECTUREBOT_FEEDBACK_SERVICE_URL);
 
     curl_setopt_array($ch, [

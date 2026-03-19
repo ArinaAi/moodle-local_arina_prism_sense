@@ -9,6 +9,9 @@
 
 define('AJAX_SCRIPT', true);
 require_once(__DIR__ . '/../../../config.php');
+
+use local_lecturebot\CompanyConfig;
+
 require_once(__DIR__ . '/../config_api.php');
 require_once($CFG->libdir . '/filelib.php');
 require_once(__DIR__ . '/../lib_azure_storage.php');
@@ -28,6 +31,7 @@ try {
     // Require login and capability
     error_log("LectureBot: Checking login for course $courseid");
     require_login($courseid);
+    CompanyConfig::bootstrap($USER->id);
     error_log("LectureBot: Login successful");
     $context = context_course::instance($courseid);
     require_capability(LECTUREBOT_CAPABILITY_GENERATE_CONTENT, $context);
@@ -226,7 +230,7 @@ try {
     if (defined('LECTUREBOT_ENABLE_BACKEND_PDF_UPLOAD') && LECTUREBOT_ENABLE_BACKEND_PDF_UPLOAD) {
         try {
             // Get tenant ID and regen count
-            $tenantConfig = defined('LECTUREBOT_TENANT_ID') ? LECTUREBOT_TENANT_ID : 1;
+            $tenantConfig = CompanyConfig::getTenantId();
             $tenantId = is_numeric($tenantConfig) ? (int) $tenantConfig : 1;
             $regenCount = get_azure_regen_count($courseid, $sectionid);
 
@@ -246,7 +250,7 @@ try {
             error_log("LectureBot: Starting batch upload for $expectedUploads files: " . $startBatchUrl);
 
             // Get API Key from settings
-            $apiKey = get_config('local_lecturebot', 'api_key');
+            $apiKey = CompanyConfig::getApiKey();
 
             // Initialize cURL for start_batch_upload
             $chBatch = curl_init($startBatchUrl);
@@ -349,7 +353,7 @@ try {
                     $cfile = new CURLFile($tempFilePath, 'application/pdf', $storedfile->get_filename());
 
                     // Get API Key from settings
-                    $apiKey = get_config('local_lecturebot', 'api_key');
+                    $apiKey = CompanyConfig::getApiKey();
 
                     // Initialize cURL to upload to backend
                     $ch = curl_init($uploadApiUrl);

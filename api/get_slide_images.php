@@ -16,6 +16,8 @@ require_once __DIR__ . '/../configurator_azure.php';
 require_once __DIR__ . '/../lib_azure_storage.php';
 require_once __DIR__ . '/../config_api.php';
 
+use local_lecturebot\CompanyConfig;
+
 // Developer Mode: Redirect to mock handler
 if (defined('DEVELOPER_MODE') && DEVELOPER_MODE) {
     require_once(__DIR__ . '/get_slide_images_mock.php');
@@ -27,6 +29,7 @@ ob_start();
 
 $contentid = required_param('contentid', PARAM_INT);
 require_login(null, false);
+CompanyConfig::bootstrap($USER->id);
 
 // Clear any output that may have occurred
 ob_clean();
@@ -100,7 +103,7 @@ function extractImagesFromPptx($pptxPath, $contentid)
     }
 
     $genData = json_decode($content->generationdata, true);
-    $tenantId = defined('LECTUREBOT_TENANT_ID') ? LECTUREBOT_TENANT_ID : 1;
+    $tenantId = CompanyConfig::getTenantId();
 
     // Determine Azure paths
     $useNewStructure = isset($genData['azure_folder']);
@@ -184,7 +187,7 @@ function calculateSlidesFromResult($genData)
 function generateAzureImageUrls($azureFolderId, $containerName)
 {
     $images = [];
-    $apiKey = get_config('local_lecturebot', 'api_key');
+    $apiKey = CompanyConfig::getApiKey();
 
     if (empty($apiKey)) {
         throw new moodle_exception('API key not configured');

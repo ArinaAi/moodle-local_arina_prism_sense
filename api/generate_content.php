@@ -14,12 +14,17 @@ require_once(__DIR__ . '/../config_api.php');
 require_once(__DIR__ . '/../configurator_azure.php');
 require_once(__DIR__ . '/../lib_azure_storage.php');
 
+use local_lecturebot\CompanyConfig;
+
 $courseid = required_param('courseid', PARAM_INT);
 require_login($courseid, false);
 require_sesskey();
 
 $context = context_course::instance($courseid);
 require_capability(LECTUREBOT_CAPABILITY_GENERATE_CONTENT, $context);
+
+// Resolve per-company config once for this request.
+CompanyConfig::bootstrap($USER->id);
 
 // Set PAGE context to avoid debugging warnings
 $PAGE->set_context($context);
@@ -31,9 +36,7 @@ session_write_close();
 header('Content-Type: application/json');
 
 // Validate API key early — before queuing any task.
-// get_config() reads from the database in a fresh web-request context, so this
-// bypasses any stale in-process cache that a long-running cron process might hold.
-$apiKey = get_config('local_lecturebot', 'api_key');
+$apiKey = CompanyConfig::getApiKey();
 if (empty($apiKey)) {
     http_response_code(401);
     echo json_encode([
@@ -207,15 +210,13 @@ try {
     // Note: The new API (http://0.0.0.0:8034/generate_pptx) doesn't require PDF upload
     // It generates slides based on curriculum text directly
 
-    // Get tenant ID from config or fallback to 1
-    // The API requires an integer for organization_id
-    $tenantConfig = defined('LECTUREBOT_TENANT_ID') ? LECTUREBOT_TENANT_ID : 1;
+    // Get tenant ID from per-company config (falls back to .env / global config for standalone installs)
+    $tenantConfig = CompanyConfig::getTenantId();
     $tenantId = is_numeric($tenantConfig) ? (int) $tenantConfig : 1;
 
     // Log warning if tenant ID was a string so admin knows to fix it
     if (!is_numeric($tenantConfig)) {
-        error_log("LectureBot: LECTUREBOT_TENANT_ID ('$tenantConfig') is not numeric. " .
-            "falling back to 1 for organization_id.");
+        error_log("LectureBot: tenant_id ('$tenantConfig') is not numeric. Falling back to 1 for organization_id.");
     }
 
     // Calculate regen_count by querying Azure directly (Source of Truth)

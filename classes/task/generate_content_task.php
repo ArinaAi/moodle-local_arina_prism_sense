@@ -6,6 +6,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once(__DIR__ . '/../../config_api.php');
 require_once(__DIR__ . '/../../configurator_azure.php');
 require_once(__DIR__ . '/../../api/cms/CreditServiceClient.php');
+require_once(__DIR__ . '/../CompanyConfig.php');
 
 /**
  * Adhoc task to initiate content generation asynchronously via Kafka
@@ -78,6 +79,12 @@ class generate_content_task extends \core\task\adhoc_task
         $contentId = $data->content_id;
         $contentType = isset($data->content_type) ? $data->content_type : 'slides';
         $avatarVideoNeeded = isset($data->avtar_video_needed) ? $data->avtar_video_needed : 'no';
+
+        // Bootstrap per-tenant config using the originating teacher's user ID.
+        // In cron context $USER->id is the CLI user; task data carries the real user.
+        if (!empty($data->user_id)) {
+            \local_lecturebot\CompanyConfig::bootstrap((int)$data->user_id);
+        }
 
         $userUuid = $this->getUserUuidForCredit($data);
         mtrace("User UUID for credit tracking: " .
@@ -276,7 +283,8 @@ class generate_content_task extends \core\task\adhoc_task
 
         mtrace("Found batch_id: $batchId");
 
-        $apiKey = get_config('local_lecturebot', 'api_key');
+        $apiKey = \local_lecturebot\CompanyConfig::getApiKey()
+            ?? get_config('local_lecturebot', 'api_key');
         if (empty($apiKey)) {
             throw new \local_lecturebot\exception\api_http_exception('API key is not configured');
         }
@@ -767,7 +775,8 @@ class generate_content_task extends \core\task\adhoc_task
      */
     private function executeApiCall($apiUrl)
     {
-        $apiKey = get_config('local_lecturebot', 'api_key');
+        $apiKey = \local_lecturebot\CompanyConfig::getApiKey()
+            ?? get_config('local_lecturebot', 'api_key');
         $ch = $this->initializeCurl($apiUrl, $apiKey);
 
         $response = curl_exec($ch);

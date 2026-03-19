@@ -19,14 +19,18 @@ define('NO_DEBUG_DISPLAY', true);
 ob_start();
 
 require_once __DIR__ . '/../../../config.php';
+
+use local_lecturebot\CompanyConfig;
+
 require_once __DIR__ . '/../config_api.php';
 
 require_login(null, false);
+CompanyConfig::bootstrap($USER->id);
 
 $blobPath      = required_param('blob_path', PARAM_TEXT);
 $containerName = required_param('container', PARAM_TEXT);
 
-$apiKey = get_config('local_lecturebot', 'api_key');
+$apiKey = CompanyConfig::getApiKey();
 if (empty($apiKey)) {
     ob_end_clean();
     http_response_code(500);

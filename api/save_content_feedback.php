@@ -13,10 +13,14 @@
 define('AJAX_SCRIPT', true);
 
 require_once __DIR__ . '/../../../config.php';
+
+use local_lecturebot\CompanyConfig;
+
 require_once __DIR__ . '/../config_api.php';
 
 // User must be logged in
 require_login();
+CompanyConfig::bootstrap($USER->id);
 require_sesskey();
 
 header('Content-Type: application/json');
@@ -97,7 +101,7 @@ try {
     // ----------------------------------------------------------------
     $payload = [
         'tenant_id' => (string) get_config('local_lecturebot', 'tenantid') ?:
-            getenv('LECTUREBOT_TENANT_ID') ?: '0',
+            CompanyConfig::getTenantId() ?: '0',
         'user_id' => (string) $USER->id,
         'contentid' => (string) $contentid,
         'feedback_type' => $feedbackType,
@@ -114,7 +118,7 @@ try {
     // ----------------------------------------------------------------
     // 3. POST to Arina Feedback Service
     // ----------------------------------------------------------------
-    $apiKey = get_config('local_lecturebot', 'api_key');
+    $apiKey = CompanyConfig::getApiKey();
     $ch = curl_init(LECTUREBOT_CONTENT_REGEN_FEEDBACK_URL);
 
     curl_setopt_array($ch, [

@@ -26,10 +26,12 @@ class CreditServiceClient
 
     public function __construct()
     {
-        $this->apiKey = get_config('local_lecturebot', 'api_key');
-        if (empty($this->apiKey)) {
-            $this->apiKey = getenv('LECTUREBOT_API_KEY'); // fallback
-        }
+        // Prefer the per-tenant key resolved by CompanyConfig (already bootstrapped
+        // by the caller). Falls back to global config_plugins then to the env var
+        // so standalone / non-IOMAD installs continue to work unchanged.
+        $this->apiKey = \local_lecturebot\CompanyConfig::getApiKey()
+            ?? get_config('local_lecturebot', 'api_key')
+            ?: getenv('LECTUREBOT_API_KEY');
         $this->baseUrl = LECTUREBOT_CREDIT_SERVICE_URL;
     }
 
@@ -70,15 +72,23 @@ class CreditServiceClient
         ];
     }
     
-    // Check if Org Wallet exists in Moodle config and create it JIT if missing
-    // Returns the OWNER UUID (not wallet_id) - this is stored in Moodle config
+    // Check if Org Wallet exists in Moodle config and create it JIT if missing.
+    // Returns the OWNER UUID (not wallet_id) - stored in per-company config (IOMAD)
+    // or global config_plugins (standalone). CompanyConfig handles both cases.
     public function getOrInitializeOrgWallet()
     {
-        $uuid = get_config('local_lecturebot', 'org_wallet_owner_id');
+        // CompanyConfig::getOrgWalletOwnerId() returns null when bootstrap() hasn't
+        // been called yet (self::$resolved is null). Fall back to get_config() so
+        // we never generate a fresh UUID just because bootstrap was skipped.
+        $uuid = \local_lecturebot\CompanyConfig::getOrgWalletOwnerId()
+            ?? get_config('local_lecturebot', 'org_wallet_owner_id');
+
         if (empty($uuid)) {
             $uuid = $this->generateV4UUID();
-            set_config('org_wallet_owner_id', $uuid, 'local_lecturebot');
-            
+            // Persists to local_lecturebot_company_config (IOMAD) or config_plugins
+            // (standalone) and updates the in-memory cache automatically.
+            \local_lecturebot\CompanyConfig::setOrgWalletOwnerId($uuid);
+
             // Create in Credit Service
             $this->createWallet($uuid, 'ORGANIZATION');
         }

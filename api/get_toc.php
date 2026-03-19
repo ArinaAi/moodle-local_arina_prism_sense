@@ -12,6 +12,9 @@ define('NO_DEBUG_DISPLAY', true);
 define('AJAX_SCRIPT', true);
 define('REDIRECT_STDERR', ' 2>&1');
 require_once(__DIR__ . '/../../../config.php');
+
+use local_lecturebot\CompanyConfig;
+
 require_once(__DIR__ . '/../configurator_azure.php');
 require_once(__DIR__ . '/../lib_azure_storage.php');
 
@@ -20,6 +23,7 @@ ob_start();
 
 $contentid = required_param('contentid', PARAM_INT);
 require_login();
+CompanyConfig::bootstrap($USER->id);
 
 // Clear any output that may have occurred
 ob_clean();
@@ -51,7 +55,7 @@ try {
     }
 
     $azureFolderId = $generationData['azure_folder'];
-    $tenantId = defined('LECTUREBOT_TENANT_ID') ? LECTUREBOT_TENANT_ID : 1;
+    $tenantId = CompanyConfig::getTenantId();
     $containerName = isset($generationData['azure_container'])
         ? strtolower($generationData['azure_container'])
         : strtolower('Blob-Tutorial-Gen-' . $tenantId);

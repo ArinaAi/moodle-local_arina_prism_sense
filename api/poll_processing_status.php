@@ -18,6 +18,9 @@
 
 define('AJAX_SCRIPT', true);
 require_once(__DIR__ . '/../../../config.php');
+
+use local_lecturebot\CompanyConfig;
+
 require_once(__DIR__ . '/../config_api.php');
 
 header('Content-Type: application/json');
@@ -28,6 +31,7 @@ try {
 
     // Require login and capability.
     require_login($courseid);
+    CompanyConfig::bootstrap($USER->id);
     $context = context_course::instance($courseid);
     require_capability(LECTUREBOT_CAPABILITY_GENERATE_CONTENT, $context);
 
@@ -44,7 +48,7 @@ try {
         exit;
     }
 
-    $apiKey   = get_config('local_lecturebot', 'api_key');
+    $apiKey   = CompanyConfig::getApiKey();
     $statuses = [];
 
     // -------------------------------------------------------------------------

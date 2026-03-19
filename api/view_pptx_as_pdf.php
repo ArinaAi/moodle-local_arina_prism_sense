@@ -11,6 +11,8 @@ require_once __DIR__ . '/../../../config.php';
 require_once __DIR__ . '/../configurator_azure.php';
 require_once __DIR__ . '/../config_api.php';
 
+use local_lecturebot\CompanyConfig;
+
 $contentid = required_param('contentid', PARAM_INT);
 require_login();
 
@@ -20,6 +22,8 @@ $content = $DB->get_record('local_lecturebot_content', ['id' => $contentid], '*'
 // Verify user has access to this course
 $context = context_course::instance($content->courseid);
 require_capability('moodle/course:view', $context);
+
+CompanyConfig::bootstrap($USER->id);
 
 // Release session lock to prevent blocking
 \core\session\manager::write_close();
@@ -47,8 +51,8 @@ if (!empty($generationData['pdf_path']) && file_exists($generationData['pdf_path
 
 try {
     // BFF Connection Details
-    $apiKey = get_config('local_lecturebot', 'api_key');
-    $tenantId = defined('LECTUREBOT_TENANT_ID') ? LECTUREBOT_TENANT_ID : 1;
+    $apiKey = CompanyConfig::getApiKey();
+    $tenantId = CompanyConfig::getTenantId();
     $containerName = strtolower('Blob-Tutorial-Gen-' . $tenantId);
 
     if (empty($apiKey)) {

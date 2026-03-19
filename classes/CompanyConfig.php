@@ -251,6 +251,19 @@ class CompanyConfig
         return self::$companyId;
     }
 
+    /**
+     * Reset the in-memory resolved config so bootstrap() will re-run on the next call.
+     *
+     * Required by poll_content_status_task when it processes content items that may
+     * belong to different IOMAD tenants in a single cron run. The IOMAD-installed
+     * flag is intentionally preserved — plugin state never changes mid-process.
+     */
+    public static function reset(): void
+    {
+        self::$resolved  = null;
+        self::$companyId = null;
+    }
+
     // ── Internal helpers ──────────────────────────────────────────────────────
 
     /**

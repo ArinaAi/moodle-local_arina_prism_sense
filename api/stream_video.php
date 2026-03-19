@@ -10,6 +10,9 @@
 
 define('AJAX_SCRIPT', true);
 require_once __DIR__ . '/../../../config.php';
+
+use local_lecturebot\CompanyConfig;
+
 require_once __DIR__ . '/../configurator_azure.php';
 require_once __DIR__ . '/../lib_azure_storage.php';
 require_once __DIR__ . '/../config_api.php';
@@ -21,6 +24,7 @@ try {
     
     // Require login
     require_login($courseid);
+    CompanyConfig::bootstrap($USER->id);
     // Any enrolled user can view content
     
     // Get content record
@@ -51,8 +55,8 @@ try {
         throw new moodle_exception('Video file not found in content record');
     }
     
-    $apiKey = get_config('local_lecturebot', 'api_key');
-    $tenantId = defined('LECTUREBOT_TENANT_ID') ? LECTUREBOT_TENANT_ID : 1;
+    $apiKey = CompanyConfig::getApiKey();
+    $tenantId = CompanyConfig::getTenantId();
     
     if (!$containerName) {
          $containerName = strtolower('Blob-Tutorial-Gen-' . $tenantId);

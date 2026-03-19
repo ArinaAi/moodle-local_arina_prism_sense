@@ -38,7 +38,7 @@ class Utils
     {
         global $USER;
         $sections = self::getCourseSections($course->id);
-        $tenantId = defined('LECTUREBOT_TENANT_ID') ? LECTUREBOT_TENANT_ID : 1;
+        $tenantId = CompanyConfig::getTenantId();
         $canApprove = has_capability('local/lecturebot:approvecontent', \context_course::instance($course->id));
         return json_encode([
             'userid' => $USER->id,

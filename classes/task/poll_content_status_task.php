@@ -5,6 +5,7 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once(__DIR__ . '/../../config_api.php');
 require_once(__DIR__ . '/../../configurator_azure.php');
+require_once(__DIR__ . '/../CompanyConfig.php');
 
 /**
  * Scheduled task to poll backend for content generation status
@@ -66,16 +67,28 @@ class poll_content_status_task extends \core\task\scheduled_task
 
         $requestIds = array_keys($requestIdToContent);
 
+        // Bootstrap CompanyConfig from the first pending item's originating user.
+        // In a single-tenant deployment all items share the same tenant, so one
+        // bootstrap is sufficient for the batch API call.
+        $firstContent = reset($requestIdToContent);
+        if (!empty($firstContent->userid)) {
+            \local_lecturebot\CompanyConfig::bootstrap((int)$firstContent->userid);
+        }
+        $apiKey = \local_lecturebot\CompanyConfig::getApiKey()
+            ?? get_config('local_lecturebot', 'api_key');
+
         // Single batch call to backend — replaces N individual calls
         mtrace("Calling batch status endpoint with " . count($requestIds) . " request_id(s)...");
-        $batchResponse = $this->checkBatchBackendStatus($requestIds);
+        $batchResponse = $this->checkBatchBackendStatus($requestIds, $apiKey);
 
         if ($batchResponse === null) {
             mtrace("Batch status call failed or returned no response. Will retry on next run.");
             return;
         }
 
-        // Process each item using its status from the batch response
+        // Process each item using its status from the batch response.
+        // Re-bootstrap per item so that tenant-specific config (api_key, tenant_id)
+        // is correct even in a future multi-tenant scenario.
         foreach ($requestIdToContent as $requestId => $content) {
             if (!isset($batchResponse[$requestId])) {
                 mtrace("  - No status returned for request_id {$requestId}, will retry later.");
@@ -83,6 +96,12 @@ class poll_content_status_task extends \core\task\scheduled_task
             }
 
             $statusResponse = $batchResponse[$requestId];
+
+            // Re-bootstrap for each item's originating user (no-op if same tenant).
+            if (!empty($content->userid)) {
+                \local_lecturebot\CompanyConfig::reset();
+                \local_lecturebot\CompanyConfig::bootstrap((int)$content->userid);
+            }
 
             try {
                 $this->processContentStatus($content, $statusResponse);
@@ -103,16 +122,14 @@ class poll_content_status_task extends \core\task\scheduled_task
      * Response: flat map of { "uuid1": { status, pptx_url, ... }, "uuid2": { ... }, ... }
      *
      * @param  string[] $requestIds  Array of request UUID strings
+     * @param  string   $apiKey      API key resolved by the caller via CompanyConfig
      * @return array|null            Flat map keyed by request_id, or null on failure
      */
-    private function checkBatchBackendStatus(array $requestIds)
+    private function checkBatchBackendStatus(array $requestIds, string $apiKey)
     {
         $result = null;
         $url  = LECTUREBOT_API_CHECK_STATUS_BATCH;
         $body = json_encode(['request_ids' => $requestIds]);
-
-        // Get API Key from settings
-        $apiKey = get_config('local_lecturebot', 'api_key');
 
         $ch = curl_init($url);
         if ($ch === false) {

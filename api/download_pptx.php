@@ -8,10 +8,14 @@
  */
 
 require_once(__DIR__ . '/../../../config.php');
+
+use local_lecturebot\CompanyConfig;
+
 require_once(__DIR__ . '/../configurator_azure.php');
 
 $contentid = required_param('contentid', PARAM_INT);
 require_login();
+CompanyConfig::bootstrap($USER->id);
 
 // Get the content record
 $content = $DB->get_record('local_lecturebot_content', ['id' => $contentid], '*', MUST_EXIST);
@@ -54,7 +58,7 @@ try {
     '&container=' . urlencode($containerName);
     
     // Get the API key
-    $apiKey = get_config('local_lecturebot', 'api_key');
+    $apiKey = CompanyConfig::getApiKey();
     if (empty($apiKey)) {
         throw new moodle_exception('API key is not configured in settings.');
     }
