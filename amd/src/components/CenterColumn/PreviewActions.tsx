@@ -101,7 +101,7 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
     isMobile: _isMobile = false,
 }) => {
     const isVideo = currentContentItem?.contenttype === 'video';
-    const showRegenerate = currentContentItem?.status !== 'published' && !isApproved;
+    const showRegenerate = currentContentItem?.status !== 'published' && !isApproved && !isVideo;
 
     // Use external helper functions (no longer needs isMobile)
     const styles = getResponsiveStyles();

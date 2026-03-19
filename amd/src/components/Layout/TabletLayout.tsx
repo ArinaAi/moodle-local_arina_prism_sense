@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Box, Menu, MenuItem, Typography, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from '@mui/material';
 import { Delete, InfoOutlined } from '@mui/icons-material';
 import LeftColumn from '../LeftColumn/LeftColumn';
@@ -32,9 +32,11 @@ const TabletLayout: React.FC<LayoutProps> = ({
     });
 
     // Menu and dialog state for GeneratedContentList
-    const [menuAnchor, setMenuAnchor] = useState<{ element: HTMLElement | null; contentId: number | null }>({
+    // Use a ref to reliably hold the contentId — MUI fires Menu's onClose before
+    // MenuItem's onClick, which can clear state before the handler reads it.
+    const menuContentIdRef = useRef<number | null>(null);
+    const [menuAnchor, setMenuAnchor] = useState<{ element: HTMLElement | null }>({
         element: null,
-        contentId: null,
     });
     const [deleteConfirmation, setDeleteConfirmation] = useState<{ open: boolean; contentId: number | null }>({
         open: false,
@@ -63,25 +65,28 @@ const TabletLayout: React.FC<LayoutProps> = ({
 
     const handleMenuOpen = (event: React.MouseEvent<HTMLButtonElement>, contentId: number) => {
         event.stopPropagation();
-        setMenuAnchor({ element: event.currentTarget, contentId });
+        menuContentIdRef.current = contentId;
+        setMenuAnchor({ element: event.currentTarget });
     };
 
     const handleMenuClose = () => {
-        setMenuAnchor({ element: null, contentId: null });
+        setMenuAnchor({ element: null });
     };
 
     const handleDeleteClick = () => {
-        if (menuAnchor.contentId) {
-            setDeleteConfirmation({ open: true, contentId: menuAnchor.contentId });
-        }
+        const contentId = menuContentIdRef.current;
         handleMenuClose();
+        if (contentId) {
+            setDeleteConfirmation({ open: true, contentId });
+        }
     };
 
     const handleDetailsClick = () => {
-        if (menuAnchor.contentId) {
-            setDetailsDialog({ open: true, contentId: menuAnchor.contentId });
-        }
+        const contentId = menuContentIdRef.current;
         handleMenuClose();
+        if (contentId) {
+            setDetailsDialog({ open: true, contentId });
+        }
     };
 
     return (
@@ -179,6 +184,7 @@ const TabletLayout: React.FC<LayoutProps> = ({
                 open={deleteConfirmation.open}
                 onClose={() => setDeleteConfirmation({ open: false, contentId: null })}
                 PaperProps={{ sx: { borderRadius: '20px' } }}
+                sx={{ zIndex: 100010 }}
             >
                 <DialogTitle>Delete Content?</DialogTitle>
                 <DialogContent>
@@ -208,6 +214,7 @@ const TabletLayout: React.FC<LayoutProps> = ({
                 open={unpublishConfirmation.open}
                 onClose={() => setUnpublishConfirmation({ open: false, contentId: null })}
                 PaperProps={{ sx: { borderRadius: '20px' } }}
+                sx={{ zIndex: 100010 }}
             >
                 <DialogTitle>Unpublish Content?</DialogTitle>
                 <DialogContent>
@@ -237,6 +244,7 @@ const TabletLayout: React.FC<LayoutProps> = ({
                 open={detailsDialog.open}
                 onClose={() => setDetailsDialog({ open: false, contentId: null })}
                 PaperProps={{ sx: { borderRadius: '20px', minWidth: '300px' } }}
+                sx={{ zIndex: 100010 }}
             >
                 <DialogTitle>Content Details</DialogTitle>
                 <DialogContent>
