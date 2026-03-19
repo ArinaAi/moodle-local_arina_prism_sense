@@ -313,6 +313,14 @@ class poll_content_status_task extends \core\task\scheduled_task
         $errorMessage = $statusResponse['error'] ?? $statusResponse['message'] ?? 'Unknown error from backend';
         mtrace("    Content generation failed: {$errorMessage}");
 
+        // Tag PDF/upload-related failures with a sentinel the frontend can detect,
+        // so the user sees an actionable message instead of a raw backend error.
+        $lower = strtolower((string) $errorMessage);
+        if (str_contains($lower, 'upload') || str_contains($lower, 'pdf') ||
+            str_contains($lower, 'batch') || str_contains($lower, 'not processed')) {
+            $errorMessage = 'PDF_UPLOAD_FAILED';
+        }
+
         $content->status       = 'error';
         $content->errormessage = $errorMessage;
         $content->timemodified = time();

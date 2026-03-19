@@ -22,8 +22,7 @@ const updateContentItem = (
             refreshCredits();
         }
     } else if (updatedItem.status === 'error') {
-        const errorMsg = updatedItem.errormessage || 'Generation failed. Please try again.';
-        showNotification(`Generation failed for "${updatedItem.sectionname}": ${errorMsg}`, 'error');
+        showNotification(`Failed to generate slides for "${updatedItem.sectionname}". Please try again.`, 'error');
         if (refreshCredits) {
             refreshCredits();
         }

@@ -447,7 +447,9 @@ class generate_content_task extends \core\task\adhoc_task
         if ($uploadNotReadyCount >= $maxUploadWaitAttempts) {
             mtrace("✗ Uploads did not complete after $maxUploadWaitAttempts consecutive attempts. " .
                 "The backend may have lost the batch. Aborting.");
-            return null;
+            // Throw with the sentinel so handleFailure() writes a recognisable
+            // errormessage that the frontend can surface as a specific PDF error.
+            throw new \local_lecturebot\exception\api_response_exception('PDF_UPLOAD_FAILED');
         }
 
         sleep($pollInterval);

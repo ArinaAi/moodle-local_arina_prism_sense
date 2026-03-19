@@ -133,7 +133,9 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                             fontSize: 'clamp(0.65rem, 2vw, 0.75rem)',
                         }}
                     >
-                        {item.errormessage || 'Generation failed. Please try again.'}
+                        {item.errormessage === 'PDF_UPLOAD_FAILED'
+                            ? 'PDF upload failed for this section. Please delete and re-upload your PDFs, then try generating slides again.'
+                            : 'Failed to generate slides. Please try again.'}
                     </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1 }}>
