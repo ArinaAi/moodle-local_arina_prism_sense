@@ -46,17 +46,28 @@ export const useContentActions = (
         contentStrategy: 'standard' | 'example_driven',
         sectionId: number,
         videoLength: string,
-        parentContentId?: number,
-        feedbackId?: number,
-        feedbackData?: {
-            topicsNeedingDepth: string[];
-            topicsOverExplained: string[];
-            extraTopics: string[];
-            missingSubtopics: string[];
-            reorderedTopicFlow: string[];
-            selectedCategories: string[];
+        regenOptions?: {
+            parentContentId?: number;
+            feedbackId?: number;
+            feedbackData?: {
+                topicsNeedingDepth: string[];
+                topicsOverExplained: string[];
+                extraTopics: string[];
+                missingSubtopics: string[];
+                reorderedTopicFlow: string[];
+                selectedCategories: string[];
+            };
+            // When regenerating, pass the exact regen_count of the slide being
+            // replaced so the backend overwrites the same Azure folder.
+            // Omit for fresh generation — Azure will pick the next new index.
+            regenCount?: number;
         }
     ) => {
+        const parentContentId = regenOptions?.parentContentId;
+        const feedbackId = regenOptions?.feedbackId;
+        const feedbackData = regenOptions?.feedbackData;
+        const regenCount = regenOptions?.regenCount;
+
         if (!state.moodleContext) {
             showNotification('Moodle context not available', 'error');
             return;
@@ -97,8 +108,6 @@ export const useContentActions = (
             payload: [...state.contentItems, tempContentItem]
         });
 
-        // Store curriculum and content strategy
-
         dispatch({ type: 'SET_GENERATING_SLIDES', payload: true });
 
         // Clear previous generated content to show loading state
@@ -117,6 +126,10 @@ export const useContentActions = (
                 video_length: videoLength,
                 parent_content_id: parentContentId,
                 feedback_id: feedbackId,
+                // Explicitly pass regen_count when regenerating so the backend
+                // overwrites the same Azure folder instead of creating a new one.
+                // For fresh generation, omit it so Azure picks the next index.
+                ...(regenCount !== undefined ? { regen_count: regenCount } : {}),
             };
 
             // Pass raw feedback fields so generate_content.php can forward them

@@ -373,14 +373,21 @@ export const App: React.FC = () => {
                       // Trigger regeneration with feedback linked
                       const generationData = currentItem.generationdata ? JSON.parse(currentItem.generationdata) : {};
 
+                      // Pass the exact regen_count of the slide being replaced so the
+                      // backend writes into the same Azure folder (overwrite, not new folder).
+                      const parentRegenCount: number = generationData.regen_count ?? 0;
+
                       handleGenerateSlides(
                         {} as any, // Curriculum fetched by backend from section
                         generationData.content_strategy || 'standard',
                         currentItem.sectionid,
                         generationData.video_length || '30',
-                        state.currentContentId ?? undefined,
-                        result.feedback_id,
-                        feedback  // pass raw feedback fields so generate_pptx gets feedback_json
+                        {
+                          parentContentId: state.currentContentId ?? undefined,
+                          feedbackId: result.feedback_id,
+                          feedbackData: feedback,   // raw feedback for generate_pptx
+                          regenCount: parentRegenCount, // overwrite same Azure folder
+                        }
                       );
                     } else if (!result.success) {
                       console.error('Failed to save feedback:', result.error);

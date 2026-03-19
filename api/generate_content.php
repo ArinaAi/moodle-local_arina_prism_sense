@@ -133,7 +133,6 @@ try {
     }
 
     $curriculumText = '';
-    $sourceRegenCount = null;
 
     if ($sourceContentId > 0 || $parentContentId > 0) {
         $idToUse = $sourceContentId > 0 ? $sourceContentId : $parentContentId;
@@ -143,9 +142,6 @@ try {
             if (isset($genData['curriculum_text'])) {
                 $curriculumText = $genData['curriculum_text'];
                 error_log("LectureBot: Using curriculum text from content ID: $idToUse");
-            }
-            if (isset($genData['regen_count'])) {
-                $sourceRegenCount = $genData['regen_count'];
             }
         }
     }
@@ -219,21 +215,17 @@ try {
         error_log("LectureBot: tenant_id ('$tenantConfig') is not numeric. Falling back to 1 for organization_id.");
     }
 
-    // Calculate regen_count by querying Azure directly (Source of Truth)
-    // This ensures we continue the sequence (0, 1, 2...) even if Moodle records are deleted
     // Determine regen_count (Azure folder index)
     // Priority:
-    // 1. Explicit regen_count from request (if provided)
-    // 2. regen_count from source content (if source_content_id provided)
-    // 3. Calculate next available index from Azure
+    // 1. Explicit regen_count from request — used for regeneration (overwrite same folder)
+    //    and video generation. The frontend always sends this explicitly.
+    // 2. Calculate next available index from Azure — used for fresh slide generation
+    //    (no regen_count in request).
     $regenCount = null;
 
     if (isset($input['regen_count']) && is_numeric($input['regen_count'])) {
         $regenCount = (int) $input['regen_count'];
         error_log("LectureBot: Using explicit regen_count $regenCount from request");
-    } elseif (!empty($sourceRegenCount)) {
-        $regenCount = $sourceRegenCount;
-        error_log("LectureBot: Reusing regen_count $regenCount from source content ID $sourceContentId");
     } else {
         $regenCount = get_azure_regen_count($courseid, $sectionid);
         error_log("LectureBot: Calculated regen_count $regenCount from Azure");

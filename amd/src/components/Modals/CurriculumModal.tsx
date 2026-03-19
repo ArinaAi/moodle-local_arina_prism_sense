@@ -35,7 +35,7 @@ import type { CurriculumStructure } from '../../types/app';
 interface CurriculumModalProps {
   open: boolean;
   onClose: () => void;
-  onGenerate: (curriculum: CurriculumStructure, contentStrategy: 'standard' | 'example_driven', sectionId: number, videoLength: string, parentContentId?: number, feedbackId?: number) => void;
+  onGenerate: (curriculum: CurriculumStructure, contentStrategy: 'standard' | 'example_driven', sectionId: number, videoLength: string, regenOptions?: { parentContentId?: number; feedbackId?: number; regenCount?: number }) => void;
   moodleContext: MoodleContext;
   /** User's current available credit balance */
   availableBalance: number;
