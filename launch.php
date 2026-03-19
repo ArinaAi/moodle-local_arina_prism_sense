@@ -4,6 +4,7 @@ require_once($CFG->libdir . '/adminlib.php');
 
 // Ensure Utils is loaded
 require_once(__DIR__ . '/classes/Utils.php');
+require_once(__DIR__ . '/classes/CompanyConfig.php');
 require_once(__DIR__ . '/configurator_azure.php');
 
 $courseid = required_param('courseid', PARAM_INT);
@@ -81,6 +82,10 @@ if ($validationFailed) {
     echo $OUTPUT->footer();
     exit;
 }
+
+// Bootstrap per-company config (resolves tenantid, api_key, org_wallet_owner_id for IOMAD).
+// Must be called before prepareContext() so getTenantId() returns the correct value.
+\local_lecturebot\CompanyConfig::bootstrap($USER->id);
 
 // Get course sections and context using Utils
 // Note: Utils::prepareContext includes sections and sesskey

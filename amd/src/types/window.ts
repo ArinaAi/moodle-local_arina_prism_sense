@@ -7,7 +7,7 @@ declare global {
   interface Window {
     MOODLE_CONTEXT?: {
       userid: number;
-      tenantid: number;
+      tenantid: string | null;
       courseid: number;
       coursename: string;
       sesskey: string;

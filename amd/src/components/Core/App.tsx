@@ -296,7 +296,7 @@ export const App: React.FC = () => {
 
                   // Add user and owner IDs
                   formData.append('user_id', state.moodleContext.userid.toString());
-                  formData.append('owner_id', state.moodleContext.tenantid.toString());
+                  formData.append('owner_id', state.moodleContext.tenantid ?? '');
 
                   // Add feedback data
                   formData.append('issue_types', JSON.stringify(feedback.selectedCategories));
