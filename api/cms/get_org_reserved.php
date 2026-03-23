@@ -6,7 +6,7 @@
  * This shows credits currently locked in pending operations.
  *
  * @package    local_lecturebot
- * @copyright  2026
+ * @copyright  2026 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 

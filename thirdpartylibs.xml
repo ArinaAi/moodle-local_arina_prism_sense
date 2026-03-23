@@ -1,0 +1,120 @@
+<?xml version="1.0"?>
+<libraries>
+    <!--
+        Third-party JavaScript libraries bundled into the compiled AMD output
+        (amd/build/lecturebot.min.js) via webpack. None of these files are
+        shipped as raw source — they are compiled into a single bundle.
+    -->
+
+    <library>
+        <location>amd/build/</location>
+        <name>React</name>
+        <version>18.x</version>
+        <license>MIT</license>
+        <licenseversion>MIT</licenseversion>
+    </library>
+
+    <library>
+        <location>amd/build/</location>
+        <name>React DOM</name>
+        <version>18.x</version>
+        <license>MIT</license>
+        <licenseversion>MIT</licenseversion>
+    </library>
+
+    <library>
+        <location>amd/build/</location>
+        <name>MUI (Material UI)</name>
+        <version>5.x</version>
+        <license>MIT</license>
+        <licenseversion>MIT</licenseversion>
+    </library>
+
+    <library>
+        <location>amd/build/</location>
+        <name>Emotion (React CSS-in-JS)</name>
+        <version>11.x</version>
+        <license>MIT</license>
+        <licenseversion>MIT</licenseversion>
+    </library>
+
+    <library>
+        <location>amd/build/</location>
+        <name>PDF.js (pdfjs-dist)</name>
+        <version>3.x</version>
+        <license>Apache-2.0</license>
+        <licenseversion>2.0</licenseversion>
+    </library>
+
+    <library>
+        <location>amd/build/</location>
+        <name>PptxGenJS</name>
+        <version>4.x</version>
+        <license>MIT</license>
+        <licenseversion>MIT</licenseversion>
+    </library>
+
+    <library>
+        <location>amd/build/</location>
+        <name>Framer Motion</name>
+        <version>12.x</version>
+        <license>MIT</license>
+        <licenseversion>MIT</licenseversion>
+    </library>
+
+    <library>
+        <location>amd/build/</location>
+        <name>Three.js</name>
+        <version>0.182.x</version>
+        <license>MIT</license>
+        <licenseversion>MIT</licenseversion>
+    </library>
+
+    <library>
+        <location>amd/build/</location>
+        <name>@react-three/fiber</name>
+        <version>8.x</version>
+        <license>MIT</license>
+        <licenseversion>MIT</licenseversion>
+    </library>
+
+    <library>
+        <location>amd/build/</location>
+        <name>@react-three/drei</name>
+        <version>9.x</version>
+        <license>MIT</license>
+        <licenseversion>MIT</licenseversion>
+    </library>
+
+    <library>
+        <location>amd/build/</location>
+        <name>Recharts</name>
+        <version>3.x</version>
+        <license>MIT</license>
+        <licenseversion>MIT</licenseversion>
+    </library>
+
+    <library>
+        <location>amd/build/</location>
+        <name>JSZip</name>
+        <version>3.x</version>
+        <license>MIT</license>
+        <licenseversion>MIT</licenseversion>
+    </library>
+
+    <library>
+        <location>amd/build/</location>
+        <name>Lucide React</name>
+        <version>0.555.x</version>
+        <license>ISC</license>
+        <licenseversion>ISC</licenseversion>
+    </library>
+
+    <library>
+        <location>amd/build/</location>
+        <name>Day.js</name>
+        <version>1.x</version>
+        <license>MIT</license>
+        <licenseversion>MIT</licenseversion>
+    </library>
+</libraries>

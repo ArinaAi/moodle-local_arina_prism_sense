@@ -8,7 +8,7 @@
  * API key in the URL.
  *
  * @package    local_lecturebot
- * @copyright  2025
+ * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 

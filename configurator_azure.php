@@ -7,7 +7,7 @@
  * 2. For PRODUCTION: It uses standard Environment Variables set on the server.
  *
  * @package    local_lecturebot
- * @copyright  2025
+ * @copyright  2025 Arina AI <info@arina.ai>
  */
 
 defined('MOODLE_INTERNAL') || die();

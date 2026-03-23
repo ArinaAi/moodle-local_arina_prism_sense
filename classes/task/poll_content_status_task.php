@@ -15,7 +15,7 @@ require_once(__DIR__ . '/../CompanyConfig.php');
  * pending items, reducing backend load as the system scales.
  *
  * @package    local_lecturebot
- * @copyright  2025
+ * @copyright  2025 Arina AI <info@arina.ai>
  */
 class poll_content_status_task extends \core\task\scheduled_task
 {

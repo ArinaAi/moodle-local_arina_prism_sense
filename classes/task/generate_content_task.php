@@ -15,7 +15,7 @@ require_once(__DIR__ . '/../CompanyConfig.php');
  * The actual file download is handled by the scheduled poll_content_status_task.
  *
  * @package    local_lecturebot
- * @copyright  2025
+ * @copyright  2025 Arina AI <info@arina.ai>
  */
 class generate_content_task extends \core\task\adhoc_task
 {
