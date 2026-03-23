@@ -60,7 +60,7 @@ try {
     }
 
     // Construct the BFF proxy URL (no api_key in query string — sent as header below)
-    $proxyUrl = LECTUREBOT_API_DOWNLOAD_ASSET .
+    $proxyUrl = API_DOWNLOAD_ASSET .
     '?blob_path=' . urlencode($blobName) .
     '&container=' . urlencode($containerName);
 

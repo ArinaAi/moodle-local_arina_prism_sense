@@ -34,7 +34,7 @@ try {
     require_login($courseid);
     CompanyConfig::bootstrap($USER->id);
     $context = context_course::instance($courseid);
-    require_capability(LECTUREBOT_CAPABILITY_GENERATE_CONTENT, $context);
+    require_capability(CAPABILITY_GENERATE_CONTENT, $context);
 
     // Fetch the source record.
     $source = $DB->get_record('local_lecturebot_sources', ['id' => $sourceid, 'courseid' => $courseid]);
@@ -68,7 +68,7 @@ try {
 
 
     $apiKey = CompanyConfig::getApiKey();
-    $checkUrl = LECTUREBOT_API_CHECK_BATCH_STATUS . '?' . http_build_query(
+    $checkUrl = API_CHECK_BATCH_STATUS . '?' . http_build_query(
         ['batch_id' => $batchId],
         '',
         '&'

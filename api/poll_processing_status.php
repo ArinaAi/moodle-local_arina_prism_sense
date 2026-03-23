@@ -33,7 +33,7 @@ try {
     require_login($courseid);
     CompanyConfig::bootstrap($USER->id);
     $context = context_course::instance($courseid);
-    require_capability(LECTUREBOT_CAPABILITY_GENERATE_CONTENT, $context);
+    require_capability(CAPABILITY_GENERATE_CONTENT, $context);
 
     // Fetch all sources still in 'processing' state.
     $params = ['courseid' => $courseid, 'processing_status' => 'processing'];
@@ -88,7 +88,7 @@ try {
     // -------------------------------------------------------------------------
     foreach ($batches as $batchId => $batchSources) {
 
-        $checkUrl = LECTUREBOT_API_CHECK_BATCH_STATUS . '?' . http_build_query(
+        $checkUrl = API_CHECK_BATCH_STATUS . '?' . http_build_query(
             ['batch_id' => $batchId],
             '',
             '&'

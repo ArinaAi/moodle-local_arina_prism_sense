@@ -161,7 +161,7 @@ try {
     // 5. Execute cURL request to Arina Feedback Service
     // ----------------------------------------------------------------
     $apiKey = CompanyConfig::getApiKey();
-    $ch = curl_init(LECTUREBOT_FEEDBACK_SERVICE_URL);
+    $ch = curl_init(FEEDBACK_SERVICE_URL);
 
     curl_setopt_array($ch, [
         CURLOPT_POST           => true,

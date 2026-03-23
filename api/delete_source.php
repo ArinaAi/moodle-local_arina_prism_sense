@@ -31,7 +31,7 @@ try {
     require_login($courseid);
     CompanyConfig::bootstrap($USER->id);
     $context = context_course::instance($courseid);
-    require_capability(LECTUREBOT_CAPABILITY_GENERATE_CONTENT, $context);
+    require_capability(CAPABILITY_GENERATE_CONTENT, $context);
     require_sesskey();
 
 
@@ -47,7 +47,7 @@ try {
     $weaviateDeleteResult = null;
 
     try {
-        $deleteUrl = LECTUREBOT_API_DELETE_DOCUMENT . '?' . http_build_query([
+        $deleteUrl = API_DELETE_DOCUMENT . '?' . http_build_query([
             'course_id' => $courseid,
             'chapter_id' => $source->sectionid,
             'document_name' => $source->filename

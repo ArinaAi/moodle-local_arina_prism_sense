@@ -128,7 +128,7 @@ class poll_content_status_task extends \core\task\scheduled_task
     private function checkBatchBackendStatus(array $requestIds, string $apiKey)
     {
         $result = null;
-        $url  = LECTUREBOT_API_CHECK_STATUS_BATCH;
+        $url  = API_CHECK_STATUS_BATCH;
         $body = json_encode(['request_ids' => $requestIds]);
 
         $ch = curl_init($url);

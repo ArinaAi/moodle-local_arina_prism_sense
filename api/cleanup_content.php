@@ -16,7 +16,7 @@ header('Content-Type: application/json');
 try {
     $courseid = required_param('courseid', PARAM_INT);
     require_login($courseid, false);
-    require_capability(LECTUREBOT_CAPABILITY_GENERATE_CONTENT, context_course::instance($courseid));
+    require_capability(CAPABILITY_GENERATE_CONTENT, context_course::instance($courseid));
     require_sesskey();
 
 

@@ -22,7 +22,7 @@ try {
     // Require login and capability
     require_login($courseid);
     $context = context_course::instance($courseid);
-    require_capability(LECTUREBOT_CAPABILITY_GENERATE_CONTENT, $context);
+    require_capability(CAPABILITY_GENERATE_CONTENT, $context);
 
     // Get course module info
     $modinfo = get_fast_modinfo($courseid);

@@ -10,7 +10,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 // Capability constants - change here to update across all plugin files.
-define('LECTUREBOT_CAPABILITY_GENERATE_CONTENT', 'local/lecturebot:generatecontent');
+define('CAPABILITY_GENERATE_CONTENT', 'local/lecturebot:generatecontent');
 
 // Load environment variables from .env file
 $envFile = __DIR__ . '/.env';
@@ -33,58 +33,51 @@ if (file_exists($envFile)) {
     }
 }
 
-// API Base URL - Change this in .env file for different environments
-define('LECTUREBOT_API_BASE_URL', getenv('LECTUREBOT_API_BASE_URL'));
+// API Base URL - Change this in .env file for different environments.
+// Set to the root host, e.g. https://demo.arina.ai/dev2230 — all service
+// paths are appended below, so only this one value needs updating to switch environments.
+define('API_BASE_URL', rtrim(getenv('LECTUREBOT_API_BASE_URL') ?: 'https://demo.arina.ai/dev2230', '/'));
 
-// API Endpoints
-define('LECTUREBOT_API_GENERATE_PPTX', LECTUREBOT_API_BASE_URL . '/generate_pptx');
-define('LECTUREBOT_API_GENERATE_VIDEO', LECTUREBOT_API_BASE_URL . '/generate_video');
-define('LECTUREBOT_API_UPLOAD_PDF', LECTUREBOT_API_BASE_URL . '/uploadpdf');
-define('LECTUREBOT_API_UPLOAD', LECTUREBOT_API_BASE_URL . '/upload');
-define('LECTUREBOT_API_STATUS', LECTUREBOT_API_BASE_URL . '/status');
-define('LECTUREBOT_API_CHECK_STATUS', LECTUREBOT_API_BASE_URL . '/check_status');
-define(
-    'LECTUREBOT_API_CHECK_STATUS_BATCH',
-    'https://demo.arina.ai/dev2230/agents/arina-message-bus-status-service/status/batch'
-);
-define('LECTUREBOT_API_START_BATCH_UPLOAD', LECTUREBOT_API_BASE_URL . '/start_batch_upload');
-define(
-    'LECTUREBOT_API_CHECK_BATCH_STATUS',
-    'https://demo.arina.ai/dev2230/bots/tutorial_generation/check_batch_status'
-);
-define(
-    'LECTUREBOT_API_TRIGGER_GENERATION',
-    'https://demo.arina.ai/dev2230/bots/tutorial_generation/trigger_generation'
-);
-define('LECTUREBOT_API_DELETE_DOCUMENT', LECTUREBOT_API_BASE_URL . '/delete_document');
-define(
-    'LECTUREBOT_API_DOWNLOAD_ASSET',
-    'https://demo.arina.ai/dev2230/service/arina-url-gateway-service/api/v1/assets/download'
-);
-define(
-    'LECTUREBOT_FEEDBACK_SERVICE_URL',
-    'https://demo.arina.ai/dev2230/service/arina-customer-feedback-service/api/prism_sense/feedback'
-);
-define(
-    'LECTUREBOT_CONTENT_REGEN_FEEDBACK_URL',
-    'https://demo.arina.ai/dev2230/service/arina-customer-feedback-service' .
-    '/api/prism_sense/content-regeneration/feedback'
-);
-define(
-    'LECTUREBOT_CREDIT_SERVICE_URL',
-    getenv('LECTUREBOT_CREDIT_SERVICE_URL') ?: 'https://demo.arina.ai/dev2230/service/arina-credit-service'
-);
+// ── Bot / tutorial generation service ────────────────────────────────────────
+define('BOT_BASE_URL', API_BASE_URL . '/bots/tutorial_generation');
+define('API_GENERATE_PPTX', BOT_BASE_URL . '/generate_pptx');
+define('API_GENERATE_VIDEO', BOT_BASE_URL . '/generate_video');
+define('API_UPLOAD_PDF', BOT_BASE_URL . '/uploadpdf');
+define('API_UPLOAD', BOT_BASE_URL . '/upload');
+define('API_STATUS', BOT_BASE_URL . '/status');
+define('API_CHECK_STATUS', BOT_BASE_URL . '/check_status');
+define('API_START_BATCH_UPLOAD', BOT_BASE_URL . '/start_batch_upload');
+define('API_DELETE_DOCUMENT', BOT_BASE_URL . '/delete_document');
+define('API_CHECK_BATCH_STATUS', BOT_BASE_URL . '/check_batch_status');
+define('API_TRIGGER_GENERATION', BOT_BASE_URL . '/trigger_generation');
+
+// ── Agent / message bus ───────────────────────────────────────────────────────
+define('API_CHECK_STATUS_BATCH', API_BASE_URL . '/agents/arina-message-bus-status-service/status/batch');
+
+// ── Asset download gateway ────────────────────────────────────────────────────
+define('API_DOWNLOAD_ASSET', API_BASE_URL . '/service/arina-url-gateway-service/api/v1/assets/download');
+
+// ── Feedback service ──────────────────────────────────────────────────────────
+define('FEEDBACK_BASE_URL', API_BASE_URL . '/service/arina-customer-feedback-service/api/prism_sense');
+define('FEEDBACK_SERVICE_URL', FEEDBACK_BASE_URL . '/feedback');
+define('CONTENT_REGEN_FEEDBACK_URL', FEEDBACK_BASE_URL . '/content-regeneration/feedback');
+
+// ── Credit service ────────────────────────────────────────────────────────────
+define('CREDIT_SERVICE_URL', API_BASE_URL . '/service/arina-credit-service');
+
+// ── Auth service ──────────────────────────────────────────────────────────────
+define('AUTH_SERVICE_URL', API_BASE_URL . '/service/arina_auth_service/validate');
 
 // Default video length (in minutes)
-define('LECTUREBOT_DEFAULT_VIDEO_LENGTH', 2);
+define('DEFAULT_VIDEO_LENGTH', 2);
 
 // API timeout settings (in seconds)
-define('LECTUREBOT_API_TIMEOUT', 0); // Infinite timeout for generation (handled by cron)
+define('API_TIMEOUT', 0); // Infinite timeout for generation (handled by cron)
 
 // Developer Mode (Set to true to bypass external API for testing)
 defined('DEVELOPER_MODE') || define('DEVELOPER_MODE', false);
-define('LECTUREBOT_API_CONNECT_TIMEOUT', 30); // 30 seconds to establish connection
+define('API_CONNECT_TIMEOUT', 30); // 30 seconds to establish connection
 
 // Backend PDF Upload - Set to false to disable backend upload for testing
 
-define('LECTUREBOT_ENABLE_BACKEND_PDF_UPLOAD', true);
+define('ENABLE_BACKEND_PDF_UPLOAD', true);

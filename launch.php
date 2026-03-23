@@ -5,6 +5,7 @@ require_once($CFG->libdir . '/adminlib.php');
 // Ensure Utils is loaded
 require_once(__DIR__ . '/classes/Utils.php');
 require_once(__DIR__ . '/classes/CompanyConfig.php');
+require_once(__DIR__ . '/config_api.php');
 require_once(__DIR__ . '/configurator_azure.php');
 
 $courseid = required_param('courseid', PARAM_INT);
@@ -20,7 +21,7 @@ if (empty($apiKey)) {
     $errorMessage = 'API key is not configured. Please add your API key in the plugin settings.';
 } else {
     // Validate API key against Arina auth service
-    $validateUrl = 'https://demo.arina.ai/dev2230/service/arina_auth_service/validate';
+    $validateUrl = AUTH_SERVICE_URL;
     
     $ch = curl_init($validateUrl);
     curl_setopt_array($ch, [

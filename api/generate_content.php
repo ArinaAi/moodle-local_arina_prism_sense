@@ -21,7 +21,7 @@ require_login($courseid, false);
 require_sesskey();
 
 $context = context_course::instance($courseid);
-require_capability(LECTUREBOT_CAPABILITY_GENERATE_CONTENT, $context);
+require_capability(CAPABILITY_GENERATE_CONTENT, $context);
 
 // Resolve per-company config once for this request.
 CompanyConfig::bootstrap($USER->id);
@@ -84,7 +84,7 @@ try {
 
     $sectionid = $input['section_id'];
     $contentStrategy = $input['content_strategy'] ?? 'standard';
-    $videoLength = isset($input['video_length']) ? (int) $input['video_length'] : LECTUREBOT_DEFAULT_VIDEO_LENGTH;
+    $videoLength = isset($input['video_length']) ? (int) $input['video_length'] : DEFAULT_VIDEO_LENGTH;
     $language = $input['language'] ?? 'english';
     $voiceGender = $input['voice_gender'] ?? 'female';
     $avatarStrategy = $input['avatar_strategy'] ?? 'title_only';

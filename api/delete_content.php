@@ -21,7 +21,7 @@ try {
 
     // Verify user has permission to delete this content
     $context = context_course::instance($content->courseid);
-    require_capability(LECTUREBOT_CAPABILITY_GENERATE_CONTENT, $context);
+    require_capability(CAPABILITY_GENERATE_CONTENT, $context);
     require_sesskey();
 
 

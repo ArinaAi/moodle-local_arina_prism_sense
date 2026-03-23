@@ -30,8 +30,8 @@ require_once(__DIR__ . '/config_api.php');
 
 use local_lecturebot\Utils;
 
-define('LECTUREBOT_SCRIPT_START', '<script>');
-define('LECTUREBOT_SCRIPT_END', '</script>');
+define('SCRIPT_START', '<script>');
+define('SCRIPT_END', '</script>');
 
 /**
  * Generate JavaScript code for button creation and event handlers.
@@ -180,7 +180,7 @@ function local_lecturebot_can_access()
 
     $isCourseView = strpos($PAGE->pagetype, 'course-view') === 0;
     $canUpdate = has_capability(
-        LECTUREBOT_CAPABILITY_GENERATE_CONTENT,
+        CAPABILITY_GENERATE_CONTENT,
         context_course::instance($COURSE->id)
     );
 
@@ -210,7 +210,7 @@ function local_lecturebot_can_access_student()
     $isEnrolled = is_enrolled($context, $USER, '', true);
 
     // Also allow managers/teachers who might not be "enrolled" but have update rights
-    $canUpdate = has_capability(LECTUREBOT_CAPABILITY_GENERATE_CONTENT, $context);
+    $canUpdate = has_capability(CAPABILITY_GENERATE_CONTENT, $context);
 
     return $isCourseView && ($isEnrolled || $canUpdate);
 }
@@ -254,22 +254,22 @@ function local_lecturebot_before_footer()
     }
 
     if ($jsToInject !== '') {
-        echo LECTUREBOT_SCRIPT_START;
+        echo SCRIPT_START;
         echo $jsToInject;
-        echo LECTUREBOT_SCRIPT_END;
+        echo SCRIPT_END;
     }
 
     // Inject Credit Management link for admins
     if (is_siteadmin()) {
-        echo LECTUREBOT_SCRIPT_START;
+        echo SCRIPT_START;
         echo local_lecturebot_get_cms_menu_js($CFG->wwwroot);
-        echo LECTUREBOT_SCRIPT_END;
+        echo SCRIPT_END;
     }
 
     // Modern Login Page Styling
     if (local_lecturebot_is_login_page()) {
         echo '<style>' . local_lecturebot_get_login_css() . '</style>';
-        echo LECTUREBOT_SCRIPT_START . local_lecturebot_get_login_js() . LECTUREBOT_SCRIPT_END;
+        echo SCRIPT_START . local_lecturebot_get_login_js() . SCRIPT_END;
     }
 }
 

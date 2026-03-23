@@ -528,7 +528,7 @@ class generate_content_task extends \core\task\adhoc_task
      */
     private function callTriggerGenerationApi($params, $apiKey)
     {
-        $apiUrl = LECTUREBOT_API_TRIGGER_GENERATION . '?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+        $apiUrl = API_TRIGGER_GENERATION . '?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
 
         $ch = curl_init($apiUrl);
         curl_setopt_array($ch, [
@@ -729,7 +729,7 @@ class generate_content_task extends \core\task\adhoc_task
 
         // Check if Video Generation is requested
         if ($contentType === 'video' || $avatarVideoNeeded === 'yes') {
-            $baseUrl = LECTUREBOT_API_GENERATE_VIDEO;
+            $baseUrl = API_GENERATE_VIDEO;
             $videoUrl = $baseUrl .
                 '?course_id=' . $courseid .
                 '&organization_id=' . $tenantId .
@@ -748,7 +748,7 @@ class generate_content_task extends \core\task\adhoc_task
             return $videoUrl;
         } else {
             // Fallback to existing PPTX endpoint logic
-            $pptxUrl = LECTUREBOT_API_GENERATE_PPTX .
+            $pptxUrl = API_GENERATE_PPTX .
                 '?curriculum_text=' . urlencode(trim($curriculumText)) .
                 '&organization_id=' . urlencode($tenantId) .
                 '&course_id=' . $courseid .

@@ -40,7 +40,7 @@ try {
     // Auth
     require_login($courseid);
     $context = context_course::instance($courseid);
-    require_capability(LECTUREBOT_CAPABILITY_GENERATE_CONTENT, $context);
+    require_capability(CAPABILITY_GENERATE_CONTENT, $context);
 
     // Resolve section number from section id
     $sectionRecord = $DB->get_record('course_sections', ['id' => $sectionid, 'course' => $courseid], '*', MUST_EXIST);

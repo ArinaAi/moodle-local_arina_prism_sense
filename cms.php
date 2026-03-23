@@ -24,8 +24,13 @@
 
 require_once(__DIR__ . '/../../config.php');
 
+use local_lecturebot\CompanyConfig;
+
+require_once(__DIR__ . '/configurator_azure.php');
+
 // Security: Require login and site admin permissions
 require_login();
+CompanyConfig::bootstrap($USER->id);
 require_capability('moodle/site:config', context_system::instance());
 
 // Page setup
@@ -45,7 +50,7 @@ $moodlecontext = json_encode([
     'wwwroot' => $CFG->wwwroot,
     'sesskey' => sesskey(),
     'userid' => $USER->id,
-    'tenantid' => 1, // Implement proper tenant resolution
+    'tenantid' => CompanyConfig::getTenantId() ?? 1,
     'username' => fullname($USER),
     'useremail' => $USER->email,
 ]);

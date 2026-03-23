@@ -34,7 +34,7 @@ try {
     CompanyConfig::bootstrap($USER->id);
     error_log("LectureBot: Login successful");
     $context = context_course::instance($courseid);
-    require_capability(LECTUREBOT_CAPABILITY_GENERATE_CONTENT, $context);
+    require_capability(CAPABILITY_GENERATE_CONTENT, $context);
     require_sesskey();
 
     // Check existing sources for this section (max 3)
@@ -227,7 +227,7 @@ try {
     // ===== UPLOAD PDFs TO BACKEND API (if enabled) =====
     $uploadResults = [];
 
-    if (defined('LECTUREBOT_ENABLE_BACKEND_PDF_UPLOAD') && LECTUREBOT_ENABLE_BACKEND_PDF_UPLOAD) {
+    if (defined('ENABLE_BACKEND_PDF_UPLOAD') && ENABLE_BACKEND_PDF_UPLOAD) {
         try {
             // Get tenant ID and regen count
             $tenantConfig = CompanyConfig::getTenantId();
@@ -246,7 +246,7 @@ try {
                 'expected_uploads' => $expectedUploads
             ];
 
-            $startBatchUrl = LECTUREBOT_API_START_BATCH_UPLOAD . '?' . http_build_query($startBatchParams, '', '&');
+            $startBatchUrl = API_START_BATCH_UPLOAD . '?' . http_build_query($startBatchParams, '', '&');
             error_log("LectureBot: Starting batch upload for $expectedUploads files: " . $startBatchUrl);
 
             // Get API Key from settings
@@ -342,7 +342,7 @@ try {
                         $queryParams['user_id'] = $userUuid;
                     }
 
-                    $uploadApiUrl = LECTUREBOT_API_UPLOAD_PDF . '?' . http_build_query($queryParams, '', '&');
+                    $uploadApiUrl = API_UPLOAD_PDF . '?' . http_build_query($queryParams, '', '&');
                     error_log("LectureBot: Uploading PDF $index to backend: " . $storedfile->get_filename());
 
                     // Create a temporary file with the PDF content

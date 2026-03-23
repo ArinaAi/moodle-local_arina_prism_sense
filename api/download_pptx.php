@@ -53,7 +53,7 @@ try {
     $containerName = $generationData['azure_container'] ?? AZURE_BLOB_CONTAINER_NAME;
     
     // Construct Proxy URL
-    $proxyUrl = LECTUREBOT_API_DOWNLOAD_ASSET .
+    $proxyUrl = API_DOWNLOAD_ASSET .
     '?blob_path=' . urlencode($blobPath) .
     '&container=' . urlencode($containerName);
     

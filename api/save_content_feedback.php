@@ -61,7 +61,7 @@ try {
     $content = $DB->get_record('local_lecturebot_content', ['id' => $contentid], '*', MUST_EXIST);
 
     $context = context_course::instance($content->courseid);
-    require_capability(LECTUREBOT_CAPABILITY_GENERATE_CONTENT, $context);
+    require_capability(CAPABILITY_GENERATE_CONTENT, $context);
 
     // ----------------------------------------------------------------
     // 1. Read all feedback fields
@@ -119,7 +119,7 @@ try {
     // 3. POST to Arina Feedback Service
     // ----------------------------------------------------------------
     $apiKey = CompanyConfig::getApiKey();
-    $ch = curl_init(LECTUREBOT_CONTENT_REGEN_FEEDBACK_URL);
+    $ch = curl_init(CONTENT_REGEN_FEEDBACK_URL);
 
     curl_setopt_array($ch, [
         CURLOPT_POST => true,

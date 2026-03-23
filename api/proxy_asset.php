@@ -39,7 +39,7 @@ if (empty($apiKey)) {
 }
 
 // Build the BFF URL (api_key goes in the header, not the query string)
-$bffUrl = LECTUREBOT_API_DOWNLOAD_ASSET
+$bffUrl = API_DOWNLOAD_ASSET
     . '?blob_path=' . urlencode($blobPath)
     . '&container=' . urlencode($containerName);
 

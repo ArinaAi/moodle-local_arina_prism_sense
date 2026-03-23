@@ -272,8 +272,8 @@ class CompanyConfig
     private static function globalFallback(): \stdClass
     {
         return (object) [
-            'tenant_id' => defined('LECTUREBOT_TENANT_ID')
-                ? LECTUREBOT_TENANT_ID
+            'tenant_id' => defined('TENANT_ID')
+                ? TENANT_ID
                 : null,
             'api_key' => get_config('local_lecturebot', 'api_key') ?: null,
             'org_wallet_owner_id' => get_config('local_lecturebot', 'org_wallet_owner_id') ?: null,

@@ -32,7 +32,7 @@ class CreditServiceClient
         $this->apiKey = \local_lecturebot\CompanyConfig::getApiKey()
             ?? get_config('local_lecturebot', 'api_key')
             ?: getenv('LECTUREBOT_API_KEY');
-        $this->baseUrl = LECTUREBOT_CREDIT_SERVICE_URL;
+        $this->baseUrl = CREDIT_SERVICE_URL;
     }
 
     protected function makeRequest($method, $endpoint, $payload = null)
