@@ -22,11 +22,12 @@ require_once(__DIR__ . '/../../../config.php');
 use local_lecturebot\CompanyConfig;
 
 require_once(__DIR__ . '/../config_api.php');
+require_once(__DIR__ . '/../classes/EmailNotifier.php');
 
 header('Content-Type: application/json');
 
 try {
-    $courseid  = required_param('courseid', PARAM_INT);
+    $courseid = required_param('courseid', PARAM_INT);
     $sectionid = optional_param('sectionid', null, PARAM_INT);
 
     // Require login and capability.
@@ -48,7 +49,7 @@ try {
         exit;
     }
 
-    $apiKey   = CompanyConfig::getApiKey();
+    $apiKey = CompanyConfig::getApiKey();
     $statuses = [];
 
     // -------------------------------------------------------------------------
@@ -97,15 +98,15 @@ try {
         $ch = curl_init($checkUrl);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 15,
+            CURLOPT_TIMEOUT => 15,
             CURLOPT_CONNECTTIMEOUT => 10,
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTPHEADER     => ['X-Api-key: ' . $apiKey],
+            CURLOPT_HTTPHEADER => ['X-Api-key: ' . $apiKey],
         ]);
 
-        $response  = curl_exec($ch);
-        $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlError = curl_error($ch);
         curl_close($ch);
 
@@ -170,7 +171,7 @@ try {
             // Map backend per-file status → our internal processing_status.
             $fileStatus = $matchedDetail['status'] ?? '';
 
-            if ($fileStatus === 'completed') {
+            if ($fileStatus === 'success') {
                 $newStatus = 'uploaded';
             } elseif ($fileStatus === 'failed') {
                 $newStatus = 'failed';
@@ -182,6 +183,46 @@ try {
 
             $DB->set_field('local_lecturebot_sources', 'processing_status', $newStatus, ['id' => $sourceId]);
             $statuses[$sourceId] = $newStatus;
+
+            // Resolve the uploader from the Moodle files table (sources table has no userid column).
+            // We look up the file record that was written at upload time.
+            $uploaderUser = null;
+            if (!empty($source->fileitemid)) {
+                $sqlWhere = "component = 'local_lecturebot' AND filearea = 'sources'"
+                    . " AND itemid = ? AND userid > 0 AND filename != '.'";
+                $fileRecord = $DB->get_record_select(
+                    'files',
+                    $sqlWhere,
+                    [$source->fileitemid],
+                    'userid',
+                    IGNORE_MULTIPLE
+                );
+                if ($fileRecord && !empty($fileRecord->userid)) {
+                    $uploaderUser = $DB->get_record(
+                        'user',
+                        ['id' => $fileRecord->userid, 'deleted' => 0],
+                        '*',
+                        IGNORE_MISSING
+                    );
+                }
+            }
+
+            // Send email notification for the status transition.
+            if ($uploaderUser) {
+                try {
+                    if ($newStatus === 'uploaded') {
+                        \local_lecturebot\EmailNotifier::sendSourceSuccess($source, $uploaderUser);
+                    } else {
+                        \local_lecturebot\EmailNotifier::sendSourceFailure($source, $uploaderUser);
+                    }
+                } catch (\Throwable $emailEx) {
+                    error_log('LectureBot poll_processing_status: email notification failed (non-fatal): ' .
+                    $emailEx->getMessage());
+                }
+            } else {
+                error_log('LectureBot poll_processing_status: could not resolve uploader for source ' .
+                $sourceId . ', skipping email.');
+            }
 
             error_log(
                 'LectureBot poll_processing_status: source ' . $sourceId .

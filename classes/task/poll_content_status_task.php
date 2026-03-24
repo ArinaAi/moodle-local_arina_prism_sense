@@ -6,6 +6,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once(__DIR__ . '/../../config_api.php');
 require_once(__DIR__ . '/../../configurator_azure.php');
 require_once(__DIR__ . '/../CompanyConfig.php');
+require_once(__DIR__ . '/../EmailNotifier.php');
 
 /**
  * Scheduled task to poll backend for content generation status
@@ -330,6 +331,13 @@ class poll_content_status_task extends \core\task\scheduled_task
         $content->generationdata = json_encode($generationData);
 
         $DB->update_record('local_lecturebot_content', $content);
+
+        // Notify the user by email that their content failed.
+        try {
+            \local_lecturebot\EmailNotifier::sendContentFailure($content, $errorMessage);
+        } catch (\Throwable $emailEx) {
+            mtrace("    Email notification failed (non-fatal): " . $emailEx->getMessage());
+        }
     }
 
     /**
@@ -385,6 +393,13 @@ class poll_content_status_task extends \core\task\scheduled_task
         $content->timemodified   = time();
         $DB->update_record('local_lecturebot_content', $content);
         mtrace("    Content {$content->id} marked as ready!");
+
+        // Notify the user by email that their content is ready.
+        try {
+            \local_lecturebot\EmailNotifier::sendContentSuccess($content);
+        } catch (\Throwable $emailEx) {
+            mtrace("    Email notification failed (non-fatal): " . $emailEx->getMessage());
+        }
 
         // Delete the parent content record now that the regenerated content is fully ready.
         $this->deleteParentContent($content);

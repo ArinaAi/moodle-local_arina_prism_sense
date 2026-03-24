@@ -52,7 +52,7 @@ define('API_CHECK_BATCH_STATUS', BOT_BASE_URL . '/check_batch_status');
 define('API_TRIGGER_GENERATION', BOT_BASE_URL . '/trigger_generation');
 
 // ── Agent / message bus ───────────────────────────────────────────────────────
-define('API_CHECK_STATUS_BATCH', API_BASE_URL . '/agents/arina-message-bus-status-service/status/batch');
+define('API_CHECK_STATUS_BATCH', API_BASE_URL . '/service/arina-message-bus-status-service/status/batch');
 
 // ── Asset download gateway ────────────────────────────────────────────────────
 define('API_DOWNLOAD_ASSET', API_BASE_URL . '/service/arina-url-gateway-service/api/v1/assets/download');
