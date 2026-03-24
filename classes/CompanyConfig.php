@@ -271,10 +271,14 @@ class CompanyConfig
      */
     private static function globalFallback(): \stdClass
     {
+        // Prefer LECTUREBOT_TENANT_ID (defined by configurator_azure.php from .env);
+        // fall back to TENANT_ID for deployed environments that set it directly.
+        if (defined('LECTUREBOT_TENANT_ID')) {
+            $tenantId = LECTUREBOT_TENANT_ID;
+        }
+
         return (object) [
-            'tenant_id' => defined('TENANT_ID')
-                ? TENANT_ID
-                : null,
+            'tenant_id' => $tenantId,
             'api_key' => get_config('local_lecturebot', 'api_key') ?: null,
             'org_wallet_owner_id' => get_config('local_lecturebot', 'org_wallet_owner_id') ?: null,
         ];
