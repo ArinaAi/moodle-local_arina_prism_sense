@@ -66,7 +66,7 @@ function local_lecturebot_init_azure_config()
     // 2. Define Constants
     local_lecturebot_define_from_env('AZURE_STORAGE_ACCOUNT_NAME');
     local_lecturebot_define_from_env('AZURE_STORAGE_ACCOUNT_KEY');
-    local_lecturebot_define_from_env('TENANT_ID', 'default_tenant');
+    local_lecturebot_define_from_env('LECTUREBOT_TENANT_ID', 'default_tenant');
     
     // PostgreSQL Database Constants
     local_lecturebot_define_from_env('PG_HOST');
@@ -80,7 +80,7 @@ function local_lecturebot_init_azure_config()
         if ($val !== false) {
             define('AZURE_BLOB_CONTAINER_NAME', $val);
         } else {
-            $tenantId = TENANT_ID;
+            $tenantId = LECTUREBOT_TENANT_ID;
             $safeTenantId = strtolower(preg_replace('/[^a-zA-Z0-9-]/', '', $tenantId));
             define('AZURE_BLOB_CONTAINER_NAME', 'blob-tutorial-gen-' . $safeTenantId);
         }
