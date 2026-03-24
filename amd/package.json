@@ -2,7 +2,7 @@
   "name": "local_lecturebot",
   "version": "1.0.0",
   "scripts": {
-    "build": "webpack --mode=production",
+    "build": "node --max-old-space-size=4096 node_modules/.bin/webpack --mode=production",
     "dev": "webpack --mode=development --watch",
     "type-check": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx",
@@ -14,7 +14,6 @@
   "devDependencies": {
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
-    "@types/three": "^0.182.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "css-loader": "^6.8.0",
@@ -38,8 +37,6 @@
     "@mui/icons-material": "^5.14.0",
     "@mui/material": "^5.14.0",
     "@mui/x-date-pickers": "^8.27.2",
-    "@react-three/drei": "^9.56.0",
-    "@react-three/fiber": "^8.13.0",
     "dayjs": "^1.11.19",
     "framer-motion": "^12.34.0",
     "jszip": "^3.10.1",
@@ -48,7 +45,6 @@
     "pptxgenjs": "^4.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "recharts": "^3.7.0",
-    "three": "^0.182.0"
+    "recharts": "^3.7.0"
   }
 }

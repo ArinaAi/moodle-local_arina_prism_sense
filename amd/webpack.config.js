@@ -38,9 +38,9 @@ module.exports = {
       }
     ]
   },
-  // REMOVE externals - we'll bundle React with our app
-  // externals: {
-  //   'react': 'React',
-  //   'react-dom': 'ReactDOM'
-  // }
+  // Exclude large libraries that are bundled separately to reduce webpack memory usage
+  externals: {
+    'react': 'React',
+    'react-dom': 'ReactDOM',
+  }
 };
