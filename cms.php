@@ -40,9 +40,6 @@ $PAGE->set_url(new moodle_url('/local/lecturebot/cms.php'));
 $PAGE->set_title(get_string('creditmanagement', 'local_lecturebot'));
 $PAGE->set_heading(get_string('creditmanagement', 'local_lecturebot'));
 
-// Include the compiled CMS React bundle
-$PAGE->requires->js('/local/lecturebot/amd/build/cms.min.js', true);
-
 echo $OUTPUT->header();
 
 // Inject Moodle context for the React app
@@ -59,5 +56,25 @@ echo html_writer::tag('script', "window.MOODLE_CMS_CONTEXT = {$moodlecontext};",
 
 // React root container
 echo html_writer::div('', '', ['id' => 'lecturebot-cms-root', 'style' => 'min-height: 100vh;']);
+
+// React and ReactDOM must be globals BEFORE cms.min.js runs.
+// webpack.config.js declares them as externals: { 'react': 'React', 'react-dom': 'ReactDOM' }
+// Without these the bundle crashes silently and the page stays blank.
+// Pinned to exact 18.2.0 (immutable npm tarball — safe without SRI).
+// NOTE: $PAGE->requires->js() is intentionally NOT used here. That system defers
+// script injection to Moodle's footer JS queue, which is incompatible with the
+// bundle's DOMContentLoaded self-init pattern and causes a race condition.
+echo html_writer::tag('script', '', [
+    'src' => 'https://unpkg.com/react@18.2.0/umd/react.production.min.js',
+    'crossorigin' => 'anonymous',
+]);
+echo html_writer::tag('script', '', [
+    'src' => 'https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js',
+    'crossorigin' => 'anonymous',
+]);
+
+$cmsjsurl = $CFG->wwwroot . '/local/lecturebot/amd/build/cms.min.js?v=' .
+filemtime($CFG->dirroot . '/local/lecturebot/amd/build/cms.min.js');
+echo html_writer::tag('script', '', ['src' => $cmsjsurl]);
 
 echo $OUTPUT->footer();
