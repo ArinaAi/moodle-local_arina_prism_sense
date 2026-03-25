@@ -127,6 +127,23 @@ class Utils
             background: #f0f4f9;
           }
         </style>
+
+        <?php
+        // React and ReactDOM must be loaded as globals BEFORE the app bundle,
+        // because webpack.config.js declares them as externals:
+        //   externals: { 'react': 'React', 'react-dom': 'ReactDOM' }
+        // Without these globals the bundle crashes silently and the spinner never clears.
+        //
+        // SRI (integrity="sha384-...") is intentionally omitted here.
+        // Reason: unpkg serves files directly from immutable npm tarballs, so the
+        // content for a pinned exact version (e.g. react@18.2.0) never changes.
+        // Adding SRI with a semver range (@18) would be unsafe — if unpkg resolved
+        // @18 to a newer patch release the hash would mismatch and break the app.
+        // The safe approach is: pin to an exact version + no SRI (immutable source).
+        // If a stricter CSP is needed in future, lock to an exact version AND add SRI.
+        ?>
+        <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin></script>
+        <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
         
         <div id="<?php echo $rootId; ?>">
             <div style="display: flex; justify-content: center; align-items: center;
