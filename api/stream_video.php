@@ -67,7 +67,7 @@ try {
     \core\session\manager::write_close();
 
     // Construct Auth Service Validate URL
-    $authValidateUrl = 'https://demo.arina.ai/dev2230/service/arina_auth_service/validate' .
+    $authValidateUrl = AUTH_SERVICE_URL .
         '?container=' . urlencode($containerName) .
         '&blob_path=' . urlencode($blobName);
 

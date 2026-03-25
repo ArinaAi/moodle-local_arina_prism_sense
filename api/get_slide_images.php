@@ -195,7 +195,7 @@ function generateAzureImageUrls($azureFolderId, $containerName)
 
     // 1. Fetch all SAS URLs for the slide_pngs folder in one single call
     $directoryPath = $azureFolderId . '/intermediate_chunks/slide_pngs/';
-    $authValidateUrl = 'https://demo.arina.ai/dev2230/service/arina_auth_service/validate' .
+    $authValidateUrl = AUTH_SERVICE_URL .
         '?container=' . urlencode($containerName) .
         '&blob_path=' . urlencode($directoryPath) .
         '&list_folder=true';
