@@ -24,7 +24,7 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import { Close, Error as ErrorIcon, Add, Check, Delete } from '@mui/icons-material';
+import { Close, Error as ErrorIcon, Add, Check, Delete, Refresh } from '@mui/icons-material';
 import { FileText } from 'lucide-react';
 import { getModalBoxStyles, getModalLayoutStyles } from '../../utils/modalStyles';
 import { formatFileSize } from '../../utils/helpers';
@@ -52,6 +52,8 @@ interface ExistingSource {
   author?: string;
   is_scanned?: number | null;
   processing_status?: 'uploaded' | 'processing' | 'failed';
+  /** Backend upload identifier – needed for retry and delete API calls. */
+  upload_id?: string | null;
 }
 
 interface BoxState {
@@ -145,6 +147,10 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
   const [loading, setLoading] = useState(true);
   const [sectionSources, setSectionSources] = useState<Record<number, ExistingSource[]>>({});
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ open: boolean; boxIndex: number | null; sourceId: number | null }>({ open: false, boxIndex: null, sourceId: null });
+  /** Box indices currently waiting for a retry response. */
+  const [retryingBoxes, setRetryingBoxes] = useState<Set<number>>(new Set());
+  /** True while the delete API call is in-flight (dialog confirm button). */
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // ── Polling ────────────────────────────────────────────────────────────────
   // Fire immediately when the modal opens with a processing source, then
@@ -559,12 +565,60 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
     setDeleteConfirmation({ open: false, boxIndex: null, sourceId: null });
   };
 
+  /**
+   * Calls retry_source.php → backend retry endpoint.
+   * On success flips the local box status back to 'processing' so the poller
+   * can pick it up without a page reload.
+   */
+  const handleRetryUpload = async (boxIndex: number, sourceId: number) => {
+    setErrors((prev) => ({ ...prev, general: '' }));
+    setRetryingBoxes((prev) => new Set(prev).add(boxIndex));
+    try {
+      const response = await fetch(
+        `${moodleContext.wwwroot}/local/lecturebot/api/retry_source.php` +
+        `?courseid=${moodleContext.courseid}&sesskey=${moodleContext.sesskey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sourceid: sourceId }),
+          credentials: 'include',
+        }
+      );
+      const data = await response.json();
+      if (data.status !== 'success') {
+        throw new Error(data.error || 'Retry failed');
+      }
+      // Flip box processingStatus to 'processing' so the polling loop picks it up.
+      setBoxes((prevBoxes) => {
+        const newBoxes = [...prevBoxes] as [BoxState, BoxState, BoxState];
+        const box = newBoxes[boxIndex];
+        if (box.type === 'existing') {
+          newBoxes[boxIndex] = { ...box, processingStatus: 'processing' };
+        }
+        return newBoxes;
+      });
+    } catch (error) {
+      console.error('Retry upload failed:', error);
+      setErrors((prev) => ({
+        ...prev,
+        general: error instanceof Error ? error.message : 'Retry failed. Please try again.',
+      }));
+    } finally {
+      setRetryingBoxes((prev) => {
+        const next = new Set(prev);
+        next.delete(boxIndex);
+        return next;
+      });
+    }
+  };
+
   const handleDeleteSource = async () => {
     const { boxIndex, sourceId } = deleteConfirmation;
     if (!selectedSection || boxIndex === null || sourceId === null) {
       return;
     }
 
+    setIsDeleting(true);
     try {
       const response = await fetch(
         `${moodleContext.wwwroot}/local/lecturebot/api/delete_source.php?courseid=${moodleContext.courseid}&sesskey=${moodleContext.sesskey}`,
@@ -600,6 +654,8 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
       console.error('Error deleting source:', error);
       // Keep the dialog open so the user can retry; show the error in the modal's error banner
       setErrors((prev) => ({ ...prev, general: 'Failed to delete source. Please check your connection and try again.' }));
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -1136,26 +1192,76 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
                                     fontSize: '0.7rem',
                                   }}
                                 >
-                                  Processing failed. Please delete and re-upload.
+                                  Processing failed.
                                 </Typography>
-                                {/* Delete button — enabled for failed state */}
-                                <IconButton
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteIconClick(boxIndex, box.existingSource!.id);
-                                  }}
-                                  size="small"
+                                {/* Retry + Delete buttons side by side */}
+                                <Box
                                   sx={{
-                                    position: 'absolute',
-                                    top: 8,
-                                    right: 8,
-                                    color: '#dc3545',
-                                    backgroundColor: 'rgba(255,255,255,0.8)',
-                                    '&:hover': { backgroundColor: '#fff', color: '#bd2130' },
+                                    display: 'flex',
+                                    gap: 1,
+                                    mt: 1.5,
+                                    justifyContent: 'center',
                                   }}
+                                  onClick={(e) => e.stopPropagation()}
                                 >
-                                  <Delete fontSize="small" />
-                                </IconButton>
+                                  {/* Retry — only shown when upload_id is available */}
+                                  {box.existingSource.upload_id && (
+                                    <Button
+                                      size="small"
+                                      variant="outlined"
+                                      disabled={retryingBoxes.has(boxIndex)}
+                                      startIcon={
+                                        retryingBoxes.has(boxIndex)
+                                          ? <CircularProgress size={12} thickness={5} sx={{ color: '#0D5CA2' }} />
+                                          : <Refresh fontSize="small" />
+                                      }
+                                      onClick={() =>
+                                        handleRetryUpload(boxIndex, box.existingSource!.id)
+                                      }
+                                      sx={{
+                                        fontSize: '0.7rem',
+                                        borderColor: '#0D5CA2',
+                                        color: '#0D5CA2',
+                                        '&:hover': {
+                                          borderColor: '#0a4a87',
+                                          backgroundColor: 'rgba(13,92,162,0.06)',
+                                        },
+                                        '&.Mui-disabled': { opacity: 0.6 },
+                                        textTransform: 'none',
+                                        minWidth: 0,
+                                        px: 1.5,
+                                        py: 0.5,
+                                      }}
+                                    >
+                                      {retryingBoxes.has(boxIndex) ? 'Retrying…' : 'Retry'}
+                                    </Button>
+                                  )}
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    disabled={retryingBoxes.has(boxIndex)}
+                                    startIcon={<Delete fontSize="small" />}
+                                    onClick={() =>
+                                      handleDeleteIconClick(boxIndex, box.existingSource!.id)
+                                    }
+                                    sx={{
+                                      fontSize: '0.7rem',
+                                      borderColor: '#dc3545',
+                                      color: '#dc3545',
+                                      '&:hover': {
+                                        borderColor: '#bd2130',
+                                        backgroundColor: 'rgba(220,53,69,0.06)',
+                                      },
+                                      '&.Mui-disabled': { opacity: 0.4 },
+                                      textTransform: 'none',
+                                      minWidth: 0,
+                                      px: 1.5,
+                                      py: 0.5,
+                                    }}
+                                  >
+                                    Delete
+                                  </Button>
+                                </Box>
                               </>
                             )}
 
@@ -1526,6 +1632,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
             <Button
               onClick={closeDeleteConfirmation}
               variant="outlined"
+              disabled={isDeleting}
               fullWidth={isMobile}
               sx={{
                 fontWeight: 600,
@@ -1542,7 +1649,13 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
               onClick={handleDeleteSource}
               variant="contained"
               color="error"
+              disabled={isDeleting}
               fullWidth={isMobile}
+              startIcon={
+                isDeleting
+                  ? <CircularProgress size={14} thickness={5} sx={{ color: '#fff' }} />
+                  : undefined
+              }
               sx={{
                 fontWeight: 600,
                 minHeight: { xs: '48px', sm: 'auto' },
@@ -1551,9 +1664,10 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
                   background: 'linear-gradient(135deg, #c82333 0%, #bd2130 100%)',
                   boxShadow: '0 6px 20px rgba(220, 53, 69, 0.4)',
                 },
+                '&.Mui-disabled': { opacity: 0.7 },
               }}
             >
-              Delete
+              {isDeleting ? 'Deleting…' : 'Delete'}
             </Button>
           </DialogActions>
         </Dialog>

@@ -50,6 +50,9 @@ define('API_START_BATCH_UPLOAD', BOT_BASE_URL . '/start_batch_upload');
 define('API_DELETE_DOCUMENT', BOT_BASE_URL . '/delete_document');
 define('API_CHECK_BATCH_STATUS', BOT_BASE_URL . '/check_batch_status');
 define('API_TRIGGER_GENERATION', BOT_BASE_URL . '/trigger_generation');
+// Base URL for per-upload retry and delete operations.
+// Full URL is built dynamically: API_BATCH_UPLOADS_BASE . '/{org_id}/uploads/{upload_id}[/retry]'
+define('API_BATCH_UPLOADS_BASE', BOT_BASE_URL . '/batches');
 
 // ── Agent / message bus ───────────────────────────────────────────────────────
 define('API_CHECK_STATUS_BATCH', API_BASE_URL . '/service/arina-message-bus-status-service/status/batch');

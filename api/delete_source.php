@@ -42,50 +42,56 @@ try {
         throw new moodle_exception('Source not found');
     }
 
-    // Delete document from Weaviate vector store
-    require_once(__DIR__ . '/../config_api.php');
-    $weaviateDeleteResult = null;
+    // Delete document from the batch upload service.
+    // Called for both 'uploaded' and 'failed' sources — the backend handles
+    // both cases correctly via the same DELETE endpoint.
+    // URL: DELETE {BOT_BASE_URL}/batches/{batch_id}/uploads/{upload_id}
+    if (!empty($source->batch_id) && !empty($source->upload_id)) {
+        try {
+            $deleteUploadUrl = API_BATCH_UPLOADS_BASE
+                . '/' . urlencode($source->batch_id)
+                . '/uploads/' . urlencode($source->upload_id);
+            error_log('LectureBot delete_source: calling DELETE ' . $deleteUploadUrl);
 
-    try {
-        $deleteUrl = API_DELETE_DOCUMENT . '?' . http_build_query([
-            'course_id' => $courseid,
-            'chapter_id' => $source->sectionid,
-            'document_name' => $source->filename
-        ], '', '&');
-        error_log('LectureBot delete URL: ' . $deleteUrl);
-        // Get API Key from settings
-        $apiKey = CompanyConfig::getApiKey();
+            // Get API Key from settings.
+            $apiKey = CompanyConfig::getApiKey();
 
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $deleteUrl,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 60,
-            CURLOPT_CONNECTTIMEOUT => 60,
-            CURLOPT_HTTPGET => true,
-            CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_HTTPHEADER => [
-                'X-API-key: ' . $apiKey
-            ]
-        ]);
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL            => $deleteUploadUrl,
+                CURLOPT_CUSTOMREQUEST  => 'DELETE',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT        => 30,
+                CURLOPT_CONNECTTIMEOUT => 10,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTPHEADER     => ['X-Api-Key: ' . $apiKey],
+            ]);
 
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlError = curl_error($ch);
-        curl_close($ch);
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+            curl_close($ch);
 
-        if ($curlError) {
-            debugging('Weaviate delete API curl error: ' . $curlError, DEBUG_DEVELOPER);
-        } elseif ($httpCode !== 200) {
-            debugging('Weaviate delete API returned HTTP ' . $httpCode . ': ' . $response, DEBUG_DEVELOPER);
-        } else {
-            $weaviateDeleteResult = json_decode($response, true);
-            debugging('Weaviate delete successful: ' . $response, DEBUG_DEVELOPER);
+            if ($curlError) {
+                // Log but don't block local deletion.
+                error_log('LectureBot delete_source: batch DELETE curl error: ' . $curlError);
+            } elseif ($httpCode !== 200 && $httpCode !== 204) {
+                error_log('LectureBot delete_source: batch DELETE returned HTTP ' . $httpCode . ': ' . $response);
+            } else {
+                error_log('LectureBot delete_source: backend delete successful for upload ' . $source->upload_id);
+            }
+        } catch (Exception $deleteEx) {
+            // Log but don't block local deletion.
+            error_log('LectureBot delete_source: backend DELETE exception: ' . $deleteEx->getMessage());
         }
-    } catch (Exception $weaviateEx) {
-        // Log but don't block local deletion
-        debugging('Weaviate delete API exception: ' . $weaviateEx->getMessage(), DEBUG_DEVELOPER);
+    } else {
+        // No backend reference stored (e.g. backend upload was disabled or an old record).
+        // Nothing to delete on the backend side.
+        error_log('LectureBot delete_source: no batch_id/upload_id for source ' .
+        $sourceid . ', skipping backend call');
     }
+
 
     // Delete file from Moodle file storage
     $fs = get_file_storage();

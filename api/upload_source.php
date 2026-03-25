@@ -229,85 +229,103 @@ try {
 
     if (defined('ENABLE_BACKEND_PDF_UPLOAD') && ENABLE_BACKEND_PDF_UPLOAD) {
         try {
-            // Get tenant ID and regen count
+            // Get tenant ID, regen count and API key.
             $tenantConfig = CompanyConfig::getTenantId();
             $tenantId = is_numeric($tenantConfig) ? (int) $tenantConfig : 1;
             $regenCount = get_azure_regen_count($courseid, $sectionid);
-
-            // ---------------------------------------------------------
-            // STEP 1: Start Batch Upload (ONCE for all files)
-            // ---------------------------------------------------------
-            $expectedUploads = count($storedFiles);
-            $startBatchParams = [
-                'organization_id' => $tenantId,
-                'course_id' => $courseid,
-                'chapter_id' => $sectionid,
-                'regen_count' => $regenCount,
-                'expected_uploads' => $expectedUploads
-            ];
-
-            $startBatchUrl = API_START_BATCH_UPLOAD . '?' . http_build_query($startBatchParams, '', '&');
-            error_log("LectureBot: Starting batch upload for $expectedUploads files: " . $startBatchUrl);
-
-            // Get API Key from settings
+            // Fetch API key once — used both in start_batch_upload and per-file upload.
             $apiKey = CompanyConfig::getApiKey();
 
-            // Initialize cURL for start_batch_upload
-            $chBatch = curl_init($startBatchUrl);
-            curl_setopt_array($chBatch, [
-                CURLOPT_POST => true,
-                CURLOPT_POSTFIELDS => '',
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 60,
-                CURLOPT_CONNECTTIMEOUT => 10,
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_HTTPHEADER => [
-                    'X-API-key: ' . $apiKey
-                ]
-            ]);
+            // ---------------------------------------------------------
+            // STEP 1: Get or create batch_id for this section.
+            //
+            // The backend creates a single, reusable batch_id per section.
+            // We only call start_batch_upload the very first time a PDF is
+            // uploaded to a section.  On subsequent uploads we read the
+            // stored batch_id directly from the DB, which is cheaper and —
+            // critically — avoids creating a new batch that trigger_generation
+            // cannot associate with the other files in the section.
+            // ---------------------------------------------------------
+            $batchId = null;
 
-            $batchResponse = curl_exec($chBatch);
-            $batchHttpCode = curl_getinfo($chBatch, CURLINFO_HTTP_CODE);
+            // Look for an existing batch_id for this section.
+            $existingBatchRecord = $DB->get_record_select(
+                'local_lecturebot_sources',
+                'courseid = ? AND sectionid = ? AND batch_id IS NOT NULL',
+                [$courseid, $sectionid],
+                'batch_id',
+                IGNORE_MULTIPLE
+            );
 
-            if (curl_errno($chBatch)) {
-                $batchErr = curl_error($chBatch);
+            if ($existingBatchRecord && !empty($existingBatchRecord->batch_id)) {
+                $batchId = $existingBatchRecord->batch_id;
+                error_log("LectureBot: Reusing existing batch_id for section $sectionid: $batchId");
+            } else {
+                // No existing batch → call start_batch_upload once for this section.
+                $expectedUploads = count($storedFiles);
+                $startBatchParams = [
+                    'organization_id' => $tenantId,
+                    'course_id'       => $courseid,
+                    'chapter_id'      => $sectionid,
+                    'regen_count'     => $regenCount,
+                    'expected_uploads' => $expectedUploads
+                ];
+
+                $startBatchUrl = API_START_BATCH_UPLOAD . '?' . http_build_query($startBatchParams, '', '&');
+                error_log("LectureBot: Starting new batch upload for $expectedUploads files: " . $startBatchUrl);
+
+                // Initialize cURL for start_batch_upload
+                $chBatch = curl_init($startBatchUrl);
+                curl_setopt_array($chBatch, [
+                    CURLOPT_POST           => true,
+                    CURLOPT_POSTFIELDS     => '',
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_TIMEOUT        => 60,
+                    CURLOPT_CONNECTTIMEOUT => 10,
+                    CURLOPT_SSL_VERIFYPEER => false,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_HTTPHEADER     => ['X-API-key: ' . $apiKey]
+                ]);
+
+                $batchResponse = curl_exec($chBatch);
+                $batchHttpCode = curl_getinfo($chBatch, CURLINFO_HTTP_CODE);
+
+                if (curl_errno($chBatch)) {
+                    $batchErr = curl_error($chBatch);
+                    curl_close($chBatch);
+                    throw new moodle_exception('Failed to start batch upload: ' . $batchErr);
+                }
                 curl_close($chBatch);
-                throw new moodle_exception('Failed to start batch upload: ' . $batchErr);
+
+                if ($batchHttpCode === 401) {
+                    error_log('LectureBot: Start batch failed (HTTP 401): API key missing or incorrect');
+                    throw new \moodle_exception('API key is missing or incorrect. Please check your settings.');
+                } elseif ($batchHttpCode !== 200) {
+                    error_log(
+                        'LectureBot: Start batch failed (HTTP ' .
+                        $batchHttpCode .
+                        '): ' .
+                        $batchResponse
+                    );
+                    throw new moodle_exception(
+                        'Start batch upload failed (HTTP ' .
+                        $batchHttpCode .
+                        '): ' .
+                        $batchResponse
+                    );
+                }
+
+                $batchData = json_decode($batchResponse, true);
+                if (!$batchData || !isset($batchData['batch_id'])) {
+                    error_log('LectureBot: Invalid batch response: ' . $batchResponse);
+                    throw new moodle_exception('Invalid response from start_batch_upload');
+                }
+
+                $batchId = $batchData['batch_id'];
+                error_log("LectureBot: New batch started successfully. Batch ID: $batchId");
             }
-            curl_close($chBatch);
 
-            if ($batchHttpCode === 401) {
-                error_log('LectureBot: Start batch failed (HTTP 401): API key missing or incorrect');
-                throw new \moodle_exception('API key is missing or incorrect.
-                Please check your settings.');
-            } elseif ($batchHttpCode !== 200) {
-                error_log(
-                    'LectureBot: Start batch failed (HTTP ' .
-                    $batchHttpCode .
-                    '): ' .
-                    $batchResponse
-                );
-                throw new moodle_exception(
-                    'Start batch upload failed (HTTP ' .
-                    $batchHttpCode .
-                    '): ' .
-                    $batchResponse
-                );
-            }
 
-            $batchData = json_decode($batchResponse, true);
-            if (!$batchData || !isset($batchData['batch_id'])) {
-                error_log('LectureBot: Invalid batch response: ' . $batchResponse);
-                throw new moodle_exception('Invalid response from start_batch_upload');
-            }
-
-            $batchId = $batchData['batch_id'];
-            error_log("LectureBot: Batch started successfully. Batch ID: $batchId");
-
-            // ---------------------------------------------------------
-            // STEP 2: Upload each PDF to the same batch
-            // ---------------------------------------------------------
             foreach ($storedFiles as $fileData) {
                 $storedfile = $fileData['file'];
                 $index = $fileData['index'];
@@ -351,9 +369,6 @@ try {
 
                     // Use CURLFile for proper multipart/form-data upload
                     $cfile = new CURLFile($tempFilePath, 'application/pdf', $storedfile->get_filename());
-
-                    // Get API Key from settings
-                    $apiKey = CompanyConfig::getApiKey();
 
                     // Initialize cURL to upload to backend
                     $ch = curl_init($uploadApiUrl);
