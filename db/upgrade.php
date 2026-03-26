@@ -81,6 +81,10 @@ function xmldb_local_lecturebot_upgrade($oldversion)
         local_lecturebot_upgrade_2026031800($dbman);
     }
 
+    if ($oldversion < 2026032500) {
+        local_lecturebot_upgrade_2026032500($dbman);
+    }
+
     return true;
 }
 
@@ -496,4 +500,44 @@ function local_lecturebot_upgrade_2026031700($dbman)
 function local_lecturebot_upgrade_2026031800($dbman)
 {
     upgrade_plugin_savepoint(true, 2026031800, 'local', 'lecturebot');
+}
+
+/**
+ * Add regen_count column to local_lecturebot_content.
+ *
+ * This column stores the Azure folder index assigned at request time,
+ * preventing concurrent generations for the same section from overwriting
+ * each other's files. Existing rows are backfilled from their generationdata JSON.
+ */
+function local_lecturebot_upgrade_2026032500($dbman)
+{
+    global $DB;
+
+    $table = new xmldb_table('local_lecturebot_content');
+
+    // Add regen_count column (nullable initially so backfill can run first).
+    $field = new xmldb_field('regen_count', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'feedback_id');
+    if (!$dbman->field_exists($table, $field)) {
+        $dbman->add_field($table, $field);
+    }
+
+    // Backfill existing rows: parse regen_count out of the generationdata JSON.
+    $records = $DB->get_records('local_lecturebot_content', null, '', 'id, generationdata');
+    foreach ($records as $record) {
+        $regenCount = 0;
+        if (!empty($record->generationdata)) {
+            $genData = json_decode($record->generationdata, true);
+            if (is_array($genData) && isset($genData['regen_count'])) {
+                $regenCount = (int) $genData['regen_count'];
+            }
+        }
+        $DB->set_field('local_lecturebot_content', 'regen_count', $regenCount, ['id' => $record->id]);
+    }
+
+    // Now make the column NOT NULL with default 0 after backfill is complete.
+    $field = new xmldb_field('regen_count', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'feedback_id');
+    $dbman->change_field_default($table, $field);
+    $dbman->change_field_notnull($table, $field);
+
+    upgrade_plugin_savepoint(true, 2026032500, 'local', 'lecturebot');
 }

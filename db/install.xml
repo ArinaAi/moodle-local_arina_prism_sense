@@ -51,6 +51,7 @@
         <FIELD NAME="publishedby" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="User ID who published the content"/>
         <FIELD NAME="parent_content_id" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Reference to the original content ID if this is a regeneration"/>
         <FIELD NAME="feedback_id" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Reference to the feedback record that triggered this regeneration"/>
+        <FIELD NAME="regen_count" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Azure folder index for this generation. Unique per section, assigned atomically at request time to prevent concurrent overwrites."/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

@@ -217,23 +217,17 @@ try {
 
     // Determine regen_count (Azure folder index)
     // Priority:
-    // 1. Explicit regen_count from request — used for regeneration (overwrite same folder)
-    //    and video generation. The frontend always sends this explicitly.
-    // 2. Calculate next available index from Azure — used for fresh slide generation
-    //    (no regen_count in request).
+    // 1. Explicit regen_count from request — used for regeneration (overwrite same Azure folder)
+    //    and video generation. The frontend always sends this explicitly for those flows.
+    // 2. Fresh generation (no regen_count in request): atomically claim the next index from
+    //    the database using a Moodle lock so concurrent requests for the same section cannot
+    //    race and land on the same folder index.
     $regenCount = null;
 
     if (isset($input['regen_count']) && is_numeric($input['regen_count'])) {
+        // Regeneration / video path — use exactly what the frontend sent.
         $regenCount = (int) $input['regen_count'];
         error_log("LectureBot: Using explicit regen_count $regenCount from request");
-    } else {
-        $regenCount = get_azure_regen_count($courseid, $sectionid);
-        error_log("LectureBot: Calculated regen_count $regenCount from Azure");
-    }
-
-    // Enforce logic to start from 0 if no records found
-    if ($regenCount < 0) {
-        $regenCount = 0;
     }
 
     // Check for explicit content_type from input
@@ -242,38 +236,77 @@ try {
         $contentType = 'video';
     }
 
-    // Create database entry with status='generating'
-    $content = new stdClass();
-    $content->courseid = $courseid;
-    $content->sectionid = $sectionid;
-    $content->contenttype = $contentType;
-    $content->status = 'generating';
-    $content->title = ($contentType === 'video' ? 'Video: ' : 'Slides: ') . $sectionName;
-    $content->parent_content_id = $parentContentId > 0 ? $parentContentId : null;
-    $content->feedback_id = $feedbackId > 0 ? $feedbackId : null;
-
     // Build feedbackDetails from the raw fields passed directly by the frontend.
     // (The external Arina service is the canonical store; no local DB record exists.)
     $feedbackDetails = $rawFeedback;  // null when not a regeneration, array otherwise
 
-    $content->generationdata = json_encode([
-        'curriculum_text' => $curriculumText,
-        'content_strategy' => $contentStrategy,
-        'video_length' => $videoLength,
-        'language' => $language,
-        'voice_gender' => $voiceGender,
-        'avatar_strategy' => $avatarStrategy,
-        'avtar_video_needed' => $avatarVideoNeeded,
-        'content_type' => $contentType,
-        'requested_at' => time(),
-        'regen_count' => $regenCount,
-        'feedback' => $feedbackDetails
-    ]);
-    $content->createdby = $USER->id;
-    $content->timecreated = time();
-    $content->timemodified = time();
+    // -------------------------------------------------------------------------
+    // ATOMIC REGEN_COUNT ASSIGNMENT + DB INSERT (locked section)
+    //
+    // For fresh generation we acquire an exclusive per-section lock before
+    // reading MAX(regen_count) from the DB and inserting the new record.
+    // This ensures two simultaneous requests for the same section receive
+    // strictly sequential, unique indices and therefore write to different Azure
+    // folders.  The lock is released immediately after the INSERT so it only
+    // blocks concurrent requests for this section for a few milliseconds.
+    //
+    // For regeneration/video (explicit regen_count above), the lock is still
+    // acquired to protect the INSERT, but the count value is already fixed.
+    // -------------------------------------------------------------------------
+    $lockFactory = \core\lock\lock_config::get_lock_factory('local_lecturebot_regen');
+    $lockKey = "section_{$courseid}_{$sectionid}";
+    $lock = $lockFactory->get_lock($lockKey, 10); // wait up to 10 s
 
-    $contentId = $DB->insert_record('local_lecturebot_content', $content);
+    if (!$lock) {
+        throw new \moodle_exception(
+            'Could not acquire generation lock for this section. ' .
+            'Another generation may already be starting. Please try again in a moment.'
+        );
+    }
+
+    try {
+        if ($regenCount === null) {
+            // Fresh generation: find the highest regen_count already used for this section.
+            $maxCount = $DB->get_field_sql(
+                'SELECT MAX(regen_count) FROM {local_lecturebot_content} WHERE courseid = ? AND sectionid = ?',
+                [$courseid, $sectionid]
+            );
+            $regenCount = ($maxCount !== null && $maxCount !== false) ? (int)$maxCount + 1 : 0;
+            error_log("LectureBot: Assigned fresh regen_count $regenCount from DB (prev max=" . var_export($maxCount, true) . ")");
+        }
+
+        // Create database entry with status='generating'
+        $content = new stdClass();
+        $content->courseid = $courseid;
+        $content->sectionid = $sectionid;
+        $content->contenttype = $contentType;
+        $content->status = 'generating';
+        $content->title = ($contentType === 'video' ? 'Video: ' : 'Slides: ') . $sectionName;
+        $content->parent_content_id = $parentContentId > 0 ? $parentContentId : null;
+        $content->feedback_id = $feedbackId > 0 ? $feedbackId : null;
+        $content->regen_count = $regenCount;
+        $content->generationdata = json_encode([
+            'curriculum_text' => $curriculumText,
+            'content_strategy' => $contentStrategy,
+            'video_length' => $videoLength,
+            'language' => $language,
+            'voice_gender' => $voiceGender,
+            'avatar_strategy' => $avatarStrategy,
+            'avtar_video_needed' => $avatarVideoNeeded,
+            'content_type' => $contentType,
+            'requested_at' => time(),
+            'regen_count' => $regenCount,
+            'feedback' => $feedbackDetails
+        ]);
+        $content->createdby = $USER->id;
+        $content->timecreated = time();
+        $content->timemodified = time();
+
+        $contentId = $DB->insert_record('local_lecturebot_content', $content);
+    } finally {
+        // Always release the lock — even if the INSERT threw an exception.
+        $lock->release();
+    }
 
     // ==========================================
     // NEW: Queue Adhoc Task
