@@ -14,16 +14,17 @@ import {
     FormLabel,
     RadioGroup,
     Chip,
+    Autocomplete,
+    TextField,
     useTheme,
     useMediaQuery,
 } from '@mui/material';
 import { Close } from '@mui/icons-material';
 
 import type { ContentItem } from '../../types/app';
+import { SUPPORTED_LANGUAGES, type Language } from '../../types/languages';
 import SectionGroup from './video-lecture/SectionGroup';
 import { getModalBoxStyles, getModalLayoutStyles } from '../../utils/modalStyles';
-
-type Language = 'en' | 'hi' | 'mr' | 'kn' | 'ta' | 'si';
 
 const OPTION_PAPER_STYLE = {
     // Fluid padding
@@ -39,7 +40,7 @@ interface VideoLectureModalProps {
     onGenerate: (
         contentId: number,
         contentStrategy: 'standard' | 'example_driven',
-        language: Language,
+        language: string,
         voiceGender: 'female' | 'male',
         avatarStrategy: 'none' | 'title_only'
     ) => void;
@@ -188,33 +189,77 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
 
 
 
+                        {/* ── Language Selector ── */}
                         <Paper
                             variant="outlined"
                             sx={{ ...OPTION_PAPER_STYLE, mb: 2 }}
                         >
-                            <FormControl component="fieldset">
-                                <FormLabel
-                                    component="legend"
-                                    sx={{
-                                        fontWeight: 600,
-                                        color: '#1a1a1a',
-                                        mb: 1.5,
-                                        '&.Mui-focused': { color: '#1a1a1a' },
-                                    }}
-                                >
-                                    Language
-                                </FormLabel>
-                                <RadioGroup value={language} onChange={(e) => setLanguage(e.target.value as Language)}>
-                                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
-                                        <FormControlLabel value="en" control={<Radio />} label="English" sx={{ ml: 0 }} />
-                                        <FormControlLabel value="hi" control={<Radio />} label="Hindi" sx={{ ml: 0 }} />
-                                        <FormControlLabel value="mr" control={<Radio />} label="Marathi" sx={{ ml: 0 }} />
-                                        <FormControlLabel value="kn" control={<Radio />} label="Kannada" sx={{ ml: 0 }} />
-                                        <FormControlLabel value="ta" control={<Radio />} label="Tamil" sx={{ ml: 0 }} />
-                                        <FormControlLabel value="si" control={<Radio />} label="Sinhala" sx={{ ml: 0 }} />
-                                    </Box>
-                                </RadioGroup>
-                            </FormControl>
+                            <FormLabel
+                                component="legend"
+                                sx={{
+                                    fontWeight: 600,
+                                    color: '#1a1a1a',
+                                    mb: 1,
+                                    display: 'block',
+                                    '&.Mui-focused': { color: '#1a1a1a' },
+                                }}
+                            >
+                                Language
+                            </FormLabel>
+                            <Autocomplete
+                                options={SUPPORTED_LANGUAGES}
+                                getOptionLabel={(opt) => opt.label}
+                                value={SUPPORTED_LANGUAGES.find((l) => l.value === language)!}
+                                onChange={(_e, opt) => { if (opt) setLanguage(opt.value as Language); }}
+                                disableClearable
+                                size="small"
+                                isOptionEqualToValue={(opt, val) => opt.value === val.value}
+                                slotProps={{
+                                    popper: { sx: { zIndex: 100002 } },
+                                    paper: {
+                                        sx: {
+                                            borderRadius: '10px',
+                                            mt: 0.5,
+                                            boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
+                                            '& .MuiAutocomplete-option': {
+                                                fontSize: '0.875rem',
+                                                fontWeight: 500,
+                                            },
+                                            '& .MuiAutocomplete-option[aria-selected="true"]': {
+                                                bgcolor: 'rgba(15,108,191,0.08)',
+                                                color: '#0f6cbf',
+                                                fontWeight: 600,
+                                            },
+                                            '& .MuiAutocomplete-option:hover': {
+                                                bgcolor: 'rgba(15,108,191,0.05)',
+                                            },
+                                        },
+                                    },
+                                }}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        placeholder="Search language..."
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: '8px',
+                                                bgcolor: 'white',
+                                                fontSize: '0.875rem',
+                                                fontWeight: 500,
+                                                '& fieldset': {
+                                                    borderColor: '#e9ecef',
+                                                    borderWidth: '1.5px',
+                                                },
+                                                '&:hover fieldset': { borderColor: '#0f6cbf' },
+                                                '&.Mui-focused fieldset': {
+                                                    borderColor: '#0f6cbf',
+                                                    borderWidth: '1.5px',
+                                                },
+                                            },
+                                        }}
+                                    />
+                                )}
+                            />
                         </Paper>
 
                         <Paper

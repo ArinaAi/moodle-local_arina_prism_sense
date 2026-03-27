@@ -136,12 +136,12 @@ export const useContentActions = (
             // as feedback_json to generate_pptx (external service stores feedback,
             // so local DB lookup is not possible).
             if (feedbackData) {
-                requestBody.feedback_topics_needing_depth  = feedbackData.topicsNeedingDepth;
-                requestBody.feedback_topics_overexplained  = feedbackData.topicsOverExplained;
-                requestBody.feedback_extra_topics          = feedbackData.extraTopics;
-                requestBody.feedback_missing_subtopics     = feedbackData.missingSubtopics;
-                requestBody.feedback_reordered_flow        = feedbackData.reorderedTopicFlow;
-                requestBody.feedback_selected_categories   = feedbackData.selectedCategories;
+                requestBody.feedback_topics_needing_depth = feedbackData.topicsNeedingDepth;
+                requestBody.feedback_topics_overexplained = feedbackData.topicsOverExplained;
+                requestBody.feedback_extra_topics = feedbackData.extraTopics;
+                requestBody.feedback_missing_subtopics = feedbackData.missingSubtopics;
+                requestBody.feedback_reordered_flow = feedbackData.reorderedTopicFlow;
+                requestBody.feedback_selected_categories = feedbackData.selectedCategories;
             }
 
             const response = await fetch(proxyUrl, {
@@ -210,7 +210,7 @@ export const useContentActions = (
     const handleGenerateVideoLecture = async (
         contentId: number,
         contentStrategy: 'standard' | 'example_driven',
-        language: 'en' | 'hi' | 'mr' | 'kn' | 'ta' | 'si',
+        language: string,
         voiceGender: 'female' | 'male',
         avatarStrategy: 'none' | 'title_only'
     ) => {
