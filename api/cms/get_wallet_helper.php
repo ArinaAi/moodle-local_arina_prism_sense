@@ -9,7 +9,7 @@
 
 require_once(__DIR__ . '/CreditServiceClient.php');
 
-function get_wallet_id_or_exit($client)
+function local_lecturebot_get_wallet_id_or_exit($client)
 {
     // 1. Fetch Org Owner UUID
     $orgOwnerUuid = $client->getOrInitializeOrgWallet();

@@ -24,7 +24,7 @@ try {
     $client = new \local_lecturebot\cms\CreditServiceClient();
     
     // 1-2. Fetch Org Owner UUID and resolve the actual wallet ID
-    $walletId = get_wallet_id_or_exit($client);
+    $walletId = local_lecturebot_get_wallet_id_or_exit($client);
     
     // 3. Fetch all child-wallet transactions so sub-user (teacher) usage is
     //    included in the chart alongside any org-level consumption.

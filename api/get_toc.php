@@ -61,7 +61,7 @@ try {
         : strtolower('Blob-Tutorial-Gen-' . $tenantId);
 
     // Fetch TOC from Azure
-    $tocData = fetchTocFromAzure($azureFolderId, $containerName);
+    $tocData = local_lecturebot_fetchTocFromAzure($azureFolderId, $containerName);
 
     echo json_encode([
         'status' => 'success',
@@ -83,7 +83,7 @@ try {
  * @param string $containerName Azure container name
  * @return array|null TOC data or null if not found
  */
-function fetchTocFromAzure($azureFolderId, $containerName)
+function local_lecturebot_fetchTocFromAzure($azureFolderId, $containerName)
 {
     $accountName = AZURE_STORAGE_ACCOUNT_NAME;
     $accountKey = AZURE_STORAGE_ACCOUNT_KEY;
@@ -92,8 +92,8 @@ function fetchTocFromAzure($azureFolderId, $containerName)
     $blobName = $azureFolderId . '/toc.json';
 
     // Generate SAS token for access
-    $sasToken = generate_blob_sas_token($accountName, $containerName, $blobName, $accountKey);
-    $blobUrl = get_azure_blob_url($accountName, $containerName, $blobName) . $sasToken;
+    $sasToken = local_lecturebot_generate_blob_sas_token($accountName, $containerName, $blobName, $accountKey);
+    $blobUrl = local_lecturebot_get_azure_blob_url($accountName, $containerName, $blobName) . $sasToken;
 
     // Fetch the TOC file
     $ch = curl_init($blobUrl);

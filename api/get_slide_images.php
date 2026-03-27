@@ -55,7 +55,7 @@ try {
     $generationData = json_decode($content->generationdata, true);
     
     // Extract images from Azure
-    $images = extractImagesFromPptx('', $contentid);
+    $images = local_lecturebot_extractImagesFromPptx('', $contentid);
     
     echo json_encode([
         'status' => 'success',
@@ -86,7 +86,7 @@ try {
  * @param int $contentid Content ID from database
  * @return array Array of base64 encoded images or Azure URLs
  */
-function extractImagesFromPptx($pptxPath, $contentid)
+function local_lecturebot_extractImagesFromPptx($pptxPath, $contentid)
 {
     global $DB;
 
@@ -109,10 +109,10 @@ function extractImagesFromPptx($pptxPath, $contentid)
     $useNewStructure = isset($genData['azure_folder']);
 
     if ($useNewStructure) {
-        return extractImagesFromAzure($genData, $tenantId);
+        return local_lecturebot_extractImagesFromAzure($genData, $tenantId);
     }
 
-    return extractImagesFromZip($pptxPath);
+    return local_lecturebot_extractImagesFromZip($pptxPath);
 }
 
 /**
@@ -121,14 +121,14 @@ function extractImagesFromPptx($pptxPath, $contentid)
  * @param int $tenantId
  * @return array
  */
-function extractImagesFromAzure($genData, $tenantId)
+function local_lecturebot_extractImagesFromAzure($genData, $tenantId)
 {
     $azureFolderId = $genData['azure_folder'];
     $containerName = isset($genData['azure_container']) ?
         strtolower($genData['azure_container']) :
         strtolower('Blob-Tutorial-Gen-' . $tenantId);
 
-    return generateAzureImageUrls($azureFolderId, $containerName);
+    return local_lecturebot_generateAzureImageUrls($azureFolderId, $containerName);
 }
 
 /**
@@ -136,13 +136,13 @@ function extractImagesFromAzure($genData, $tenantId)
  * @param array $genData
  * @return int
  */
-function calculateAzureSlideCount($genData)
+function local_lecturebot_calculateAzureSlideCount($genData)
 {
     $slideCount = isset($genData['slide_count']) ? intval($genData['slide_count']) : 0;
 
     // Fallback: If slide_count missing, try to detect or guess
     if ($slideCount <= 0) {
-        $slideCount = calculateSlidesFromResult($genData);
+        $slideCount = local_lecturebot_calculateSlidesFromResult($genData);
     }
 
     if ($slideCount <= 0) {
@@ -157,7 +157,7 @@ function calculateAzureSlideCount($genData)
  * @param array $genData
  * @return int
  */
-function calculateSlidesFromResult($genData)
+function local_lecturebot_calculateSlidesFromResult($genData)
 {
     if (!isset($genData['result'])) {
         return 0;
@@ -184,7 +184,7 @@ function calculateSlidesFromResult($genData)
  * @param string $containerName
  * @return array
  */
-function generateAzureImageUrls($azureFolderId, $containerName)
+function local_lecturebot_generateAzureImageUrls($azureFolderId, $containerName)
 {
     $images = [];
     $apiKey = CompanyConfig::getApiKey();
@@ -259,7 +259,7 @@ function generateAzureImageUrls($azureFolderId, $containerName)
  * @param string $pptxPath
  * @return array
  */
-function extractImagesFromZip($pptxPath)
+function local_lecturebot_extractImagesFromZip($pptxPath)
 {
     $images = [];
 
@@ -268,7 +268,7 @@ function extractImagesFromZip($pptxPath)
     try {
         $zip = new ZipArchive();
         if ($zip->open($pptxPath) === true) {
-            $extractedImages = processZipArchive($zip);
+            $extractedImages = local_lecturebot_processZipArchive($zip);
             $zip->close();
 
             if (!empty($extractedImages)) {
@@ -291,7 +291,7 @@ function extractImagesFromZip($pptxPath)
  * @param ZipArchive $zip
  * @return array
  */
-function processZipArchive($zip)
+function local_lecturebot_processZipArchive($zip)
 {
     $extractedImages = [];
 

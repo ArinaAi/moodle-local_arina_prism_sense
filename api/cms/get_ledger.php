@@ -226,7 +226,7 @@ try {
     $client = new \local_lecturebot\cms\CreditServiceClient();
 
     // 1. Resolve org wallet ID
-    $orgWalletId = get_wallet_id_or_exit($client);
+    $orgWalletId = local_lecturebot_get_wallet_id_or_exit($client);
     $orgUuid     = get_config('local_lecturebot', 'org_wallet_owner_id');
 
     // Seed name caches

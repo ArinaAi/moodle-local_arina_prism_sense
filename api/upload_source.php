@@ -232,7 +232,7 @@ try {
             // Get tenant ID, regen count and API key.
             $tenantConfig = CompanyConfig::getTenantId();
             $tenantId = is_numeric($tenantConfig) ? (int) $tenantConfig : 1;
-            $regenCount = get_azure_regen_count($courseid, $sectionid);
+            $regenCount = local_lecturebot_get_azure_regen_count($courseid, $sectionid);
             // Fetch API key once — used both in start_batch_upload and per-file upload.
             $apiKey = CompanyConfig::getApiKey();
 

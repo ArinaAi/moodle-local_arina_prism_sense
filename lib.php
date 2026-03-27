@@ -42,6 +42,7 @@ define('SCRIPT_END', '</script>');
 function local_lecturebot_get_button_js($wwwroot)
 {
     $buttontext = get_string('generatelecture', 'local_lecturebot');
+    $unabletoopen = get_string('unabletoopenprism', 'local_lecturebot');
 
     // Minified logic to inject button
     return <<<JS
@@ -75,7 +76,7 @@ function local_lecturebot_get_button_js($wwwroot)
                                 window.MOODLE_CONTEXT.courseid;
                         } else {
                             console.error("❌ MOODLE_CONTEXT not available");
-                            alert("Unable to open PRISM Sense. Please refresh the page and try again.");
+                            alert("{$unabletoopen}");
                         }
                     });
 
@@ -281,6 +282,7 @@ function local_lecturebot_before_footer()
  */
 function local_lecturebot_get_cms_menu_js($wwwroot)
 {
+    $creditmanagement = get_string('creditmanagement', 'local_lecturebot');
     return <<<JS
         (function() {
             function injectCMSLink() {
@@ -316,7 +318,7 @@ function local_lecturebot_get_cms_menu_js($wwwroot)
                 
                 const textSpan = document.createElement('span');
                 textSpan.className = 'menu-action-text';
-                textSpan.textContent = 'Credit Management';
+                textSpan.textContent = '{$creditmanagement}';
                 
                 menuItem.appendChild(iconSpan);
                 menuItem.appendChild(textSpan);

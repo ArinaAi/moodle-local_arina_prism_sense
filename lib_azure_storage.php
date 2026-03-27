@@ -17,7 +17,7 @@ require_once(__DIR__ . '/configurator_azure.php');
  * @param string $containerName Azure container name
  * @return bool True if successful
  */
-function upload_slides_to_azure($slideFiles, $previewId, $containerName)
+function local_lecturebot_upload_slides_to_azure($slideFiles, $previewId, $containerName)
 {
     try {
         $accountName = AZURE_STORAGE_ACCOUNT_NAME;
@@ -36,7 +36,14 @@ function upload_slides_to_azure($slideFiles, $previewId, $containerName)
             }
             
             // Upload to Azure
-            $result = upload_to_azure_blob($accountName, $containerName, $accountKey, $blobName, $content, 'image/png');
+            $result = local_lecturebot_upload_to_azure_blob(
+                $accountName,
+                $containerName,
+                $accountKey,
+                $blobName,
+                $content,
+                'image/png'
+            );
             
             if ($result) {
                 $uploadedCount++;
@@ -60,7 +67,7 @@ function upload_slides_to_azure($slideFiles, $previewId, $containerName)
  * @param string $containerName Azure container name
  * @return array Array of slide data with Azure URLs
  */
-function download_slides_from_azure($previewId, $containerName)
+function local_lecturebot_download_slides_from_azure($previewId, $containerName)
 {
     try {
         $accountName = AZURE_STORAGE_ACCOUNT_NAME;
@@ -74,10 +81,10 @@ function download_slides_from_azure($previewId, $containerName)
             $blobName = 'slides/' . $previewId . '/' . $filename;
             
             // Generate Azure URL
-            $azureUrl = get_azure_blob_url($accountName, $containerName, $blobName);
+            $azureUrl = local_lecturebot_get_azure_blob_url($accountName, $containerName, $blobName);
             
             // Check if blob exists
-            if (check_azure_blob_exists($azureUrl)) {
+            if (local_lecturebot_check_azure_blob_exists($azureUrl)) {
                 $images[] = [
                     'filename' => $filename,
                     'data' => $azureUrl, // Return URL instead of base64
@@ -107,8 +114,14 @@ function download_slides_from_azure($previewId, $containerName)
  * @param string $contentType Content type
  * @return bool True if successful
  */
-function upload_to_azure_blob($accountName, $containerName, $accountKey, $blobName, $content, $contentType)
-{
+function local_lecturebot_upload_to_azure_blob(
+    $accountName,
+    $containerName,
+    $accountKey,
+    $blobName,
+    $content,
+    $contentType
+) {
     try {
         $blobUrl = "https://{$accountName}.blob.core.windows.net/{$containerName}/{$blobName}";
         
@@ -174,7 +187,7 @@ function upload_to_azure_blob($accountName, $containerName, $accountKey, $blobNa
  * @param string $blobName Blob name
  * @return string Azure blob URL
  */
-function get_azure_blob_url($accountName, $containerName, $blobName)
+function local_lecturebot_get_azure_blob_url($accountName, $containerName, $blobName)
 {
     return "https://{$accountName}.blob.core.windows.net/{$containerName}/{$blobName}";
 }
@@ -184,7 +197,7 @@ function get_azure_blob_url($accountName, $containerName, $blobName)
  * @param string $blobUrl Blob URL
  * @return bool True if exists
  */
-function check_azure_blob_exists($blobUrl)
+function local_lecturebot_check_azure_blob_exists($blobUrl)
 {
     $ch = curl_init($blobUrl);
     curl_setopt($ch, CURLOPT_NOBODY, true);
@@ -202,7 +215,7 @@ function check_azure_blob_exists($blobUrl)
  * Get all slide versions for a specific content ID
  * @return array Array of version info [timestamp, folder_name, slide_count]
  */
-function get_slide_versions()
+function local_lecturebot_get_slide_versions()
 {
     try {
         
@@ -231,9 +244,9 @@ function get_slide_versions()
  * Count how many times slides were regenerated for a content ID
  * @return int Number of versions
  */
-function count_slide_regenerations()
+function local_lecturebot_count_slide_regenerations()
 {
-    $versions = get_slide_versions();
+    $versions = local_lecturebot_get_slide_versions();
     return count($versions);
 }
 
@@ -241,9 +254,9 @@ function count_slide_regenerations()
  * Get the latest slide version for a content ID
  * @return array|null Latest version info or null
  */
-function get_latest_slide_version()
+function local_lecturebot_get_latest_slide_version()
 {
-    $versions = get_slide_versions();
+    $versions = local_lecturebot_get_slide_versions();
     if (empty($versions)) {
         return null;
     }
@@ -264,10 +277,10 @@ function get_latest_slide_version()
  * @param string $containerName Azure container name
  * @return array Array of slide URLs
  */
-function restore_slide_version($contentid, $timestamp, $containerName)
+function local_lecturebot_restore_slide_version($contentid, $timestamp, $containerName)
 {
     $previewId = 'content_' . $contentid . '_' . $timestamp;
-    return download_slides_from_azure($previewId, $containerName);
+    return local_lecturebot_download_slides_from_azure($previewId, $containerName);
 }
 
 /**
@@ -278,7 +291,7 @@ function restore_slide_version($contentid, $timestamp, $containerName)
  * @param string $accountKey Account key
  * @return string SAS token query string (starting with ?)
  */
-function generate_blob_sas_token($accountName, $containerName, $blobName, $accountKey)
+function local_lecturebot_generate_blob_sas_token($accountName, $containerName, $blobName, $accountKey)
 {
     $signedPermissions = 'r'; // Read
     $signedStart = gmdate('Y-m-d\TH:i:s\Z', strtotime('-5 minutes'));
@@ -333,7 +346,7 @@ function generate_blob_sas_token($accountName, $containerName, $blobName, $accou
 /**
  * Execute Azure Blob List API call
  */
-function execute_azure_blob_list_call($accountName, $accountKey, $containerName, $prefix)
+function local_lecturebot_execute_azure_blob_list_call($accountName, $accountKey, $containerName, $prefix)
 {
     if (!defined('AZURE_STORAGE_ACCOUNT_NAME') || !defined('AZURE_STORAGE_ACCOUNT_KEY')) {
          error_log("LectureBot: Azure credentials not defined.");
@@ -385,7 +398,7 @@ function execute_azure_blob_list_call($accountName, $accountKey, $containerName,
 /**
  * Parse Azure XML response to find max regen count
  */
-function parse_azure_blob_list_response($response)
+function local_lecturebot_parse_azure_blob_list_response($response)
 {
     $maxCount = -1;
     try {
@@ -416,10 +429,10 @@ function parse_azure_blob_list_response($response)
  * Check if a specific folder already contains generated content
  * Looks for lecture_content.json file
  */
-function check_folder_has_generated_content($accountName, $accountKey, $containerName, $prefix)
+function local_lecturebot_check_folder_has_generated_content($accountName, $accountKey, $containerName, $prefix)
 {
     $hasContent = false;
-    $response = execute_azure_blob_list_call($accountName, $accountKey, $containerName, $prefix);
+    $response = local_lecturebot_execute_azure_blob_list_call($accountName, $accountKey, $containerName, $prefix);
     
     if ($response) {
         try {
@@ -447,7 +460,7 @@ function check_folder_has_generated_content($accountName, $accountKey, $containe
  * Helper to query Azure Blob Storage for the highest regen_count
  * Matches folders like Tutorial_{courseid}_{sectionid}_{count}
  */
-function get_azure_regen_count($courseid, $sectionid)
+function local_lecturebot_get_azure_regen_count($courseid, $sectionid)
 {
     $regenCount = 0;
 
@@ -460,11 +473,11 @@ function get_azure_regen_count($courseid, $sectionid)
         $accountKey = AZURE_STORAGE_ACCOUNT_KEY;
         $prefix = "Tutorial_{$courseid}_{$sectionid}_";
 
-        $response = execute_azure_blob_list_call($accountName, $accountKey, $containerName, $prefix);
+        $response = local_lecturebot_execute_azure_blob_list_call($accountName, $accountKey, $containerName, $prefix);
 
         $nextCount = 0;
         if ($response) {
-            $nextCount = parse_azure_blob_list_response($response);
+            $nextCount = local_lecturebot_parse_azure_blob_list_response($response);
         }
         
         $latestIndex = $nextCount - 1;
@@ -472,7 +485,7 @@ function get_azure_regen_count($courseid, $sectionid)
         if ($latestIndex >= 0) {
             // Check if the latest folder has generated content
             $latestFolderPrefix = $prefix . $latestIndex . '/';
-            $hasContent = check_folder_has_generated_content(
+            $hasContent = local_lecturebot_check_folder_has_generated_content(
                 $accountName,
                 $accountKey,
                 $containerName,

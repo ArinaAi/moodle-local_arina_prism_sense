@@ -31,6 +31,7 @@ $string['creditmanagement'] = 'Credit Management';
 $string['task:generate_content_task'] = 'Generate PRISM Sense Content';
 $string['task:poll_content_status'] = 'Poll Content Generation Status';
 $string['courseplayer'] = 'Start Course';
+$string['unabletoopenprism'] = 'Unable to open PRISM Sense. Please refresh the page and try again.';
 
 // PDF viewing errors
 $string['errorviewingpdf'] = 'Error viewing PDF';
