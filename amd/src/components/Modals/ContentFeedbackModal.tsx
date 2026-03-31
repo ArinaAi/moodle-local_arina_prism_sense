@@ -10,6 +10,7 @@ import {
   Alert,
   CircularProgress,
   Collapse,
+  Tooltip,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
@@ -41,6 +42,13 @@ const CATEGORY_ICONS: Record<string, JSX.Element> = {
   Shuffle: <Shuffle sx={{ fontSize: 20 }} />,
 };
 
+// Credit cost mapping (same as CurriculumModal)
+const CREDIT_COST: Record<string, number> = {
+  '5': 6,   // Express
+  '15': 8,  // Standard
+  '30': 10, // Extensive / Deep Dive
+};
+
 // Helper: Get modal container styles
 const getModalStyles = (isMobile: boolean) => ({
   position: isMobile ? ('fixed' as const) : ('absolute' as const),
@@ -61,6 +69,8 @@ const ContentFeedbackModal: React.FC<ContentFeedbackModalProps> = ({
   onClose,
   onSubmitFeedback,
   contentId,
+  availableBalance,
+  videoLength,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -85,6 +95,10 @@ const ContentFeedbackModal: React.FC<ContentFeedbackModalProps> = ({
 
   // Submitting state
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Credit check
+  const requiredCredits = CREDIT_COST[videoLength] ?? 6;
+  const hasInsufficientCredits = availableBalance < requiredCredits;
 
   // Initialize reordered topics when TOC loads
   useEffect(() => {
@@ -329,7 +343,7 @@ const ContentFeedbackModal: React.FC<ContentFeedbackModalProps> = ({
                 Improve Content
               </Typography>
               <Typography variant="caption" sx={{ color: '#6c757d' }}>
-                Tell us what should change
+                Requires {requiredCredits} credits to regenerate
               </Typography>
             </Box>
           </Box>
@@ -482,6 +496,46 @@ const ContentFeedbackModal: React.FC<ContentFeedbackModalProps> = ({
               AI will use your selections to regenerate better slides immediately.
             </Typography>
           </Alert>
+
+          {/* Insufficient credits warning */}
+          {hasInsufficientCredits && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 1,
+                mt: 2,
+                p: 1.5,
+                borderRadius: '8px',
+                bgcolor: 'rgba(249, 115, 22, 0.08)',
+                border: '1px solid rgba(249, 115, 22, 0.3)',
+              }}
+            >
+              <Box
+                component="span"
+                sx={{
+                  mt: '2px',
+                  flexShrink: 0,
+                  width: 16,
+                  height: 16,
+                  borderRadius: '50%',
+                  bgcolor: '#f97316',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  color: 'white',
+                }}
+              >
+                !
+              </Box>
+              <Typography variant="caption" sx={{ color: '#c2410c', fontWeight: 500, lineHeight: 1.5 }}>
+                You need <strong>{requiredCredits} credits</strong> to regenerate, but you only have{' '}
+                <strong>{Math.floor(availableBalance)} credit{Math.floor(availableBalance) !== 1 ? 's' : ''}</strong> available. Please contact your admin to get more credits.
+              </Typography>
+            </Box>
+          )}
         </Box>
 
         {/* Footer */}
@@ -518,35 +572,48 @@ const ContentFeedbackModal: React.FC<ContentFeedbackModalProps> = ({
           >
             Cancel
           </Button>
-          <Button
-            onClick={handleSubmit}
-            variant="contained"
-            startIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : <Send />}
-            disabled={isSubmitting || !hasValidFeedback}
-            fullWidth={isMobile}
-            sx={{
-              fontWeight: 700,
-              py: 1.25,
-              px: 3,
-              borderRadius: '10px',
-              textTransform: 'none',
-              background: 'linear-gradient(135deg, #0f6cbf 0%, #0a5a9d 100%)',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #0a5a9d 0%, #084a82 100%)',
-                boxShadow: '0 6px 20px rgba(15, 108, 191, 0.35)',
-                transform: 'translateY(-1px)',
-              },
-              '&:disabled': {
-                background: '#e5e7eb',
-                color: '#9ca3af',
-                transform: 'none',
-                boxShadow: 'none',
-              },
-            }}
+          <Tooltip
+            title={
+              hasInsufficientCredits
+                ? `You need ${requiredCredits} credits but only have ${availableBalance} available`
+                : ''
+            }
+            arrow
+            disableHoverListener={!hasInsufficientCredits}
+            PopperProps={{ sx: { zIndex: 100003 } }}
           >
-            {isSubmitting ? 'Regenerating...' : 'Regenerate'}
-          </Button>
+            <span>
+              <Button
+                onClick={handleSubmit}
+                variant="contained"
+                startIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : <Send />}
+                disabled={isSubmitting || !hasValidFeedback || hasInsufficientCredits}
+                fullWidth={isMobile}
+                sx={{
+                  fontWeight: 700,
+                  py: 1.25,
+                  px: 3,
+                  borderRadius: '10px',
+                  textTransform: 'none',
+                  background: 'linear-gradient(135deg, #0f6cbf 0%, #0a5a9d 100%)',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #0a5a9d 0%, #084a82 100%)',
+                    boxShadow: '0 6px 20px rgba(15, 108, 191, 0.35)',
+                    transform: 'translateY(-1px)',
+                  },
+                  '&:disabled': {
+                    background: '#e5e7eb',
+                    color: '#9ca3af',
+                    transform: 'none',
+                    boxShadow: 'none',
+                  },
+                }}
+              >
+                {isSubmitting ? 'Regenerating...' : 'Regenerate'}
+              </Button>
+            </span>
+          </Tooltip>
         </Box>
       </Box>
     </Modal>

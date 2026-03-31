@@ -64,6 +64,10 @@ export interface ContentFeedbackModalProps {
   onClose: () => void;
   onSubmitFeedback: (feedback: ContentFeedbackData) => void;
   contentId: number | null;
+  /** User's current available credit balance */
+  availableBalance: number;
+  /** Video length for credit calculation ('5', '15', or '30') */
+  videoLength: string;
 }
 
 /**

@@ -338,6 +338,15 @@ export const App: React.FC = () => {
               open={state.showFeedbackModal}
               onClose={handleCloseFeedbackModal}
               contentId={state.currentContentId}
+              availableBalance={availableBalance}
+              videoLength={
+                (() => {
+                  const currentItem = state.contentItems.find(item => item.id === state.currentContentId);
+                  return currentItem?.video_length ||
+                    (currentItem?.generationdata ? JSON.parse(currentItem.generationdata).video_length : undefined) ||
+                    '30';
+                })()
+              }
               onSubmitFeedback={async (feedback: ContentFeedbackData) => {
                 // Save structured feedback to database
                 if (state.currentContentId && state.moodleContext) {
