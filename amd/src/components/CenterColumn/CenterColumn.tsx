@@ -186,6 +186,7 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
 
   return (
     <Card
+      id="lecturebot-tour-center-col"
       sx={{
         height: '100%',
         display: 'flex',

@@ -31,6 +31,7 @@ const Header: React.FC<HeaderProps> = ({ moodleContext, children, onBack, onOpen
 
     return (
         <Box
+            id="lecturebot-tour-header"
             component="header"
             sx={{
                 backgroundColor: 'rgba(255, 255, 255, 0.9)',

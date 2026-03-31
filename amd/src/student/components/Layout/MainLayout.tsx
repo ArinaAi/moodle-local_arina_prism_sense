@@ -158,7 +158,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ moodleContext }) => {
     const handleMobileBack = isMobile && selectedContent ? () => setSelectedContent(null) : undefined;
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100dvh', bgcolor: '#f0f4f9' }}>
+        <Box id="lecturebot-tour-student-header" sx={{ display: 'flex', flexDirection: 'column', height: '100dvh', bgcolor: '#f0f4f9' }}>
             {/* Header with Back Support */}
             <Header moodleContext={moodleContext} onBack={handleMobileBack}>
                 <Button
@@ -205,6 +205,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ moodleContext }) => {
 
                         {/* Content Navigator - 30% width, slides out to left */}
                         <Paper
+                            id="lecturebot-tour-content-navigator"
                             elevation={0}
                             sx={{
                                 position: 'absolute',
@@ -230,6 +231,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ moodleContext }) => {
 
                         {/* Preview/Content Viewer - 70% width, slides from right position to left position */}
                         <Box
+                            id="lecturebot-tour-content-viewer"
                             sx={{
                                 position: 'absolute',
                                 left: contentViewerLeft,

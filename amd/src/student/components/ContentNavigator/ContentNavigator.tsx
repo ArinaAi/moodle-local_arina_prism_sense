@@ -121,7 +121,7 @@ const ContentNavigator: React.FC = () => {
 
             {/* Filter */}
             <Box sx={{ px: 'clamp(12px, 2vw, 20px)', mb: 'clamp(12px, 2vw, 20px)' }}>
-                <FormControl fullWidth size="small">
+                <FormControl id="lecturebot-tour-section-filter" fullWidth size="small">
                     <Select
                         value={sectionFilter}
                         onChange={(e) => setSectionFilter(e.target.value as number | 'all')}

@@ -58,6 +58,7 @@ const LeftColumn: React.FC<LeftColumnProps> = ({
 
   return (
     <Card
+      id="lecturebot-tour-sources-panel"
       sx={{
         height: '100%',
         display: 'flex',
@@ -99,6 +100,7 @@ const LeftColumn: React.FC<LeftColumnProps> = ({
         <Tooltip title={!hasCredits ? creditTooltip : ''} arrow placement="top">
           <span>
             <Button
+              id="lecturebot-tour-add-source-btn"
               variant="contained"
               size={isMobile ? 'medium' : 'large'}
               startIcon={<Add />}

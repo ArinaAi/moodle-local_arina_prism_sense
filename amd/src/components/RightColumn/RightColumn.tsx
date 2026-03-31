@@ -146,6 +146,7 @@ const RightColumn: React.FC<RightColumnProps> = ({
   return (
     <>
       <Box
+        id="lecturebot-tour-right-col"
         sx={{
           display: 'flex',
           flexDirection: 'column',
