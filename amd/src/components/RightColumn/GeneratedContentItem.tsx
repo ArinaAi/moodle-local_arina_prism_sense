@@ -86,6 +86,32 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
     }
 
     if (item.status === 'error') {
+        /**
+         * Translate a sentinel error code into the user-facing message shown in the UI.
+         * Raw backend error text is NEVER rendered here — only the mapped string is shown.
+         *
+         * Sentinels (set by PHP classifyError()):
+         *   PDF_UPLOAD_FAILED    → PDF-specific action message
+         *   CURRICULUM_MISMATCH  → curriculum mismatch message
+         *   INSUFFICIENT_CREDITS → credit exhaustion message
+         *   VIDEO_FAILED         → video-specific retry message
+         *   '' / anything else   → generic slide retry message
+         */
+        const getErrorMessage = (sentinel: string | null): string => {
+            switch (sentinel) {
+                case 'PDF_UPLOAD_FAILED':
+                    return 'PDF upload failed. Please delete and re-upload your PDFs, then try generating again.';
+                case 'CURRICULUM_MISMATCH':
+                    return 'Generation failed due to mismatch in curriculum. Please try again.';
+                case 'INSUFFICIENT_CREDITS':
+                    return 'Video generation failed due to insufficient credits. Please contact your administrator.';
+                case 'VIDEO_FAILED':
+                    return 'Video generation failed. Please try again.';
+                default:
+                    return 'Slide generation failed. Please try again.';
+            }
+        };
+
         return (
             <ListItem
                 sx={{
@@ -126,16 +152,13 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                             mt: 0.5,
                             wordBreak: 'break-word',
                             overflow: 'hidden',
-                            // Limit to 3 lines with ellipsis
                             display: '-webkit-box',
                             WebkitLineClamp: 3,
                             WebkitBoxOrient: 'vertical',
                             fontSize: 'clamp(0.65rem, 2vw, 0.75rem)',
                         }}
                     >
-                        {item.errormessage === 'PDF_UPLOAD_FAILED'
-                            ? 'PDF upload failed for this section. Please delete and re-upload your PDFs, then try generating slides again.'
-                            : 'Failed to generate slides. Please try again.'}
+                        {getErrorMessage(item.errormessage)}
                     </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1 }}>

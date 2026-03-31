@@ -19,7 +19,9 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once(__DIR__ . '/../../config_api.php');
 require_once(__DIR__ . '/../../configurator_azure.php');
+require_once(__DIR__ . '/../../api/cms/CreditServiceClient.php');
 require_once(__DIR__ . '/../CompanyConfig.php');
+require_once(__DIR__ . '/../ErrorClassifier.php');
 require_once(__DIR__ . '/../EmailNotifier.php');
 
 /**
@@ -320,24 +322,24 @@ class poll_content_status_task extends \core\task\scheduled_task
 
     /**
      * Handle failed content generation — mark as error in DB.
+     *
+     * Classifies the raw backend error into a sentinel code before persisting
+     * so that raw API error text is never stored in the DB or shown to users.
+     * Raw text is only kept in mtrace output for admin debugging.
      */
     private function handleFailed($content, $statusResponse)
     {
         global $DB;
 
-        $errorMessage = $statusResponse['error'] ?? $statusResponse['message'] ?? 'Unknown error from backend';
-        mtrace("    Content generation failed: {$errorMessage}");
+        // Extract raw error text for logging only.
+        $rawError = $statusResponse['error'] ?? $statusResponse['message'] ?? 'Unknown error from backend';
+        mtrace("    Content generation failed (raw): {$rawError}");
 
-        // Tag PDF/upload-related failures with a sentinel the frontend can detect,
-        // so the user sees an actionable message instead of a raw backend error.
-        $lower = strtolower((string) $errorMessage);
-        if (str_contains($lower, 'upload') || str_contains($lower, 'pdf') ||
-            str_contains($lower, 'batch') || str_contains($lower, 'not processed')) {
-            $errorMessage = 'PDF_UPLOAD_FAILED';
-        }
+        // Classify raw error → sentinel code.
+        $sentinel = $this->classifyError((string) $rawError);
 
         $content->status       = 'error';
-        $content->errormessage = $errorMessage;
+        $content->errormessage = $sentinel;
         $content->timemodified = time();
 
         $generationData = json_decode($content->generationdata, true) ?: [];
@@ -346,12 +348,25 @@ class poll_content_status_task extends \core\task\scheduled_task
 
         $DB->update_record('local_lecturebot_content', $content);
 
-        // Notify the user by email that their content failed.
+        // Notify the user by email. Pass the sentinel so EmailNotifier can
+        // translate it to a human-readable message without leaking raw details.
         try {
-            \local_lecturebot\EmailNotifier::sendContentFailure($content, $errorMessage);
+            \local_lecturebot\EmailNotifier::sendContentFailure($content, $sentinel);
         } catch (\Throwable $emailEx) {
             mtrace("    Email notification failed (non-fatal): " . $emailEx->getMessage());
         }
+    }
+
+    /**
+     * Classify a raw backend error string into a sentinel code.
+     *
+     * Mirrors the same logic in generate_content_task::classifyError().
+     * @param  string $raw  Raw error text from the backend status response
+     * @return string       Sentinel code, or '' for generic errors
+     */
+    private function classifyError(string $raw): string
+    {
+        return \local_lecturebot\ErrorClassifier::classify($raw);
     }
 
     /**

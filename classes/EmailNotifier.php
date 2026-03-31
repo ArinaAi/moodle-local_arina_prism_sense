@@ -103,9 +103,13 @@ class EmailNotifier
         }
         [$user, $processName, $dashboardUrl] = $ctx;
 
+        // Translate the sentinel into a user-friendly message.
+        // This is the ONLY text shown in the email; the raw $errorMessage is discarded.
+        $userFriendlyError = self::sentinelToEmailMessage($errorMessage);
+
         // Build the conditional error-details box so we don't need Jinja2 {% if %} support.
-        $safeError = htmlspecialchars($errorMessage, ENT_QUOTES, 'UTF-8');
-        $errorBox  = $errorMessage ? self::buildErrorBox($safeError, 'Error Details') : '';
+        $safeError = htmlspecialchars($userFriendlyError, ENT_QUOTES, 'UTF-8');
+        $errorBox  = $userFriendlyError ? self::buildErrorBox($safeError, 'Error Details') : '';
 
         // Replace the Jinja2 conditional block with our pre-built HTML.
         $userIdF = htmlspecialchars(
@@ -141,7 +145,7 @@ class EmailNotifier
         $subject   = $processName . ' – Generation Failed';
         $plaintext = "Hi {$user->firstname},\n\n"
             . "Unfortunately your {$processName} failed to generate.\n\n"
-            . "Error: {$errorMessage}\n\n"
+            . "Reason: {$userFriendlyError}\n\n"
             . "Please retry from your dashboard: {$dashboardUrl}\n\n— Arina AI";
 
         self::send($user, $subject, $plaintext, $html);
@@ -268,6 +272,31 @@ class EmailNotifier
     // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
+
+    /**
+     * Translate a sentinel error code into a user-friendly sentence for emails.
+     *
+     * This is the ONLY text shown to the user in failure emails; raw backend
+     * errors are never passed through to the email content.
+     *
+     * @param  string $sentinel  One of the sentinel codes, or any raw string
+     * @return string            Human-readable explanation of the failure
+     */
+    private static function sentinelToEmailMessage(string $sentinel): string
+    {
+        $map = [
+            'PDF_UPLOAD_FAILED'    => 'Generation failed due to a PDF upload failure. '
+                . 'Please delete and re-upload your PDFs, then try again.',
+            'CURRICULUM_MISMATCH'  => 'Generation failed due to a mismatch in the curriculum. '
+                . 'Please review your curriculum settings and try again.',
+            'INSUFFICIENT_CREDITS' => 'Video generation failed due to insufficient credits. '
+                . 'Please contact your administrator to top up your account.',
+            'VIDEO_FAILED'         => 'Video generation failed. Please try again.',
+        ];
+
+        return $map[$sentinel]
+            ?? 'Content generation failed. Please try again from your dashboard.';
+    }
 
     /**
      * Build the error/file details box used in failure email templates.

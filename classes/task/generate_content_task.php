@@ -21,6 +21,7 @@ require_once(__DIR__ . '/../../config_api.php');
 require_once(__DIR__ . '/../../configurator_azure.php');
 require_once(__DIR__ . '/../../api/cms/CreditServiceClient.php');
 require_once(__DIR__ . '/../CompanyConfig.php');
+require_once(__DIR__ . '/../ErrorClassifier.php');
 
 /**
  * Adhoc task to initiate content generation asynchronously via Kafka
@@ -79,7 +80,7 @@ class generate_content_task extends \core\task\adhoc_task
 
         } catch (\Exception $e) {
             mtrace("Error generating content: " . $e->getMessage());
-            $this->handleFailure($contentId, $e->getMessage());
+            $this->handleFailure($contentId, $this->classifyError($e->getMessage()));
         }
     }
 
@@ -1057,7 +1058,9 @@ class generate_content_task extends \core\task\adhoc_task
     }
 
     /**
-     * Handle failure by updating status to error
+     * Handle failure by updating status to error.
+     * Only sentinel codes (PDF_UPLOAD_FAILED, CURRICULUM_MISMATCH, etc.) should
+     * be passed here — never raw backend text.
      */
     private function handleFailure($contentId, $errorMessage)
     {
@@ -1071,6 +1074,28 @@ class generate_content_task extends \core\task\adhoc_task
                 'timemodified' => time()
             ]
         );
+    }
+
+    /**
+     * Classify a raw backend error string into a sentinel code.
+     *
+     * Sentinel codes are the ONLY values that should be written to the
+     * errormessage DB column. Raw error text is intentionally discarded here
+     * and only kept in mtrace/error_log output for admin debugging.
+     *
+     * Sentinels:
+     *   PDF_UPLOAD_FAILED      – PDF/batch upload problem
+     *   CURRICULUM_MISMATCH    – curriculum/content-strategy mismatch
+     *   INSUFFICIENT_CREDITS   – quota / wallet / credit exhausted
+     *   VIDEO_FAILED           – video-specific failure (non-credit)
+     *   ''                     – generic fallback (slide/content generation)
+     *
+     * @param  string $raw  Raw error text from the backend or PHP exception message
+     * @return string       Sentinel code, or '' for generic/unknown errors
+     */
+    private function classifyError(string $raw): string
+    {
+        return \local_lecturebot\ErrorClassifier::classify($raw);
     }
 
     /**
