@@ -210,7 +210,7 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                                 options={SUPPORTED_LANGUAGES}
                                 getOptionLabel={(opt) => opt.label}
                                 value={SUPPORTED_LANGUAGES.find((l) => l.value === language)!}
-                                onChange={(_e, opt) => { if (opt) setLanguage(opt.value as Language); }}
+                                onChange={(_e, opt) => { if (opt) {setLanguage(opt.value as Language);} }}
                                 disableClearable
                                 size="small"
                                 isOptionEqualToValue={(opt, val) => opt.value === val.value}
