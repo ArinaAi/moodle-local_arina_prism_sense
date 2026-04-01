@@ -5,6 +5,7 @@ import { Skeleton } from '@mui/material';
 import { stagger, fadeIn } from '../../config/animations';
 import { Badge } from '../../components/ui/Badge';
 import { DateRangeFilter } from '../../components/ui/DateRangeFilter';
+import { apiFetch, SessionExpiredError } from '../../../utils/apiFetch';
 
 export interface LedgerRow {
     id: string;
@@ -64,8 +65,8 @@ export const AuditLedgerView: React.FC = () => {
 
     const fetchLedger = async () => {
         try {
-            const baseUrl = (globalThis as any).MOODLE_CMS_CONTEXT?.wwwroot || '';
-            const res = await fetch(`${baseUrl}/local/lecturebot/api/cms/get_ledger.php`, {
+            const baseUrl = window.MOODLE_CMS_CONTEXT?.wwwroot || '';
+            const res = await apiFetch(`${baseUrl}/local/lecturebot/api/cms/get_ledger.php`, {
                 credentials: 'include'
             });
             const data = await res.json();
@@ -73,6 +74,7 @@ export const AuditLedgerView: React.FC = () => {
                 setLedger(data.data);
             }
         } catch (e) {
+            if (e instanceof SessionExpiredError) { return; }
             console.error('Failed to fetch ledger:', e);
         } finally {
             setLoading(false);

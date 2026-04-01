@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import type { AppState, AppAction, CurriculumStructure, ContentItem } from '../types/app';
 import type { NotificationSeverity } from './useNotification';
+import { apiFetch, SessionExpiredError } from '../utils/apiFetch';
 
 export const useContentActions = (
     state: AppState,
@@ -19,7 +20,7 @@ export const useContentActions = (
             setIsLoadingContent(true);
         }
         try {
-            const response = await fetch(
+            const response = await apiFetch(
                 `${state.moodleContext.wwwroot}/local/lecturebot/api/get_content_state.php?courseid=${state.moodleContext.courseid}`,
                 {
                     method: 'GET',
@@ -33,6 +34,7 @@ export const useContentActions = (
                 dispatch({ type: 'SET_CONTENT_ITEMS', payload: data.contents });
             }
         } catch (error) {
+            if (error instanceof SessionExpiredError) { return; }
             console.error('Failed to load content state:', error);
         } finally {
             if (showSpinner) {
@@ -144,7 +146,7 @@ export const useContentActions = (
                 requestBody.feedback_selected_categories = feedbackData.selectedCategories;
             }
 
-            const response = await fetch(proxyUrl, {
+            const response = await apiFetch(proxyUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody),
@@ -272,7 +274,7 @@ export const useContentActions = (
         showNotification(`Video generation started for "${sectionName}"...`, 'info');
 
         try {
-            const response = await fetch(`${state.moodleContext.wwwroot}/local/lecturebot/api/generate_content.php?courseid=${state.moodleContext.courseid}&sesskey=${state.moodleContext.sesskey}`, {
+            const response = await apiFetch(`${state.moodleContext.wwwroot}/local/lecturebot/api/generate_content.php?courseid=${state.moodleContext.courseid}&sesskey=${state.moodleContext.sesskey}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -338,7 +340,7 @@ export const useContentActions = (
         }
 
         try {
-            const response = await fetch(
+            const response = await apiFetch(
                 `${state.moodleContext.wwwroot}/local/lecturebot/api/approve_content.php?contentid=${state.currentContentId}&courseid=${state.moodleContext.courseid}&sesskey=${state.moodleContext.sesskey}`,
                 {
                     method: 'POST',
@@ -401,7 +403,7 @@ export const useContentActions = (
             // Call simplified publish API
             const apiUrl = `${state.moodleContext.wwwroot}/local/lecturebot/api/publish_content.php?sesskey=${state.moodleContext.sesskey}`;
 
-            const response = await fetch(apiUrl, {
+            const response = await apiFetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -466,7 +468,7 @@ export const useContentActions = (
 
             const apiUrl = `${state.moodleContext.wwwroot}/local/lecturebot/api/unpublish_content.php?sesskey=${state.moodleContext.sesskey}`;
 
-            const response = await fetch(apiUrl, {
+            const response = await apiFetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -510,7 +512,7 @@ export const useContentActions = (
         }
 
         try {
-            const response = await fetch(
+            const response = await apiFetch(
                 `${state.moodleContext.wwwroot}/local/lecturebot/api/cleanup_content.php?courseid=${state.moodleContext.courseid}&sesskey=${state.moodleContext.sesskey}`,
                 {
                     method: 'POST',
@@ -547,7 +549,7 @@ export const useContentActions = (
         }
 
         try {
-            const response = await fetch(
+            const response = await apiFetch(
                 `${state.moodleContext.wwwroot}/local/lecturebot/api/delete_content.php?contentid=${contentId}&sesskey=${state.moodleContext.sesskey}`,
                 {
                     method: 'POST',

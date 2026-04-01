@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { BALANCE_REFRESH_EVENT } from '../lib/balanceEvents';
+import { apiFetch, SessionExpiredError } from '../../utils/apiFetch';
 
 export interface BalanceData {
     current_balance: number;
@@ -47,10 +48,10 @@ export function useLiveBalance(enabled: boolean): LiveBalanceResult {
 
     const fetchAll = useCallback(async () => {
         try {
-            const baseUrl = ((globalThis as any).MOODLE_CMS_CONTEXT?.wwwroot) || '';
+            const baseUrl = (window.MOODLE_CMS_CONTEXT?.wwwroot) || '';
             const [balRes, reservedRes] = await Promise.all([
-                fetch(`${baseUrl}/local/lecturebot/api/cms/get_balance.php`, { credentials: 'include' }),
-                fetch(`${baseUrl}/local/lecturebot/api/cms/get_org_reserved.php`, { credentials: 'include' }),
+                apiFetch(`${baseUrl}/local/lecturebot/api/cms/get_balance.php`, { credentials: 'include' }),
+                apiFetch(`${baseUrl}/local/lecturebot/api/cms/get_org_reserved.php`, { credentials: 'include' }),
             ]);
 
             const balResult = await balRes.json();
@@ -98,6 +99,7 @@ export function useLiveBalance(enabled: boolean): LiveBalanceResult {
                 setError(balResult.message || 'Failed to fetch balance');
             }
         } catch (err) {
+            if (err instanceof SessionExpiredError) { return; }
             console.error('useLiveBalance: fetch error', err);
             setError('Network error: Unable to load balance data');
         } finally {

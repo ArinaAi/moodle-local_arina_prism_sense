@@ -29,6 +29,7 @@ import { FileText } from 'lucide-react';
 import { getModalBoxStyles, getModalLayoutStyles } from '../../utils/modalStyles';
 import { formatFileSize } from '../../utils/helpers';
 import type { MoodleContext } from '../../types/moodle';
+import { apiFetch, SessionExpiredError } from '../../utils/apiFetch';
 
 interface SourcesModalProps {
   open: boolean;
@@ -167,7 +168,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
 
     const runPoll = async () => {
       try {
-        const res = await fetch(
+        const res = await apiFetch(
           `${moodleContext.wwwroot}/local/lecturebot/api/poll_processing_status.php` +
           `?courseid=${moodleContext.courseid}&sectionid=${selectedSection}`,
           { method: 'GET', credentials: 'include' }
@@ -244,7 +245,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
 
       // Try to fetch existing sources from API
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           `${moodleContext.wwwroot}/local/lecturebot/api/get_sources.php?courseid=${moodleContext.courseid}`,
           {
             method: 'GET',
@@ -470,7 +471,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
     await loadSections();
     if (selectedSection === null) { return };
 
-    const sourcesResponse = await fetch(
+    const sourcesResponse = await apiFetch(
       `${moodleContext.wwwroot}/local/lecturebot/api/get_sources.php?courseid=${moodleContext.courseid}&sectionid=${selectedSection}`,
       {
         method: 'GET',
@@ -506,7 +507,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
         }
       });
 
-      const response = await fetch(
+      const response = await apiFetch(
         `${moodleContext.wwwroot}/local/lecturebot/api/upload_source.php?courseid=${moodleContext.courseid}&sectionid=${selectedSection}&sesskey=${moodleContext.sesskey}`,
         {
           method: 'POST',
@@ -574,7 +575,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
     setErrors((prev) => ({ ...prev, general: '' }));
     setRetryingBoxes((prev) => new Set(prev).add(boxIndex));
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${moodleContext.wwwroot}/local/lecturebot/api/retry_source.php` +
         `?courseid=${moodleContext.courseid}&sesskey=${moodleContext.sesskey}`,
         {
@@ -598,6 +599,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
         return newBoxes;
       });
     } catch (error) {
+      if (error instanceof SessionExpiredError) { return; }
       console.error('Retry upload failed:', error);
       setErrors((prev) => ({
         ...prev,
@@ -620,7 +622,7 @@ const SourcesModal: React.FC<SourcesModalProps> = ({ open, onClose, moodleContex
 
     setIsDeleting(true);
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${moodleContext.wwwroot}/local/lecturebot/api/delete_source.php?courseid=${moodleContext.courseid}&sesskey=${moodleContext.sesskey}`,
         {
           method: 'POST',

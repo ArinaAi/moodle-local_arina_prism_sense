@@ -22,6 +22,7 @@ import {
 } from '@mui/icons-material';
 import { getModalBoxStyles, getModalLayoutStyles } from '../../utils/modalStyles';
 import * as pdfjsLib from 'pdfjs-dist';
+import { apiFetch, SessionExpiredError } from '../../utils/apiFetch';
 
 // Set worker source
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -95,6 +96,15 @@ const PDFPreviewModal: React.FC<PDFPreviewModalProps> = ({
 
     setLoading(true);
     setError(null);
+
+    try {
+      // Session pre-check: apiFetch will detect an expired session and redirect
+      // before pdf.js tries to load the file (pdf.js bypasses our fetch wrapper).
+      await apiFetch(pdfUrl, { method: 'GET', credentials: 'include' });
+    } catch (err) {
+      if (err instanceof SessionExpiredError) { return; }
+      // Non-session error on the pre-check — fall through and let pdf.js try anyway.
+    }
 
     try {
       const loadingTask = pdfjsLib.getDocument(pdfUrl);

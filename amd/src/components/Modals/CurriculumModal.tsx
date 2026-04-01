@@ -31,6 +31,7 @@ import { FileText, FolderOpen } from 'lucide-react';
 import { getModalBoxStyles, getModalLayoutStyles } from '../../utils/modalStyles';
 import type { MoodleContext } from '../../types/moodle';
 import type { CurriculumStructure } from '../../types/app';
+import { apiFetch, SessionExpiredError } from '../../utils/apiFetch';
 
 interface CurriculumModalProps {
   open: boolean;
@@ -130,7 +131,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
     setError('');
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${moodleContext.wwwroot}/local/lecturebot/api/get_sources.php?courseid=${moodleContext.courseid}`,
         {
           method: 'GET',
@@ -171,7 +172,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
       // Parallel curriculum check for all sections
       const curriculumResults = await Promise.allSettled(
         baseSections.map((section) =>
-          fetch(
+          apiFetch(
             `${moodleContext.wwwroot}/local/lecturebot/api/get_curriculum.php?courseid=${moodleContext.courseid}&sectionid=${section.id}`,
             { method: 'GET', credentials: 'include' }
           ).then((res) => res.json())
@@ -199,6 +200,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
       const firstValid = sections.find((s) => s.hasCurriculum === true);
       setSelectedSectionId(firstValid ? firstValid.id : null);
     } catch (err) {
+      if (err instanceof SessionExpiredError) { return; }
       console.error('Error loading sources:', err);
       setError('Failed to load sources. Please try again.');
     } finally {
@@ -229,7 +231,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
     setIsSavingCurriculum(true);
     setSaveCurriculumError('');
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${moodleContext.wwwroot}/local/lecturebot/api/add_curriculum.php`,
         {
           method: 'POST',
@@ -259,6 +261,7 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
       setAddingCurriculumSectionId(null);
       setNewCurriculumText('');
     } catch (err: any) {
+      if (err instanceof SessionExpiredError) { return; }
       setSaveCurriculumError(err.message || 'Something went wrong.');
     } finally {
       setIsSavingCurriculum(false);

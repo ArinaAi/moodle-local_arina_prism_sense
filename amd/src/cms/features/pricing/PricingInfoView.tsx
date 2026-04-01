@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@mui/material';
 import { Presentation, Video, RefreshCw, Layers, Star, Info } from 'lucide-react';
 import { stagger, spring } from '../../config/animations';
+import { apiFetch, SessionExpiredError } from '../../../utils/apiFetch';
 
 export interface PricingCard {
     id: string;
@@ -108,13 +109,14 @@ export const PricingInfoView: React.FC = () => {
 
     const fetchPackages = async () => {
         try {
-            const baseUrl = (globalThis as any).MOODLE_CMS_CONTEXT?.wwwroot || '';
-            const res = await fetch(`${baseUrl}/local/lecturebot/api/cms/get_packages.php`, {
+            const baseUrl = window.MOODLE_CMS_CONTEXT?.wwwroot || '';
+            const res = await apiFetch(`${baseUrl}/local/lecturebot/api/cms/get_packages.php`, {
                 credentials: 'include'
             });
             const data = await res.json();
             if (data.success) { setPackages(data.data); }
         } catch (e) {
+            if (e instanceof SessionExpiredError) { return; }
             console.error('Failed to fetch packages:', e);
         } finally {
             setLoading(false);

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { SourceFile } from '../types/app';
 import type { MoodleContext } from '../types/moodle';
+import { apiFetch, SessionExpiredError } from '../utils/apiFetch';
 
 declare const M: { cfg: { wwwroot: string } };
 
@@ -16,7 +17,7 @@ export const useSources = (moodleContext: MoodleContext | null, showSourcesModal
 
             setLoadingSources(true);
             try {
-                const response = await fetch(
+                const response = await apiFetch(
                     `${M.cfg.wwwroot}/local/lecturebot/api/get_sources.php?courseid=${moodleContext.courseid}`,
                     {
                         method: 'GET',
@@ -31,6 +32,7 @@ export const useSources = (moodleContext: MoodleContext | null, showSourcesModal
                     setSources(data.sources);
                 }
             } catch (error) {
+                if (error instanceof SessionExpiredError) { return; }
                 console.error('Error loading sources:', error);
             } finally {
                 setLoadingSources(false);

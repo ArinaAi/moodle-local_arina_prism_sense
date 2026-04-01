@@ -7,6 +7,7 @@ import { StatCard } from '../../components/ui/StatCard';
 import { DonutChart } from '../../components/charts/DonutChart';
 import { BreakdownPanel } from '../../components/charts/BreakdownPanel';
 import { useLiveBalance } from '../../hooks/useLiveBalance';
+import { apiFetch } from '../../../utils/apiFetch';
 
 // Service Overview Card
 const ServiceOverviewCard: React.FC = () => (
@@ -48,8 +49,8 @@ export const OverviewView: React.FC = () => {
     const [usageData, setUsageData] = React.useState<any[]>([]);
     const [usageLoading, setUsageLoading] = React.useState(true);
     React.useEffect(() => {
-        const baseUrl = (globalThis as any).MOODLE_CMS_CONTEXT?.wwwroot || '';
-        fetch(`${baseUrl}/local/lecturebot/api/cms/get_usage_metrics.php`, { credentials: 'include' })
+        const baseUrl = window.MOODLE_CMS_CONTEXT?.wwwroot || '';
+        apiFetch(`${baseUrl}/local/lecturebot/api/cms/get_usage_metrics.php`, { credentials: 'include' })
             .then((r) => r.json())
             .then((res) => { if (res.success && res.data) { setUsageData(res.data); } })
             .catch(() => {/* silently ignore */ })

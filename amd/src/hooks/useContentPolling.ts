@@ -1,6 +1,7 @@
 import { useEffect, useRef, Dispatch } from 'react';
 import type { AppState, AppAction, ContentItem } from '../types/app';
 import type { NotificationSeverity } from './useNotification';
+import { apiFetch, SessionExpiredError } from '../utils/apiFetch';
 
 const POLL_INTERVAL_MS = 30000; // 30 seconds
 
@@ -72,7 +73,7 @@ const fetchStatusUpdates = async (
 ) => {
     try {
         const idsParam = generatingIds.join(',');
-        const response = await fetch(
+        const response = await apiFetch(
             `${state.moodleContext!.wwwroot}/local/lecturebot/api/check_status.php?courseid=${state.moodleContext!.courseid}&ids=${idsParam}`,
             { method: 'GET', credentials: 'include' }
         );
@@ -111,6 +112,7 @@ const fetchStatusUpdates = async (
             }
         }
     } catch (err) {
+        if (err instanceof SessionExpiredError) { return; }
         // eslint-disable-next-line no-console
         console.error('Poll failed:', err);
     }

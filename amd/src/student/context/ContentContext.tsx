@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { ContentItem, Section } from '../mockData';
+import { apiFetch, SessionExpiredError } from '../../utils/apiFetch';
 
 interface ContentContextType {
     selectedContent: ContentItem | null;
@@ -72,7 +73,7 @@ export const ContentProvider: React.FC<{ children: ReactNode }> = ({ children })
                 throw new Error("Course ID not found");
             }
 
-            const response = await fetch(`${wwwroot}/local/lecturebot/api/get_student_content.php?courseid=${courseId}`);
+            const response = await apiFetch(`${wwwroot}/local/lecturebot/api/get_student_content.php?courseid=${courseId}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch content');
             }
@@ -93,6 +94,7 @@ export const ContentProvider: React.FC<{ children: ReactNode }> = ({ children })
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
+            if (err instanceof SessionExpiredError) { return; }
             console.error(err);
             setError(err.message);
         } finally {
@@ -107,7 +109,7 @@ export const ContentProvider: React.FC<{ children: ReactNode }> = ({ children })
             // Convert status to 1 or 0
             const statusInt = status ? 1 : 0;
 
-            const response = await fetch(`${wwwroot}/local/lecturebot/api/track_content.php?courseid=${courseId}&contentid=${contentId}&status=${statusInt}`, {
+            const response = await apiFetch(`${wwwroot}/local/lecturebot/api/track_content.php?courseid=${courseId}&contentid=${contentId}&status=${statusInt}`, {
                 method: 'POST'
             });
             const data = await response.json();
@@ -121,6 +123,7 @@ export const ContentProvider: React.FC<{ children: ReactNode }> = ({ children })
                 }
             }
         } catch (err) {
+            if (err instanceof SessionExpiredError) { return; }
             console.error('Failed to update completion status', err);
         }
     }, [getMoodleConfig]);

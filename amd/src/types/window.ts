@@ -19,6 +19,15 @@ declare global {
       }>;
       canApprove: boolean;
     };
+    /** Injected by cms.php for the CMS dashboard React app. */
+    MOODLE_CMS_CONTEXT?: {
+      wwwroot: string;
+      sesskey: string;
+      userid: number;
+      tenantid: number;
+      username: string;
+      useremail: string;
+    };
     LectureBot?: {
       init: () => void;
     };

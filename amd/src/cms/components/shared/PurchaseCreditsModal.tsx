@@ -9,6 +9,7 @@ import {
 } from '@mui/material';
 import { CreditCard, Zap, Gift } from 'lucide-react';
 import { Modal } from '../ui/Modal';
+import { apiFetch, SessionExpiredError } from '../../../utils/apiFetch';
 
 interface PurchaseCreditsModalProps {
     open: boolean;
@@ -37,8 +38,8 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({ open
         setSuccess(null);
 
         try {
-            const baseUrl = (window as any).MOODLE_CMS_CONTEXT?.wwwroot || '';
-            const res = await fetch(`${baseUrl} /local/lecturebot / api / cms / purchase_credits.php`, {
+            const baseUrl = window.MOODLE_CMS_CONTEXT?.wwwroot || '';
+            const res = await apiFetch(`${baseUrl}/local/lecturebot/api/cms/purchase_credits.php`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
@@ -57,6 +58,7 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({ open
                 setError(data.message || 'Purchase failed. Please try again.');
             }
         } catch (e) {
+            if (e instanceof SessionExpiredError) { return; }
             setError('Network error. Could not complete purchase.');
         } finally {
             setLoading(false);

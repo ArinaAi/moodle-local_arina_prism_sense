@@ -5,6 +5,7 @@ import { Skeleton } from '@mui/material';
 import { stagger, fadeIn, spring } from '../../config/animations';
 import { Badge } from '../../components/ui/Badge';
 import type { ApiStaffMember } from './StaffManagementView';
+import { apiFetch, SessionExpiredError } from '../../../utils/apiFetch';
 
 interface StaffHistoryViewProps {
     staff: ApiStaffMember;
@@ -27,8 +28,8 @@ export const StaffHistoryView: React.FC<StaffHistoryViewProps> = ({ staff, onBac
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const baseUrl = (globalThis as any).MOODLE_CMS_CONTEXT?.wwwroot || '';
-        fetch(`${baseUrl}/local/lecturebot/api/cms/get_ledger.php?sub_user_id=${staff.id}`, {
+        const baseUrl = window.MOODLE_CMS_CONTEXT?.wwwroot || '';
+        apiFetch(`${baseUrl}/local/lecturebot/api/cms/get_ledger.php?sub_user_id=${staff.id}`, {
             credentials: 'include',
         })
             .then((r) => r.json())
@@ -37,7 +38,10 @@ export const StaffHistoryView: React.FC<StaffHistoryViewProps> = ({ staff, onBac
                     setHistory(data.data || []);
                 }
             })
-            .catch((e) => console.error('Failed to load history:', e))
+            .catch((e) => {
+                if (e instanceof SessionExpiredError) { return; }
+                console.error('Failed to load history:', e);
+            })
             .finally(() => setLoading(false));
     }, [staff.id]);
 

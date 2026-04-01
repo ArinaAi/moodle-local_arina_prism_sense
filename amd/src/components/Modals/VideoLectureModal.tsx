@@ -1,5 +1,6 @@
 // components/modals/VideoLectureModal.tsx
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSessionCheck } from '../../utils/useSessionCheck';
 import {
     Modal,
     Box,
@@ -73,6 +74,14 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
 }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+    // Session check: redirect to login if session expired when modal opens
+    const { checkSession } = useSessionCheck(window.MOODLE_CONTEXT ?? null);
+    useEffect(() => {
+        if (open) {
+            checkSession();
+        }
+    }, [open, checkSession]);
 
     // Use external helper function
     const styles = getVideoModalStyles(isMobile);

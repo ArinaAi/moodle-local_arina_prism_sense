@@ -7,6 +7,7 @@ import { DeltaBadge } from '../ui/DeltaBadge';
 import { tween } from '../../config/animations';
 import { PurchaseCreditsModal } from './PurchaseCreditsModal';
 import { BALANCE_REFRESH_EVENT } from '../../lib/balanceEvents';
+import { apiFetch, SessionExpiredError } from '../../../utils/apiFetch';
 
 interface AppHeaderProps {
     activeNav: string;
@@ -16,7 +17,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
-    const moodleContext = (globalThis as any).MOODLE_CMS_CONTEXT || {};
+    const moodleContext = window.MOODLE_CMS_CONTEXT || { wwwroot: '' };
 
     const [balance, setBalance] = useState<number>(0);
     const [balanceDelta, setBalanceDelta] = useState<number | null>(null);
@@ -27,7 +28,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
     const fetchBalance = async () => {
         try {
             const baseUrl = moodleContext.wwwroot || '';
-            const res = await fetch(`${baseUrl}/local/lecturebot/api/cms/get_balance.php`, { credentials: 'include' });
+            const res = await apiFetch(`${baseUrl}/local/lecturebot/api/cms/get_balance.php`, { credentials: 'include' });
             const data = await res.json();
             if (data.success && data.data) {
                 const newBalance: number = data.data.current_balance || 0;
@@ -39,6 +40,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
                 setBalance(newBalance);
             }
         } catch (e) {
+            if (e instanceof SessionExpiredError) { return; }
             console.error('Failed to fetch balance', e);
         } finally {
             lastFetchAt.current = Date.now();

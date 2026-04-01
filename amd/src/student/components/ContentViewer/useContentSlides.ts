@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiFetch, SessionExpiredError } from '../../../utils/apiFetch';
 
 export interface SlideImage {
     filename: string;
@@ -25,7 +26,7 @@ export const useContentSlides = (selectedContent: any, isVideo: boolean) => {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const M = (window as any).M;
                 const wwwroot = M?.cfg?.wwwroot || '';
-                const response = await fetch(`${wwwroot}/local/lecturebot/api/get_slide_images.php?contentid=${selectedContent.id}`);
+                const response = await apiFetch(`${wwwroot}/local/lecturebot/api/get_slide_images.php?contentid=${selectedContent.id}`);
 
                 if (!response.ok) {
                     if (response.status === 401) {
@@ -42,6 +43,7 @@ export const useContentSlides = (selectedContent: any, isVideo: boolean) => {
                     setError('No slides found');
                 }
             } catch (err: any) {
+                if (err instanceof SessionExpiredError) { return; }
                 console.error(err);
                 if (err && err.message === 'API key is missing or incorrect. Please check your settings.') {
                     setError(err.message);

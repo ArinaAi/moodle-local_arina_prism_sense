@@ -5,6 +5,7 @@ import { Skeleton, Snackbar, Alert } from '@mui/material';
 import { stagger, fadeIn } from '../../config/animations';
 import { Badge } from '../../components/ui/Badge';
 import { CreditAllocationModal } from '../../components/shared/CreditAllocationModal';
+import { apiFetch, SessionExpiredError } from '../../../utils/apiFetch';
 
 export interface ApiStaffMember {
     id: number;
@@ -42,8 +43,8 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ onView
 
     const fetchStaff = async () => {
         try {
-            const baseUrl = (globalThis as any).MOODLE_CMS_CONTEXT?.wwwroot || '';
-            const response = await fetch(`${baseUrl}/local/lecturebot/api/cms/get_staff.php`, {
+            const baseUrl = window.MOODLE_CMS_CONTEXT?.wwwroot || '';
+            const response = await apiFetch(`${baseUrl}/local/lecturebot/api/cms/get_staff.php`, {
                 credentials: 'include'
             });
             const result = await response.json();
@@ -53,6 +54,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ onView
                 setError(result.message || 'Failed to load staff list');
             }
         } catch (err) {
+            if (err instanceof SessionExpiredError) { return; }
             console.error(err);
             setError('Network error: Unable to load staff list');
         } finally {

@@ -9,6 +9,7 @@ import {
 } from '@mui/material';
 import { Send, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { Modal } from '../ui/Modal';
+import { apiFetch, SessionExpiredError } from '../../../utils/apiFetch';
 
 interface CreditAllocationModalProps {
     isOpen: boolean;
@@ -46,8 +47,8 @@ export const CreditAllocationModal: React.FC<CreditAllocationModalProps> = ({
         setLoading(true);
         setError(null);
         try {
-            const baseUrl = (globalThis as any).MOODLE_CMS_CONTEXT?.wwwroot || '';
-            const response = await fetch(`${baseUrl}/local/lecturebot/api/cms/allocate_credits.php`, {
+            const baseUrl = window.MOODLE_CMS_CONTEXT?.wwwroot || '';
+            const response = await apiFetch(`${baseUrl}/local/lecturebot/api/cms/allocate_credits.php`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
@@ -65,6 +66,7 @@ export const CreditAllocationModal: React.FC<CreditAllocationModalProps> = ({
                 setError(result.message || 'Allocation failed');
             }
         } catch (err) {
+            if (err instanceof SessionExpiredError) { return; }
             console.error(err);
             setError('Network error');
         } finally {

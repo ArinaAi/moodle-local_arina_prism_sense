@@ -29,6 +29,7 @@ import VideoLectureModal from '../Modals/VideoLectureModal';
 import PluginFeedbackModal from '../Modals/PluginFeedbackModal';
 import type { ContentFeedbackData } from '../../types/feedback';
 import type { PluginFeedback } from '../../types/app';
+import { apiFetch, SessionExpiredError } from '../../utils/apiFetch';
 
 // Import refactored modules
 import { theme } from '../../theme/theme';
@@ -308,7 +309,7 @@ export const App: React.FC = () => {
                   }
 
                   // Make API call
-                  const response = await fetch(
+                  const response = await apiFetch(
                     `${state.moodleContext.wwwroot}/local/lecturebot/api/save_plugin_feedback.php?sesskey=${state.moodleContext.sesskey}`,
                     {
                       method: 'POST',
@@ -326,6 +327,7 @@ export const App: React.FC = () => {
                     showNotification('Failed to submit feedback. Please try again.', 'error');
                   }
                 } catch (error) {
+                  if (error instanceof SessionExpiredError) { return; }
                   console.error('Error submitting feedback:', error);
                   showNotification('An error occurred while submitting feedback.', 'error');
                 }
@@ -354,7 +356,7 @@ export const App: React.FC = () => {
                     // Find the current content item to get metadata for regeneration
                     const currentItem = state.contentItems.find(item => item.id === state.currentContentId);
 
-                    const response = await fetch(
+                    const response = await apiFetch(
                       `${state.moodleContext.wwwroot}/local/lecturebot/api/save_content_feedback.php?sesskey=${state.moodleContext.sesskey}`,
                       {
                         method: 'POST',
@@ -403,6 +405,7 @@ export const App: React.FC = () => {
                       showNotification('Failed to save feedback.', 'error');
                     }
                   } catch (error) {
+                    if (error instanceof SessionExpiredError) { return; }
                     console.error('Error in feedback submission flow:', error);
                     showNotification('Error processing feedback.', 'error');
                   }

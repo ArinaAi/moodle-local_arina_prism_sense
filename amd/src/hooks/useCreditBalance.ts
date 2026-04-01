@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { MoodleContext } from '../types/moodle';
+import { apiFetch, SessionExpiredError } from '../utils/apiFetch';
 
 interface CreditBalanceState {
     /** Credits available for use (current - reserved) */
@@ -23,7 +24,7 @@ export const useCreditBalance = (moodleContext: MoodleContext | null): CreditBal
         }
 
         try {
-            const res = await fetch(
+            const res = await apiFetch(
                 `${moodleContext.wwwroot}/local/lecturebot/api/get_teacher_balance.php`,
                 { method: 'GET', credentials: 'include' }
             );
@@ -34,6 +35,7 @@ export const useCreditBalance = (moodleContext: MoodleContext | null): CreditBal
                 setHasWallet(json.data.has_wallet);
             }
         } catch (err) {
+            if (err instanceof SessionExpiredError) { return; }
             console.error('Failed to fetch credit balance:', err);
         } finally {
             setLoading(false);

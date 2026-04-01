@@ -8,6 +8,7 @@ import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import PictureInPictureAltIcon from '@mui/icons-material/PictureInPictureAlt';
 import SpeedIcon from '@mui/icons-material/Speed';
+import { apiFetch, SessionExpiredError } from '../../../utils/apiFetch';
 
 interface VideoViewerProps {
     videoUrl: string;
@@ -31,6 +32,18 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title: _title }) =>
     const [hasError, setHasError] = useState(false);
 
     const playbackSpeeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
+
+    // Session pre-check when videoUrl changes: apiFetch detects an expired
+    // session and redirects before the <video> element tries to stream.
+    // (The browser's media pipeline bypasses our fetch wrapper entirely.)
+    useEffect(() => {
+        if (!videoUrl) { return; }
+        apiFetch(videoUrl, { method: 'GET', credentials: 'include', headers: { Range: 'bytes=0-0' } })
+            .catch((err) => {
+                if (err instanceof SessionExpiredError) { return; }
+                // Non-session error — let the <video> element handle it naturally.
+            });
+    }, [videoUrl]);
 
     // Reset speed when video changes
     useEffect(() => {

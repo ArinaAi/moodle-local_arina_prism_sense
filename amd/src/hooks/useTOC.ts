@@ -1,6 +1,7 @@
 // hooks/useTOC.ts
 import { useState, useEffect, useCallback } from 'react';
 import type { CurriculumTopic } from '../types/app';
+import { apiFetch, SessionExpiredError } from '../utils/apiFetch';
 
 declare const M: { cfg: { wwwroot: string } };
 
@@ -31,7 +32,7 @@ export const useTOC = (contentId: number | null, enabled: boolean = true): UseTO
     setError(null);
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${M.cfg.wwwroot}/local/lecturebot/api/get_toc.php?contentid=${contentId}`,
         {
           method: 'GET',
@@ -50,6 +51,7 @@ export const useTOC = (contentId: number | null, enabled: boolean = true): UseTO
         setTopics([]);
       }
     } catch (err) {
+      if (err instanceof SessionExpiredError) { return; }
       console.error('Error fetching TOC:', err);
       setError('Failed to load topics');
       setTopics([]);

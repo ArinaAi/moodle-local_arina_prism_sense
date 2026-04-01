@@ -3,6 +3,7 @@ import { Box, TextField, IconButton, Typography, Avatar, ClickAwayListener } fro
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import LanguageRoundedIcon from '@mui/icons-material/LanguageRounded';
+import { apiFetch, SessionExpiredError } from '../../../utils/apiFetch';
 
 // Language options
 type LanguageCode = 'en' | 'hi' | 'mr';
@@ -121,7 +122,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ moodleContext }) => {
         const messageText = message?.text || '';
 
         try {
-            const response = await fetch(
+            const response = await apiFetch(
                 `${moodleContext.wwwroot}/local/lecturebot/api/save_chat_feedback.php`,
                 {
                     method: 'POST',
@@ -143,6 +144,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ moodleContext }) => {
                 console.error('Failed to save chat feedback:', result.error);
             }
         } catch (error) {
+            if (error instanceof SessionExpiredError) { return; }
             console.error('Error saving chat feedback:', error);
         }
     };

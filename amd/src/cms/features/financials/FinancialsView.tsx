@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Copy, Check } from 'lucide-react';
 import { Skeleton } from '@mui/material';
 import { stagger, fadeIn, spring } from '../../config/animations';
+import { apiFetch, SessionExpiredError } from '../../../utils/apiFetch';
 
 export interface AcquisitionRow {
     id: string;
@@ -34,10 +35,10 @@ export const FinancialsView: React.FC = () => {
 
     const fetchData = async () => {
         try {
-            const baseUrl = (globalThis as any).MOODLE_CMS_CONTEXT?.wwwroot || '';
+            const baseUrl = window.MOODLE_CMS_CONTEXT?.wwwroot || '';
             const [acqRes, couponRes] = await Promise.all([
-                fetch(`${baseUrl}/local/lecturebot/api/cms/get_acquisitions.php`, { credentials: 'include' }),
-                fetch(`${baseUrl}/local/lecturebot/api/cms/get_coupons.php`, { credentials: 'include' })
+                apiFetch(`${baseUrl}/local/lecturebot/api/cms/get_acquisitions.php`, { credentials: 'include' }),
+                apiFetch(`${baseUrl}/local/lecturebot/api/cms/get_coupons.php`, { credentials: 'include' })
             ]);
 
             const acqData = await acqRes.json();
@@ -50,6 +51,7 @@ export const FinancialsView: React.FC = () => {
                 setCoupons(couponData.data.filter((c: CouponData) => c.is_active));
             }
         } catch (e) {
+            if (e instanceof SessionExpiredError) { return; }
             console.error('Failed to fetch financials data:', e);
         } finally {
             setLoading(false);
