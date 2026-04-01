@@ -101,6 +101,7 @@ export const DashboardLayout: React.FC = () => {
 
                     {/* Scrollable content area with page transition */}
                     <main
+                        id="lecturebot-tour-cms-main"
                         style={{
                             flex: 1,
                             padding: '14px 22px',

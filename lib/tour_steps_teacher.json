@@ -1,0 +1,44 @@
+[
+    {
+        "id": "welcome",
+        "title": "Welcome to PRISM Sense",
+        "text": "This quick tour shows you how to turn your course materials into AI-powered lectures in just a few steps.",
+        "attachTo": { "element": "#lecturebot-tour-header", "on": "bottom" }
+    },
+    {
+        "id": "sources-panel",
+        "title": "Sources",
+        "text": "All your uploaded course materials (PDFs, documents) are managed here. Sources are the raw input for AI content generation.",
+        "attachTo": { "element": "#lecturebot-tour-sources-panel", "on": "right" }
+    },
+    {
+        "id": "add-source",
+        "title": "Manage Sources",
+        "text": "Click here to upload a PDF or document. Once uploaded, PRISM Sense uses it to generate your lecture content.",
+        "attachTo": { "element": "#lecturebot-tour-add-source-btn", "on": "right" }
+    },
+    {
+        "id": "content-dock",
+        "title": "Content Types",
+        "text": "Choose what you want to generate — a <strong>Slide Deck</strong> or a <strong>Video Lecture</strong>. Click a button to start generating AI content for the selected course section.",
+        "attachTo": { "element": "#lecturebot-tour-content-dock", "on": "right" }
+    },
+    {
+        "id": "preview",
+        "title": "Preview",
+        "text": "This is where you review generated content before it goes live. Browse through the slides or watch the video, then approve it here to mark it ready for publishing.",
+        "attachTo": { "element": "#lecturebot-tour-center-col", "on": "bottom" }
+    },
+    {
+        "id": "content-list",
+        "title": "Generated Content",
+        "text": "All generated content for this course is listed here. Once you have reviewed it in the preview panel, publish it to make it available to students — or unpublish it at any time.",
+        "attachTo": { "element": "#lecturebot-tour-right-col", "on": "left" }
+    },
+    {
+        "id": "credits",
+        "title": "Credit Balance",
+        "text": "Each content generation uses credits from your Arina AI balance. Your current balance is displayed here.",
+        "attachTo": { "element": "#lecturebot-tour-credit-badge", "on": "bottom" }
+    }
+]

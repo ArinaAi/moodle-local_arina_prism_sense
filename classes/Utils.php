@@ -421,5 +421,41 @@ class Utils
 
         return $content;
     }
-}
+    /**
+     * Emits the PRISM Sense guided-tour script block, but only if the current
+     * user has not seen this tour yet (checked via Moodle user preferences).
+     *
+     * Call this from any PHP page that should show a guided tour:
+     *   \local_lecturebot\Utils::emitTourIfUnseen($CFG, 'pref_key', ['#sel'], 'teacher');
+     *
+     * @param \stdClass $cfg       Moodle $CFG global.
+     * @param string    $prefKey  User-preference key (e.g. lecturebot_tour_teacher_seen).
+     * @param string[]  $pollFor  CSS selectors the engine waits for before auto-starting.
+     * @param string    $tourName Tour identifier matching lib/tour_steps_NAME.json.
+     * @return void
+     */
+    public static function emitTourIfUnseen($cfg, $prefKey, $pollFor, $tourName)
+    {
+        if ((bool) get_user_preferences($prefKey, 0)) {
+            return;
+        }
+        $stepsFile  = $cfg->dirroot . '/local/lecturebot/lib/tour_steps_' . $tourName . '.json';
+        $steps       = json_decode(file_get_contents($stepsFile), true);
+        $stepsJson  = json_encode($steps, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $pollJson   = json_encode($pollFor, JSON_UNESCAPED_SLASHES);
+        $wwwroot     = $cfg->wwwroot;
+        $sesskeyVal = sesskey();
 
+        echo '<script>' . "\n";
+        echo 'window.PRISM_TOUR_CONFIG = {' . "\n";
+        echo "    shepherdJs  : '{$wwwroot}/local/lecturebot/js/shepherd-tour.min.js',\n";
+        echo "    markSeenUrl : '{$wwwroot}/local/lecturebot/api/mark_tour_seen.php',\n";
+        echo "    sesskey     : '{$sesskeyVal}',\n";
+        echo "    prefKey     : '{$prefKey}',\n";
+        echo "    pollFor     : {$pollJson},\n";
+        echo "    steps       : {$stepsJson}\n";
+        echo '}' . ";\n";
+        echo '</script>' . "\n";
+        echo '<script src="' . $wwwroot . '/local/lecturebot/lib/prism-tour.js"></script>' . "\n";
+    }
+}

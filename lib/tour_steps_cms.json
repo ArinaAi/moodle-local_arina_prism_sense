@@ -1,0 +1,32 @@
+[
+    {
+        "id": "welcome",
+        "title": "Welcome to the CMS Dashboard",
+        "text": "This quick tour walks you through the Credit Management System — where you manage institutional credits, staff allocations, and financial reporting.",
+        "attachTo": { "element": "#lecturebot-tour-cms-header", "on": "bottom" }
+    },
+    {
+        "id": "sidebar",
+        "title": "Navigation",
+        "text": "Use the sidebar to switch between sections: Overview, Staff Management, Financials, Audit Ledger, and Pricing Info.",
+        "attachTo": { "element": "#lecturebot-tour-cms-sidebar", "on": "right" }
+    },
+    {
+        "id": "main-content",
+        "title": "Main Content Area",
+        "text": "The selected section is displayed here. Each view provides detailed data and actions for managing your institution's credit usage.",
+        "attachTo": { "element": "#lecturebot-tour-cms-main", "on": "top" }
+    },
+    {
+        "id": "balance",
+        "title": "Institutional Balance",
+        "text": "Your organisation's current credit balance is shown here. It updates in real time as credits are allocated or consumed.",
+        "attachTo": { "element": "#lecturebot-tour-cms-balance", "on": "bottom" }
+    },
+    {
+        "id": "add-credits",
+        "title": "Purchase Credits",
+        "text": "Click here to top up your institutional credit balance. Credits are shared across all staff members you assign them to.",
+        "attachTo": { "element": "#lecturebot-tour-cms-add-credits", "on": "bottom" }
+    }
+]

@@ -38,6 +38,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
     return (
         <div
+            id="lecturebot-tour-cms-sidebar"
             style={{
                 padding: '12px 0 12px 12px',
                 flexShrink: 0,

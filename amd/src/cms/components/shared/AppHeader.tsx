@@ -78,6 +78,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
         <React.Fragment>
             <Box
                 component="header"
+                id="lecturebot-tour-cms-header"
                 sx={{
                     backgroundColor: 'var(--paper)',
                     borderBottom: '1px solid var(--border)',
@@ -147,7 +148,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
                 {/* Right — Balance, Button, Logo */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 3 }, flexShrink: 0 }}>
                     <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 2 }}>
-                        <Box sx={{ textAlign: 'right' }}>
+                        <Box id="lecturebot-tour-cms-balance" sx={{ textAlign: 'right' }}>
                             <Typography sx={{ fontSize: '0.6875rem', textTransform: 'uppercase', color: 'text.secondary', letterSpacing: '0.04em', fontWeight: 600, lineHeight: 1.2 }}>
                                 Institutional Balance
                             </Typography>
@@ -158,6 +159,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
                             </Typography>
                         </Box>
                         <motion.button
+                            id="lecturebot-tour-cms-add-credits"
                             onClick={() => setPurchaseOpen(true)}
                             whileHover={{ backgroundColor: '#0a5a9d', y: -1, boxShadow: '0 4px 12px rgba(15,108,191,0.25)' }}
                             whileTap={{ scale: 0.97 }}
