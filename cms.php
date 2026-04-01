@@ -73,8 +73,18 @@ echo html_writer::tag('script', '', [
     'crossorigin' => 'anonymous',
 ]);
 
+// Shared vendor chunk (MUI, Emotion, framer-motion) extracted by webpack splitChunks.
+// Must load before the app bundle since the bundle imports from these modules.
+$vendorbuildpath = $CFG->dirroot . '/local/lecturebot/amd/build/vendor.min.js';
+if (file_exists($vendorbuildpath)) {
+    $vendorjsurl = $CFG->wwwroot . '/local/lecturebot/amd/build/vendor.min.js?v=' .
+        filemtime($vendorbuildpath);
+    echo html_writer::tag('script', '', ['src' => $vendorjsurl]);
+}
+
+$cmsbuildpath = $CFG->dirroot . '/local/lecturebot/amd/build/cms.min.js';
 $cmsjsurl = $CFG->wwwroot . '/local/lecturebot/amd/build/cms.min.js?v=' .
-filemtime($CFG->dirroot . '/local/lecturebot/amd/build/cms.min.js');
+    filemtime($cmsbuildpath);
 echo html_writer::tag('script', '', ['src' => $cmsjsurl]);
 
 // PRISM Sense In-App Guided Tour (CMS Dashboard)

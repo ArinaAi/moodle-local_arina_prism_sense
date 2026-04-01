@@ -45,12 +45,16 @@ WORKDIR /var/www/html
 COPY --chown=www-data:www-data . /var/www/html/
 
 # Build frontend assets for the lecturebot plugin
+# NODE_OPTIONS: prevent OOM (exit code 137) during webpack compilation
+# --production=false: ensure devDependencies (webpack, ts-loader) are installed
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN if [ -d "/var/www/html/local/lecturebot/amd" ] && [ -f "/var/www/html/local/lecturebot/amd/package.json" ]; then \
     cd /var/www/html/local/lecturebot/amd && \
     npm ci && \
     npm run build && \
     rm -rf node_modules; \
     fi
+ENV NODE_OPTIONS=""
 
 # Set proper permissions for Moodle directories
 RUN chmod -R 755 /var/www/html && \

@@ -42,7 +42,24 @@ const appConfig = {
   externals: {
     'react': 'React',
     'react-dom': 'ReactDOM',
-  }
+  },
+  // Extract shared vendor code (MUI, Emotion, etc.) into a single chunk
+  // Disable default cache groups to prevent Webpack from generating random numbered chunks 
+  // (which break in Moodle due to dynamic publicPath issues across different installations).
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        default: false,
+        defaultVendors: false,
+        vendor: {
+          test: /[\\/]node_modules[\\/]/,
+          name: 'vendor',
+          chunks: 'all',
+          enforce: true
+        },
+      },
+    },
+  },
 };
 
 // Standalone Shepherd.js bundle — served from js/ so it is not processed by Moodle's AMD scanner

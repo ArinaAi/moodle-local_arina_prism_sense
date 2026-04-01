@@ -112,34 +112,40 @@ class Utils
         $jsUrl,
         $initFunction = 'LectureBot.init',
         $rootId = 'lecturebot-react-root'
-    )
-    {
+    ) {
         // Safe defaults for styles
         $spinnerColor = '#0b57d0';
         ?>
         <style>
-          html, body {
-            overflow: hidden !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            background: #f0f4f9 !important;
-          }
-          #page-header, #page-footer, .fixed-top, body > header, body > footer {
-            display: none !important;
-          }
-          #<?php echo $rootId; ?> {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            display: flex !important;
-            flex-direction: column !important;
-            z-index: 99999 !important;
-            background: #f0f4f9;
-          }
+            html,
+            body {
+                overflow: hidden !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                background: #f0f4f9 !important;
+            }
+
+            #page-header,
+            #page-footer,
+            .fixed-top,
+            body>header,
+            body>footer {
+                display: none !important;
+            }
+
+            #<?php echo $rootId; ?> {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                display: flex !important;
+                flex-direction: column !important;
+                z-index: 99999 !important;
+                background: #f0f4f9;
+            }
         </style>
 
         <?php
@@ -158,56 +164,70 @@ class Utils
         ?>
         <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js" crossorigin></script>
         <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js" crossorigin></script>
-        
+
         <div id="<?php echo $rootId; ?>">
             <div style="display: flex; justify-content: center; align-items: center;
                         height: 100vh; flex-direction: column;">
                 <div class="spinner-border" role="status"
-                     style="width: 3rem; height: 3rem; color: <?php echo $spinnerColor; ?>;">
+                    style="width: 3rem; height: 3rem; color: <?php echo $spinnerColor; ?>;">
                     <span class="sr-only">Loading...</span>
                 </div>
                 <p style="margin-top: 20px; color: #6c757d; font-family: sans-serif;">Loading Application...</p>
             </div>
         </div>
-
         <script>
-        window.MOODLE_CONTEXT = <?php echo $contextJson; ?>;
-        
-        (function() {
-            var script = document.createElement('script');
-            script.src = '<?php echo $jsUrl; ?>';
-            script.onload = function() {
-                var initParts = '<?php echo $initFunction; ?>'.split('.');
-                var fn = window;
-                for (var i = 0; i < initParts.length; i++) {
-                    fn = fn[initParts[i]];
-                    if (!fn) break;
+            window.MOODLE_CONTEXT = <?php echo $contextJson; ?>;
+
+            (function () {
+                function loadScript(url, onLoad) {
+                    var s = document.createElement('script');
+                    s.src = url;
+                    s.onload = onLoad;
+                    s.onerror = function () { onLoad(); }; // Always continue — never let a chunk block the app
+                    document.head.appendChild(s);
                 }
 
-                if (typeof fn === 'function') {
-                    fn();
-                } else {
-                    // Fallback retry
-                    console.log('Waiting for init function...');
-                    setTimeout(function() {
-                         var retryFn = window;
-                         for (var i = 0; i < initParts.length; i++) {
-                            retryFn = retryFn[initParts[i]];
-                            if (!retryFn) break;
-                        }
-                        if (typeof retryFn === 'function') {
-                            retryFn();
-                        } else {
-                            console.error('❌ Failed to find init function: <?php echo $initFunction; ?>');
-                        }
-                    }, 500);
+                function runInit() {
+                    var initParts = '<?php echo $initFunction; ?>'.split('.');
+                    var fn = window;
+                    for (var i = 0; i < initParts.length; i++) {
+                        fn = fn[initParts[i]];
+                        if (!fn) break;
+                    }
+                    if (typeof fn === 'function') {
+                        fn();
+                    } else {
+                        setTimeout(function () {
+                            var retryFn = window;
+                            var parts = '<?php echo $initFunction; ?>'.split('.');
+                            for (var i = 0; i < parts.length; i++) {
+                                retryFn = retryFn[parts[i]];
+                                if (!retryFn) break;
+                            }
+                            if (typeof retryFn === 'function') { retryFn(); }
+                        }, 500);
+                    }
                 }
-            };
-            script.onerror = function() {
-                console.error('❌ Failed to load JS file');
-            };
-            document.head.appendChild(script);
-        })();
+
+                <?php
+                // Resolve the vendor chunk path on disk.
+                // If it exists, chain-load it before the app bundle so MUI/Emotion are available.
+                // If it doesn't exist (e.g. local dev without a full rebuild), load the app directly.
+                global $CFG;
+                $vendorDiskPath = $CFG->dirroot . '/local/lecturebot/amd/build/vendor.min.js';
+                if (file_exists($vendorDiskPath)):
+                    $vendorUrl = $CFG->wwwroot . '/local/lecturebot/amd/build/vendor.min.js?v=' .
+                        filemtime($vendorDiskPath);
+                    ?>
+                    // vendor.min.js found — load shared chunk first, then the app bundle.
+                    loadScript('<?php echo $vendorUrl; ?>', function () {
+                        loadScript('<?php echo $jsUrl; ?>', runInit);
+                    });
+                <?php else: ?>
+                    // vendor.min.js not present — load app bundle directly (dev environment or pre-splitChunks build).
+                    loadScript('<?php echo $jsUrl; ?>', runInit);
+                <?php endif; ?>
+            })();
         </script>
         <?php
     }
@@ -241,7 +261,7 @@ class Utils
                 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
                 $curlErrno = curl_errno($ch);
                 $curlError = curl_error($ch);
-                
+
                 curl_close($ch);
                 fclose($fp);
 
@@ -278,20 +298,20 @@ class Utils
             $version = '2020-04-08';
 
             $stringToSign = "GET\n" .
-                           "\n" .
-                           "\n" .
-                           "\n" .
-                           "\n" .
-                           "\n" .
-                           "\n" .
-                           "\n" .
-                           "\n" .
-                           "\n" .
-                           "\n" .
-                           "\n" .
-                           "x-ms-date:{$date}\n" .
-                           "x-ms-version:{$version}\n" .
-                           "/{$accountName}/{$containerName}/{$blobName}";
+                "\n" .
+                "\n" .
+                "\n" .
+                "\n" .
+                "\n" .
+                "\n" .
+                "\n" .
+                "\n" .
+                "\n" .
+                "\n" .
+                "\n" .
+                "x-ms-date:{$date}\n" .
+                "x-ms-version:{$version}\n" .
+                "/{$accountName}/{$containerName}/{$blobName}";
 
             $signature = base64_encode(hash_hmac(
                 'sha256',
@@ -335,7 +355,7 @@ class Utils
                 for ($i = 0; $i < $zip->numFiles; $i++) {
                     $filename = $zip->getNameIndex($i);
                     if (preg_match('/ppt\/slides\/slide(\d+)\.xml/', $filename, $matches)) {
-                        $slideNumber = (int)$matches[1];
+                        $slideNumber = (int) $matches[1];
                         $slideCount = max($slideCount, $slideNumber);
                     }
                 }
@@ -359,13 +379,13 @@ class Utils
             return null;
         }
         $path = ltrim($parsed['path'], '/');
-        
+
         // If it's a full URL with a host, the first path segment is the container name, so strip it.
         if (isset($parsed['host'])) {
             $parts = explode('/', $path, 2);
             return isset($parts[1]) ? $parts[1] : $path;
         }
-        
+
         // If it's a relative path, assume it's already just the blob name (including folders inside container)
         return $path;
     }
@@ -396,8 +416,7 @@ class Utils
         $courseid,
         $contentid,
         $capability = 'moodle/course:manageactivities'
-        )
-    {
+    ) {
         global $DB;
 
         if ($courseid <= 0) {
@@ -439,11 +458,11 @@ class Utils
         if ((bool) get_user_preferences($prefKey, 0)) {
             return;
         }
-        $stepsFile  = $cfg->dirroot . '/local/lecturebot/lib/tour_steps_' . $tourName . '.json';
-        $steps       = json_decode(file_get_contents($stepsFile), true);
-        $stepsJson  = json_encode($steps, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        $pollJson   = json_encode($pollFor, JSON_UNESCAPED_SLASHES);
-        $wwwroot     = $cfg->wwwroot;
+        $stepsFile = $cfg->dirroot . '/local/lecturebot/lib/tour_steps_' . $tourName . '.json';
+        $steps = json_decode(file_get_contents($stepsFile), true);
+        $stepsJson = json_encode($steps, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $pollJson = json_encode($pollFor, JSON_UNESCAPED_SLASHES);
+        $wwwroot = $cfg->wwwroot;
         $sesskeyVal = sesskey();
 
         echo '<script>' . "\n";
