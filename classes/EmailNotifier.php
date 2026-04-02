@@ -38,10 +38,21 @@ class EmailNotifier
     private const TOKEN_SUPPORT_URL   = "{{ support_url | default('#') }}";
     private const TOKEN_UNSUBSCRIBE   = "{{ unsubscribe_url | default('#') }}";
 
+    // Shared Tokens for low-credit emails
+    private const TOKEN_RECIPIENT_NAME  = '{{ recipient_name }}';
+    private const TOKEN_CURRENT_BALANCE = '{{ current_balance }}';
+    private const TOKEN_THRESHOLD_AMT   = '{{ threshold_amount }}';
+    private const TOKEN_WALLET_TYPE     = '{{ wallet_type }}';
+    private const TOKEN_INTRO_TEXT      = '{{ intro_text }}';
+    private const TOKEN_TOP_UP_URL      = "{{ top_up_url | default('#') }}";
+    private const TOKEN_USAGE_REPORT    = "{{ usage_report_url | default('#') }}";
+    private const TOKEN_MANAGE_ALERTS   = "{{ manage_alerts_url | default('#') }}";
+
     // Shared error_log message fragments.
     private const LOG_INVALID_EMAIL   = 'LectureBot EmailNotifier: invalid email \'';
     private const LOG_FOR_USER        = '\' for user ';
     private const LOG_CANNOT_RESOLVE  = 'LectureBot EmailNotifier: cannot resolve user for content ';
+    private const LOG_CURRENT_BALANCE = 'Current balance: ';
 
     // -------------------------------------------------------------------------
     // Public API
@@ -270,6 +281,187 @@ class EmailNotifier
     }
 
     // -------------------------------------------------------------------------
+    // Credit Warning Notifications
+    // -------------------------------------------------------------------------
+
+    /**
+     * Send a low credits warning to an individual user.
+     *
+     * @param object $user            The Moodle user
+     * @param float  $currentBalance  The current numerical balance
+     * @param float  $thresholdAmount The threshold that triggered this alert
+     * @param bool   $isZero          If true, uses the zero balance template
+     */
+    public static function sendLowCreditsUser(
+        object $user,
+        float $currentBalance,
+        float $thresholdAmount,
+        bool $isZero = false
+    ): void
+    {
+        global $CFG;
+
+        if (!self::isValidEmail($user->email)) {
+            return;
+        }
+
+        $template = $isZero ? 'low_credits_user_zero.html' : 'low_credits_user.html';
+        $dashboardUrl = $CFG->wwwroot . '/my/'; // General Moodle dashboard
+
+        $introText = $isZero
+            ? "Your individual wallet has nearly run out of credits. "
+            . "Please top up immediately to prevent service interruption."
+            : "Your individual wallet is running low on credits. "
+            . "We recommend topping up soon to avoid any disruption to your content generation.";
+
+        $tokens = [
+            self::TOKEN_LOGO          => self::logoUrl(),
+            self::TOKEN_RECIPIENT_NAME  => htmlspecialchars($user->firstname, ENT_QUOTES, 'UTF-8'),
+            self::TOKEN_CURRENT_BALANCE => number_format($currentBalance, 2),
+            self::TOKEN_THRESHOLD_AMT   => number_format($thresholdAmount, 2),
+            self::TOKEN_WALLET_TYPE     => 'Individual',
+            self::TOKEN_INTRO_TEXT      => $introText,
+            self::TOKEN_TOP_UP_URL      => htmlspecialchars($dashboardUrl, ENT_QUOTES, 'UTF-8'),
+            self::TOKEN_USAGE_REPORT    => htmlspecialchars($dashboardUrl, ENT_QUOTES, 'UTF-8'),
+            self::TOKEN_UNSUBSCRIBE   => '#',
+            self::TOKEN_SUPPORT_URL   => self::SUPPORT_URL,
+            self::TOKEN_MANAGE_ALERTS   => htmlspecialchars($dashboardUrl, ENT_QUOTES, 'UTF-8'),
+        ];
+
+        $html = self::renderTemplate($template, $tokens);
+        if ($html === null) {
+            return;
+        }
+
+        $subject = $isZero ? '🚨 Critical: Credits Depleted' : '⚠️ Low Credit Balance Alert';
+        $plaintext = "Hi {$user->firstname},\n\n{$introText}\n"
+            . self::LOG_CURRENT_BALANCE . number_format($currentBalance, 2) . "\n\n"
+            . "Please top up at: {$dashboardUrl}\n\n— Arina AI";
+
+        self::send($user, $subject, $plaintext, $html);
+    }
+
+    /**
+     * Send a low credits warning for the organization wallet to an admin/manager.
+     *
+     * @param object $admin           The admin or manager Moodle user
+     * @param float  $currentBalance  The current numerical org balance
+     * @param float  $thresholdAmount The threshold that triggered this alert
+     * @param bool   $isZero          If true, uses the zero balance template
+     */
+    public static function sendLowCreditsAdmins(
+        object $admin,
+        float $currentBalance,
+        float $thresholdAmount,
+        bool $isZero = false
+    ): void
+    {
+        global $CFG;
+
+        if (!self::isValidEmail($admin->email)) {
+            return;
+        }
+
+        $template = $isZero ? 'low_credits_org_zero.html' : 'low_credits_org.html';
+        $cmsUrl = $CFG->wwwroot . '/local/lecturebot/cms.php';
+
+        $introText = $isZero
+            ? "Your organization wallet has nearly run out of credits. "
+            . "Please top up immediately to prevent service interruption."
+            : "Your organization wallet is running low on credits. "
+            . "We recommend topping up soon to avoid any disruption to your staff.";
+
+        $tokens = [
+            self::TOKEN_LOGO          => self::logoUrl(),
+            self::TOKEN_RECIPIENT_NAME  => htmlspecialchars($admin->firstname, ENT_QUOTES, 'UTF-8'),
+            self::TOKEN_CURRENT_BALANCE => number_format($currentBalance, 2),
+            self::TOKEN_THRESHOLD_AMT   => number_format($thresholdAmount, 2),
+            self::TOKEN_WALLET_TYPE     => 'Organization',
+            self::TOKEN_INTRO_TEXT      => $introText,
+            self::TOKEN_TOP_UP_URL      => htmlspecialchars($cmsUrl, ENT_QUOTES, 'UTF-8'),
+            self::TOKEN_USAGE_REPORT    => htmlspecialchars($cmsUrl, ENT_QUOTES, 'UTF-8'),
+            self::TOKEN_UNSUBSCRIBE   => '#',
+            self::TOKEN_SUPPORT_URL   => self::SUPPORT_URL,
+            self::TOKEN_MANAGE_ALERTS   => htmlspecialchars($cmsUrl, ENT_QUOTES, 'UTF-8'),
+        ];
+
+        $html = self::renderTemplate($template, $tokens);
+        if ($html === null) {
+            return;
+        }
+
+        $subject = $isZero ? '🚨 Critical: Org Credits Depleted' : '⚠️ Low Organization Credits Alert';
+        $plaintext = "Hi {$admin->firstname},\n\n{$introText}\n"
+            . self::LOG_CURRENT_BALANCE . number_format($currentBalance, 2) . "\n\n"
+            . "Please top up at: {$cmsUrl}\n\n— Arina AI";
+
+        self::send($admin, $subject, $plaintext, $html);
+    }
+
+    /**
+     * Send a low credits warning to an admin regarding a specific sub-user's wallet.
+     *
+     * @param object $admin           The admin or manager Moodle user
+     * @param object $subUser         The sub-user whose wallet is low
+     * @param float  $currentBalance  The current numerical balance
+     * @param float  $thresholdAmount The threshold that triggered this alert
+     * @param bool   $isZero          If true, uses the zero balance template
+     */
+    public static function sendLowCreditsUserToAdmin(
+        object $admin,
+        object $subUser,
+        float $currentBalance,
+        float $thresholdAmount,
+        bool $isZero = false
+    ): void
+    {
+        global $CFG;
+
+        if (!self::isValidEmail($admin->email)) {
+            return;
+        }
+
+        $template = $isZero ? 'low_credits_user_zero.html' : 'low_credits_user.html';
+        $dashboardUrl = $CFG->wwwroot . '/local/lecturebot/cms.php'; // CMS page
+
+        $fullName = htmlspecialchars($subUser->firstname . ' ' . $subUser->lastname, ENT_QUOTES, 'UTF-8');
+
+        $introText = $isZero
+            ? "User {$fullName} (ID: {$subUser->id}) has nearly run out of credits in their individual wallet. "
+            . "Please allocate more credits to them if needed."
+            : "User {$fullName} (ID: {$subUser->id})'s individual wallet is running low on credits. "
+            . "We recommend allocating more credits to them soon.";
+
+        $tokens = [
+            self::TOKEN_LOGO          => self::logoUrl(),
+            self::TOKEN_RECIPIENT_NAME  => htmlspecialchars($admin->firstname, ENT_QUOTES, 'UTF-8'),
+            self::TOKEN_CURRENT_BALANCE => number_format($currentBalance, 2),
+            self::TOKEN_THRESHOLD_AMT   => number_format($thresholdAmount, 2),
+            self::TOKEN_WALLET_TYPE     => 'Individual (' . $fullName . ' - ID: ' . $subUser->id . ')',
+            self::TOKEN_INTRO_TEXT      => $introText,
+            self::TOKEN_TOP_UP_URL      => htmlspecialchars($dashboardUrl, ENT_QUOTES, 'UTF-8'),
+            self::TOKEN_USAGE_REPORT    => htmlspecialchars($dashboardUrl, ENT_QUOTES, 'UTF-8'),
+            self::TOKEN_UNSUBSCRIBE   => '#',
+            self::TOKEN_SUPPORT_URL   => self::SUPPORT_URL,
+            self::TOKEN_MANAGE_ALERTS   => htmlspecialchars($dashboardUrl, ENT_QUOTES, 'UTF-8'),
+        ];
+
+        $html = self::renderTemplate($template, $tokens);
+        if ($html === null) {
+            return;
+        }
+
+        $subject = $isZero
+            ? "🚨 Critical: User {$subUser->firstname} Credits Depleted"
+            : "⚠️ Low Credit Alert: User {$subUser->firstname}";
+        $plaintext = "Hi {$admin->firstname},\n\n{$introText}\n"
+            . self::LOG_CURRENT_BALANCE . number_format($currentBalance, 2) . "\n\n"
+            . "Please review at: {$dashboardUrl}\n\n— Arina AI";
+
+        self::send($admin, $subject, $plaintext, $html);
+    }
+
+    // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
 
@@ -435,7 +627,7 @@ class EmailNotifier
     {
         global $CFG;
         // Use Moodle's pix directory for the plugin logo if available.
-        return $CFG->wwwroot . '/local/lecturebot/pix/icon.png';
+        return $CFG->wwwroot . '/local/lecturebot/pix/arina-logo.png';
     }
 
     /**

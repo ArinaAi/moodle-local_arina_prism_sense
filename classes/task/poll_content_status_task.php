@@ -89,7 +89,7 @@ class poll_content_status_task extends \core\task\scheduled_task
         // bootstrap is sufficient for the batch API call.
         $firstContent = reset($requestIdToContent);
         if (!empty($firstContent->userid)) {
-            \local_lecturebot\CompanyConfig::bootstrap((int)$firstContent->userid);
+            \local_lecturebot\CompanyConfig::bootstrap((int) $firstContent->userid);
         }
         $apiKey = \local_lecturebot\CompanyConfig::getApiKey()
             ?? get_config('local_lecturebot', 'api_key');
@@ -117,7 +117,7 @@ class poll_content_status_task extends \core\task\scheduled_task
             // Re-bootstrap for each item's originating user (no-op if same tenant).
             if (!empty($content->userid)) {
                 \local_lecturebot\CompanyConfig::reset();
-                \local_lecturebot\CompanyConfig::bootstrap((int)$content->userid);
+                \local_lecturebot\CompanyConfig::bootstrap((int) $content->userid);
             }
 
             try {
@@ -145,7 +145,7 @@ class poll_content_status_task extends \core\task\scheduled_task
     private function checkBatchBackendStatus(array $requestIds, string $apiKey)
     {
         $result = null;
-        $url  = API_CHECK_STATUS_BATCH;
+        $url = API_CHECK_STATUS_BATCH;
         $body = json_encode(['request_ids' => $requestIds]);
 
         $ch = curl_init($url);
@@ -156,11 +156,11 @@ class poll_content_status_task extends \core\task\scheduled_task
 
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => $body,
-            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $body,
+            CURLOPT_TIMEOUT => 30,
             CURLOPT_CONNECTTIMEOUT => 10,
-            CURLOPT_HTTPHEADER     => [
+            CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
                 'Accept: application/json',
                 'X-API-key: ' . $apiKey
@@ -169,10 +169,10 @@ class poll_content_status_task extends \core\task\scheduled_task
             CURLOPT_SSL_VERIFYHOST => 2,
         ]);
 
-        $response   = curl_exec($ch);
-        $httpCode   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlErrno  = curl_errno($ch);
-        $curlError  = curl_error($ch);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErrno = curl_errno($ch);
+        $curlError = curl_error($ch);
 
         curl_close($ch);
 
@@ -213,7 +213,7 @@ class poll_content_status_task extends \core\task\scheduled_task
     private function processContentStatus($content, array $statusResponse)
     {
         $requestId = $content->request_id;
-        $status    = $statusResponse['status'] ?? 'unknown';
+        $status = $statusResponse['status'] ?? 'unknown';
 
         mtrace("  - Content {$content->id} (request_id: {$requestId}): status = {$status}");
 
@@ -267,13 +267,13 @@ class poll_content_status_task extends \core\task\scheduled_task
         mtrace("    Content generation completed! Downloading from Azure...");
 
         $generationData = json_decode($content->generationdata, true) ?: [];
-        $isVideo        = $generationData['is_video'] ?? false;
+        $isVideo = $generationData['is_video'] ?? false;
 
         $containerName = $generationData['azure_container'] ?? null;
-        $folderName    = $generationData['azure_folder'] ?? null;
+        $folderName = $generationData['azure_folder'] ?? null;
 
         // Use the original Moodle IDs from the DB record, rather than backend IDs parsed from folderName
-        $courseid  = $content->courseid;
+        $courseid = $content->courseid;
         $sectionid = $content->sectionid;
 
         $localFileName = $isVideo
@@ -290,7 +290,7 @@ class poll_content_status_task extends \core\task\scheduled_task
             $sectionid
         );
         $blobName = $blobInfo['name'];
-        $blobUrl  = $blobInfo['url'];
+        $blobUrl = $blobInfo['url'];
 
         $filepath = $CFG->tempdir . '/lecturebot/' . $localFileName;
 
@@ -315,7 +315,7 @@ class poll_content_status_task extends \core\task\scheduled_task
         mtrace("    Downloaded file: {$localFileName} (" . filesize($filepath) . " bytes)");
 
         $fileDetails = ['path' => $filepath, 'name' => $localFileName];
-        $context     = ['isVideo' => $isVideo, 'courseid' => $courseid, 'sectionid' => $sectionid];
+        $context = ['isVideo' => $isVideo, 'courseid' => $courseid, 'sectionid' => $sectionid];
 
         $this->updateContentOnSuccess($content, $generationData, $blobName, $statusResponse, $fileDetails, $context);
     }
@@ -338,7 +338,7 @@ class poll_content_status_task extends \core\task\scheduled_task
         // Classify raw error → sentinel code.
         $sentinel = $this->classifyError((string) $rawError);
 
-        $content->status       = 'error';
+        $content->status = 'error';
         $content->errormessage = $sentinel;
         $content->timemodified = time();
 
@@ -355,6 +355,7 @@ class poll_content_status_task extends \core\task\scheduled_task
         } catch (\Throwable $emailEx) {
             mtrace("    Email notification failed (non-fatal): " . $emailEx->getMessage());
         }
+
     }
 
     /**
@@ -376,50 +377,54 @@ class poll_content_status_task extends \core\task\scheduled_task
     {
         global $DB, $CFG;
 
-        $fpath     = $fileDetails['path'];
+        $fpath = $fileDetails['path'];
         $localName = $fileDetails['name'];
-        $isVideo   = $context['isVideo'];
-        $cid       = $context['courseid'];
-        $sid       = $context['sectionid'];
+        $isVideo = $context['isVideo'];
+        $cid = $context['courseid'];
+        $sid = $context['sectionid'];
 
         $genDataUpdate = [
-            'completed_at'           => time(),
-            'azure_blob_name'        => $blobName,
-            'backend_status_response'=> $resp,
+            'completed_at' => time(),
+            'azure_blob_name' => $blobName,
+            'backend_status_response' => $resp,
         ];
 
         if ($isVideo) {
             $genDataUpdate['video_file'] = $localName;
             $genDataUpdate['video_path'] = $fpath;
             $genDataUpdate['video_size'] = filesize($fpath);
-            $genDataUpdate['result']     = [
-                'status'  => 'success',
-                'results' => [[
-                    'topic'         => "Section " . $sid,
-                    'videoUrl'      => "{$CFG->wwwroot}/local/lecturebot/api/stream_video.php?" .
-                                       "contentid={$content->id}&courseid={$cid}",
-                    'videoDuration' => 0
-                ]]
+            $genDataUpdate['result'] = [
+                'status' => 'success',
+                'results' => [
+                    [
+                        'topic' => "Section " . $sid,
+                        'videoUrl' => "{$CFG->wwwroot}/local/lecturebot/api/stream_video.php?" .
+                            "contentid={$content->id}&courseid={$cid}",
+                        'videoDuration' => 0
+                    ]
+                ]
             ];
         } else {
             $slideCount = \local_lecturebot\Utils::countSlidesInPptx($fpath);
-            $genDataUpdate['pptx_file']   = $localName;
-            $genDataUpdate['pptx_path']   = $fpath;
+            $genDataUpdate['pptx_file'] = $localName;
+            $genDataUpdate['pptx_path'] = $fpath;
             $genDataUpdate['slide_count'] = $slideCount;
-            $genDataUpdate['result']      = [
-                'status'  => 'success',
-                'results' => [[
-                    'topic'      => "Section " . $sid,
-                    'slideCount' => $slideCount,
-                    'pptxFile'   => $localName
-                ]]
+            $genDataUpdate['result'] = [
+                'status' => 'success',
+                'results' => [
+                    [
+                        'topic' => "Section " . $sid,
+                        'slideCount' => $slideCount,
+                        'pptxFile' => $localName
+                    ]
+                ]
             ];
             mtrace("    Slide count: {$slideCount}");
         }
 
-        $content->status         = 'ready';
+        $content->status = 'ready';
         $content->generationdata = json_encode(array_merge($genData, $genDataUpdate));
-        $content->timemodified   = time();
+        $content->timemodified = time();
         $DB->update_record('local_lecturebot_content', $content);
         mtrace("    Content {$content->id} marked as ready!");
 
@@ -432,6 +437,9 @@ class poll_content_status_task extends \core\task\scheduled_task
 
         // Delete the parent content record now that the regenerated content is fully ready.
         $this->deleteParentContent($content);
+
+        // Check if credits have dropped past thresholds
+        $this->checkUserCredits($content);
     }
 
     /**
@@ -439,7 +447,7 @@ class poll_content_status_task extends \core\task\scheduled_task
      */
     private function resolveBlobInfo($statusResponse, $isVideo, $folderName, $containerName, $courseid, $sectionid)
     {
-        $blobUrl  = null;
+        $blobUrl = null;
         $blobName = null;
 
         if ($isVideo) {
@@ -481,12 +489,14 @@ class poll_content_status_task extends \core\task\scheduled_task
             $generationData['processing_status'] = $status;
         }
 
-        $DB->update_record('local_lecturebot_content', (object)[
-            'id'             => $content->id,
-            'generationdata' => json_encode($generationData),
-            'timemodified'   => time()
-        ]
-    );
+        $DB->update_record(
+            'local_lecturebot_content',
+            (object) [
+                'id' => $content->id,
+                'generationdata' => json_encode($generationData),
+                'timemodified' => time()
+            ]
+        );
     }
 
     /**
@@ -511,7 +521,7 @@ class poll_content_status_task extends \core\task\scheduled_task
             return;
         }
 
-        $parentId = (int)$content->parent_content_id;
+        $parentId = (int) $content->parent_content_id;
 
         if (!$DB->record_exists('local_lecturebot_content', ['id' => $parentId])) {
             mtrace("    Parent content {$parentId} not found, skipping deletion.");
@@ -520,5 +530,114 @@ class poll_content_status_task extends \core\task\scheduled_task
 
         $DB->delete_records('local_lecturebot_content', ['id' => $parentId]);
         mtrace("    Deleted parent content record {$parentId} (superseded by content {$content->id}).");
+    }
+
+    /**
+     * Check individual wallet balance after generation and notify if low.
+     */
+    private function checkUserCredits($content)
+    {
+        global $DB;
+        $userid = (int) ($content->userid ?? $content->createdby ?? 0);
+        if (!$userid) {
+            return;
+        }
+
+        $uuid = get_user_preferences('lecturebot_wallet_sub_user_id', null, $userid);
+        if (!$uuid) {
+            return;
+        }
+
+        $client = new \local_lecturebot\cms\CreditServiceClient();
+        $walletId = $client->resolveWalletId($uuid);
+        if (!$walletId) {
+            return;
+        }
+
+        $balRes = $client->getWalletBalance($walletId);
+        $this->resolveCreditState($balRes, $userid);
+    }
+
+    /**
+     * Evaluate the API balance response and dispatch alerts if threshold is crossed.
+     *
+     * @param array $balRes  Raw API response from getWalletBalance()
+     * @param int   $userid  Moodle user ID
+     */
+    private function resolveCreditState($balRes, $userid)
+    {
+        global $DB;
+        $isValidResponse = $balRes['status'] >= 200
+            && $balRes['status'] < 300
+            && isset($balRes['data']['current_balance']);
+        if (!$isValidResponse) {
+            return;
+        }
+
+        $balance = (float) $balRes['data']['current_balance'];
+        $lastState = get_user_preferences('lecturebot_low_credits_state', 'ok', $userid);
+        [$currentState, $isZero] = $this->classifyCreditBalance($balance);
+
+        if ($currentState !== 'ok' && $lastState !== $currentState) {
+            $user = $DB->get_record('user', ['id' => $userid, 'deleted' => 0]);
+            if ($user) {
+                $this->notifyCreditAlert($user, $userid, $balance, $currentState, $lastState, $isZero);
+            }
+        } elseif ($currentState === 'ok' && $lastState !== 'ok') {
+            set_user_preference('lecturebot_low_credits_state', 'ok', $userid);
+        }
+    }
+
+    /**
+     * Classify a credit balance into a state string and zero-flag.
+     *
+     * @param  float $balance
+     * @return array [string $state, bool $isZero]  e.g. ['low', false]
+     */
+    private function classifyCreditBalance($balance)
+    {
+        if ($balance <= 0) {
+            return ['zero', true];
+        }
+        if ($balance < 100) {
+            return ['low', false];
+        }
+        return ['ok', false];
+    }
+
+    /**
+     * Send low-credit alerts to the user and all admins, then persist the new state.
+     *
+     * @param object $user         The Moodle user object
+     * @param int    $userid       The user ID
+     * @param float  $balance      Current wallet balance
+     * @param string $currentState 'low' or 'zero'
+     * @param string $lastState    Previous stored state
+     * @param bool   $isZero       Whether balance is at or below zero
+     */
+    private function notifyCreditAlert($user, $userid, $balance, $currentState, $lastState, $isZero)
+    {
+        mtrace(
+            "    Checking credits for user {$userid}: balance={$balance}. " .
+            "State changed {$lastState} -> {$currentState}. Sending emails."
+        );
+        try {
+            \local_lecturebot\EmailNotifier::sendLowCreditsUser($user, $balance, 100.0, $isZero);
+
+            // Notify admins/managers as well
+            $admins = \local_lecturebot\Utils::getAdminsAndCompanyManagers($userid);
+            foreach ($admins as $admin) {
+                \local_lecturebot\EmailNotifier::sendLowCreditsUserToAdmin(
+                    $admin,
+                    $user,
+                    $balance,
+                    100.0,
+                    $isZero
+                );
+            }
+            set_user_preference('lecturebot_low_credits_state', $currentState, $userid);
+        } catch (\Throwable $e) {
+            mtrace("    Error sending low credits email: " . $e->getMessage());
+        }
     }
 }

@@ -477,4 +477,79 @@ class Utils
         echo '</script>' . "\n";
         echo '<script src="' . $wwwroot . '/local/lecturebot/lib/prism-tour.js"></script>' . "\n";
     }
+
+    /**
+     * Get site admins and IOMAD company managers (if applicable) for a given user.
+     *
+     * @param int $userid The user ID.
+     * @return array Array of user objects to notify.
+     */
+    public static function getAdminsAndCompanyManagers($userid)
+    {
+        global $DB, $CFG;
+        $managers = [];
+
+        // 1. Get site admins
+        $siteAdminsStr = isset($CFG->siteadmins) ? $CFG->siteadmins : '';
+        $adminIds = array_filter(array_map('intval', explode(',', $siteAdminsStr)));
+        if (!empty($adminIds)) {
+            list($adminInSql, $adminParams) = $DB->get_in_or_equal($adminIds);
+            $sql = "SELECT * FROM {user} WHERE id {$adminInSql} AND deleted = 0 AND suspended = 0";
+            $adminUsers = $DB->get_records_sql($sql, $adminParams);
+            if ($adminUsers) {
+                foreach ($adminUsers as $au) {
+                    $managers[$au->id] = $au;
+                }
+            }
+        }
+
+        // 2. If IOMAD is installed, get company managers
+        $iomadInstalled = class_exists('\local_lecturebot\CompanyConfig')
+            && \local_lecturebot\CompanyConfig::isIomadInstalled();
+        if ($iomadInstalled) {
+            $iomadManagers = self::fetchIomadManagers($userid, $managers);
+            $managers = array_replace($managers, $iomadManagers);
+        }
+
+        return array_values($managers);
+    }
+
+    /**
+     * Fetch IOMAD company managers for a given user, excluding already-known admins.
+     *
+     * @param int   $userid   The user whose companies to inspect
+     * @param array $existing Already-collected managers (to avoid duplicates)
+     * @return array New manager user objects keyed by user ID
+     */
+    private static function fetchIomadManagers($userid, $existing)
+    {
+        global $DB;
+        $result = [];
+        $userCompanies = $DB->get_records('company_users', ['userid' => $userid]);
+        if (!$userCompanies) {
+            return $result;
+        }
+        foreach ($userCompanies as $company) {
+            $companyManagers = $DB->get_records(
+                'company_users',
+                ['companyid' => $company->companyid, 'manager' => 1]
+            );
+            if (!$companyManagers) {
+                continue;
+            }
+            foreach ($companyManagers as $cm) {
+                if (isset($existing[$cm->userid]) || isset($result[$cm->userid])) {
+                    continue;
+                }
+                $user = $DB->get_record(
+                    'user',
+                    ['id' => $cm->userid, 'deleted' => 0, 'suspended' => 0]
+                );
+                if ($user) {
+                    $result[$user->id] = $user;
+                }
+            }
+        }
+        return $result;
+    }
 }

@@ -114,6 +114,9 @@ class generate_content_task extends \core\task\adhoc_task
         mtrace("User UUID for credit tracking: " .
             ($userUuid ? $userUuid : 'NULL - user may not have wallet allocated'));
 
+        // If the user topped up out-of-band, reset state so the post-generation check triggers.
+        $this->syncCreditStateIfTopped($userUuid, $data);
+
         mtrace("Starting content generation for content ID: $contentId. Type: $contentType");
 
         return [
@@ -123,6 +126,46 @@ class generate_content_task extends \core\task\adhoc_task
             'avatarVideoNeeded' => $avatarVideoNeeded,
             'userUuid' => $userUuid
         ];
+    }
+
+    /**
+     * If the user's balance is now >= 100 (i.e. they topped up out-of-band),
+     * reset the lecturebot_low_credits_state preference to 'ok' so that the
+     * post-generation credit check can fire again when the balance next drops.
+     *
+     * @param string|null $userUuid The resolved wallet owner UUID
+     * @param object      $data     Task custom data
+     */
+    private function syncCreditStateIfTopped($userUuid, $data)
+    {
+        if (!$userUuid || empty($data->user_id)) {
+            return;
+        }
+        try {
+            $client = new \local_lecturebot\cms\CreditServiceClient();
+            $walletId = $client->resolveWalletId($userUuid);
+            if (!$walletId) {
+                return;
+            }
+            $balRes = $client->getWalletBalance($walletId);
+            $isOk = $balRes['status'] >= 200
+                && $balRes['status'] < 300
+                && isset($balRes['data']['current_balance']);
+            if (!$isOk) {
+                return;
+            }
+            $balance = (float) $balRes['data']['current_balance'];
+            if ($balance >= 100) {
+                $uid = (int) $data->user_id;
+                $lastState = get_user_preferences('lecturebot_low_credits_state', 'ok', $uid);
+                if ($lastState !== 'ok') {
+                    set_user_preference('lecturebot_low_credits_state', 'ok', $uid);
+                    mtrace("    Reset low credits state to 'ok' for user {$uid} (balance={$balance})");
+                }
+            }
+        } catch (\Throwable $e) {
+            // Silently bypass on fetch error
+        }
     }
 
     /**
@@ -1074,6 +1117,78 @@ class generate_content_task extends \core\task\adhoc_task
                 'timemodified' => time()
             ]
         );
+
+        $content = $DB->get_record('local_lecturebot_content', ['id' => $contentId]);
+        if ($content) {
+            try {
+                \local_lecturebot\EmailNotifier::sendContentFailure($content, $errorMessage);
+            } catch (\Throwable $emailEx) {
+                mtrace("    Email notification failed (non-fatal): " . $emailEx->getMessage());
+            }
+
+            // If the failure was due to insufficient credits, send low-credits alerts directly
+            if ($errorMessage === 'INSUFFICIENT_CREDITS') {
+                $this->sendInsufficientCreditsAlert($content);
+            }
+        }
+    }
+
+    /**
+     * Send low-credits alert emails directly on an INSUFFICIENT_CREDITS failure,
+     * without relying on the background state-machine.
+     * Synchronizes state so background check won't double-fire.
+     */
+    private function sendInsufficientCreditsAlert($content)
+    {
+        global $DB;
+        $userid = (int) ($content->userid ?? $content->createdby ?? 0);
+        if (!$userid) {
+            return;
+        }
+
+        $user = $DB->get_record('user', ['id' => $userid, 'deleted' => 0]);
+        if (!$user) {
+            return;
+        }
+
+        // Fetch live balance if possible (for accurate number in email body).
+        $balance = 0.0;
+        $uuid = get_user_preferences('lecturebot_wallet_sub_user_id', null, $userid);
+        if ($uuid) {
+            try {
+                $client = new \local_lecturebot\cms\CreditServiceClient();
+                $walletId = $client->resolveWalletId($uuid);
+                if ($walletId) {
+                    $balRes = $client->getWalletBalance($walletId);
+                    if ($balRes['status'] >= 200 && $balRes['status'] < 300) {
+                        $balance = (float) ($balRes['data']['current_balance'] ?? 0);
+                    }
+                }
+            } catch (\Throwable $e) {
+                mtrace("    Could not fetch balance for alert email: " . $e->getMessage());
+            }
+        }
+
+        $isZero = $balance <= 0;
+
+        mtrace("    INSUFFICIENT_CREDITS failure — sending low-credits alert for user {$userid} (balance={$balance}).");
+
+        try {
+            // Notify the user themselves.
+            \local_lecturebot\EmailNotifier::sendLowCreditsUser($user, $balance, 100.0, $isZero);
+
+            // Notify all admins / company managers about this specific user's low wallet.
+            $admins = \local_lecturebot\Utils::getAdminsAndCompanyManagers($userid);
+            foreach ($admins as $admin) {
+                \local_lecturebot\EmailNotifier::sendLowCreditsUserToAdmin($admin, $user, $balance, 100.0, $isZero);
+            }
+
+            // Sync the state preference so the background checker won't re-fire.
+            $newState = $isZero ? 'zero' : 'low';
+            set_user_preference('lecturebot_low_credits_state', $newState, $userid);
+        } catch (\Throwable $e) {
+            mtrace("    Error sending low-credits alert emails: " . $e->getMessage());
+        }
     }
 
     /**

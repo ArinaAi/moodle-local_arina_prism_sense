@@ -97,6 +97,64 @@ try {
 
     if ($response['status'] >= 200 && $response['status'] < 300) {
         $successMessage = ($action === 'recall') ? 'Credits successfully reclaimed' : 'Credits successfully allocated';
+
+        // --- Check Organization Balance Threshold ---
+        if ($action === 'distribute') {
+            try {
+                // The wallet balance could have been reduced during distribution.
+                $orgBalanceRes = $client->getWalletBalance($orgWalletId);
+                if ($orgBalanceRes['status'] >= 200 && $orgBalanceRes['status'] < 300) {
+                    $newBalance = floatval($orgBalanceRes['data']['available_balance'] ?? 0);
+
+                    // Count subwallets for dynamic threshold (100 * n)
+                    $hierarchyRes = $client->getHierarchy($orgWalletId);
+                    $subWalletCount = 0;
+                    if (
+                        $hierarchyRes['status'] >= 200 &&
+                        $hierarchyRes['status'] < 300 &&
+                        !empty($hierarchyRes['data']['child_wallets'])
+                    ) {
+                        $subWalletCount = count($hierarchyRes['data']['child_wallets']);
+                    }
+                    $subWalletCount = max(1, $subWalletCount); // Avoid 0 threshold if no subwallets
+                    $thresholdAmount = 100.0 * $subWalletCount;
+
+                    $safeId = substr(preg_replace('/[^a-zA-Z0-9]/', '', $orgWalletId), 0, 10);
+                    $cacheKey = 'low_credits_org_' . $safeId;
+                    $lastState = get_config('local_lecturebot', $cacheKey) ?: 'ok';
+                    $currentState = 'ok';
+                    $isZero = false;
+
+                    if ($newBalance <= 0) {
+                        $currentState = 'zero';
+                        $isZero = true;
+                    } elseif ($newBalance < $thresholdAmount) {
+                        $currentState = 'low';
+                    }
+
+                    if ($currentState !== 'ok' && $lastState !== $currentState) {
+                        require_once(__DIR__ . '/../../classes/EmailNotifier.php');
+                        $admins = \local_lecturebot\Utils::getAdminsAndCompanyManagers($USER->id);
+                        foreach ($admins as $adminObj) {
+                            \local_lecturebot\EmailNotifier::sendLowCreditsAdmins(
+                                $adminObj,
+                                $newBalance,
+                                $thresholdAmount,
+                                $isZero
+                            );
+                        }
+                        set_config($cacheKey, $currentState, 'local_lecturebot');
+                    } elseif ($currentState === 'ok' && $lastState !== 'ok') {
+                        set_config($cacheKey, 'ok', 'local_lecturebot');
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Log and silently continue so the JSON response doesn't break
+                error_log("LectureBot: Error checking org credits threshold: " . $e->getMessage());
+            }
+        }
+        // --- End Threshold Check ---
+
         echo json_encode([
             'success' => true,
             'message' => $successMessage
