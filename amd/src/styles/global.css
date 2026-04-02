@@ -19,23 +19,23 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
+/* Custom scrollbar — scoped to plugin root to avoid leaking globally */
+#lecturebot-react-root ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
-::-webkit-scrollbar-track {
+#lecturebot-react-root ::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 4px;
 }
 
-::-webkit-scrollbar-thumb {
+#lecturebot-react-root ::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 4px;
 }
 
-::-webkit-scrollbar-thumb:hover {
+#lecturebot-react-root ::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
 
@@ -59,7 +59,8 @@
   to { opacity: 1; }
 }
 
-.animate-fade-in {
+/* Animation utility classes — scoped inside plugin root */
+#lecturebot-react-root .animate-fade-in {
   animation: fadeIn 0.3s ease-out forwards;
 }
 
@@ -91,15 +92,15 @@
   100% { transform: scale(1); }
 }
 
-.animate-scale-up {
+#lecturebot-react-root .animate-scale-up {
   animation: scaleUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.animate-fade-in-up {
+#lecturebot-react-root .animate-fade-in-up {
   animation: fadeInUp 0.5s ease-out forwards;
 }
 
-.animate-pop {
+#lecturebot-react-root .animate-pop {
   animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
