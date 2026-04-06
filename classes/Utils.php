@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -13,7 +14,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
-namespace local_lecturebot;
+namespace local_arina_prism_sense;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -53,7 +54,7 @@ class Utils
         global $USER;
         $sections = self::getCourseSections($course->id);
         $tenantId = CompanyConfig::getTenantId();
-        $canApprove = has_capability('local/lecturebot:approvecontent', \context_course::instance($course->id));
+        $canApprove = has_capability('local/arina_prism_sense:approvecontent', \context_course::instance($course->id));
         return json_encode([
             'userid' => $USER->id,
             'tenantid' => $tenantId,
@@ -96,7 +97,7 @@ class Utils
             $path = '/amd/build/' . $filename;
         }
 
-        return $wwwroot . '/local/lecturebot' . $path . '?v=' . $jsversion;
+        return $wwwroot . '/local/arina_prism_sense' . $path . '?v=' . $jsversion;
     }
 
     /**
@@ -214,16 +215,16 @@ class Utils
                 // If it exists, chain-load it before the app bundle so MUI/Emotion are available.
                 // If it doesn't exist (e.g. local dev without a full rebuild), load the app directly.
                 global $CFG;
-                $vendorDiskPath = $CFG->dirroot . '/local/lecturebot/amd/build/vendor.min.js';
-                if (file_exists($vendorDiskPath)):
-                    $vendorUrl = $CFG->wwwroot . '/local/lecturebot/amd/build/vendor.min.js?v=' .
+                $vendorDiskPath = $CFG->dirroot . '/local/arina_prism_sense/amd/build/vendor.min.js';
+                if (file_exists($vendorDiskPath)) :
+                    $vendorUrl = $CFG->wwwroot . '/local/arina_prism_sense/amd/build/vendor.min.js?v=' .
                         filemtime($vendorDiskPath);
                     ?>
                     // vendor.min.js found — load shared chunk first, then the app bundle.
                     loadScript('<?php echo $vendorUrl; ?>', function () {
                         loadScript('<?php echo $jsUrl; ?>', runInit);
                     });
-                <?php else: ?>
+                <?php else : ?>
                     // vendor.min.js not present — load app bundle directly (dev environment or pre-splitChunks build).
                     loadScript('<?php echo $jsUrl; ?>', runInit);
                 <?php endif; ?>
@@ -328,7 +329,6 @@ class Utils
             ];
 
             return self::performDownload($blobUrl, $outputPath, $headers);
-
         } catch (\Exception $e) {
             mtrace("  - Error downloading from Azure: " . $e->getMessage());
             return false;
@@ -399,7 +399,7 @@ class Utils
     {
         $input = json_decode(file_get_contents('php://input'), true);
         if (!$input) {
-            throw new \moodle_exception('Invalid JSON input', 'local_lecturebot');
+            throw new \moodle_exception('Invalid JSON input', 'local_arina_prism_sense');
         }
         return $input;
     }
@@ -420,11 +420,11 @@ class Utils
         global $DB;
 
         if ($courseid <= 0) {
-            throw new \moodle_exception('Invalid course ID', 'local_lecturebot');
+            throw new \moodle_exception('Invalid course ID', 'local_arina_prism_sense');
         }
 
         if ($contentid <= 0) {
-            throw new \moodle_exception('Invalid content ID', 'local_lecturebot');
+            throw new \moodle_exception('Invalid content ID', 'local_arina_prism_sense');
         }
 
         require_login($courseid);
@@ -432,20 +432,25 @@ class Utils
         require_capability($capability, $context);
         require_sesskey();
 
-        $content = $DB->get_record('local_lecturebot_content', ['id' => $contentid], '*', MUST_EXIST);
+        $content = $DB->get_record('local_arina_prism_sense_content', ['id' => $contentid], '*', MUST_EXIST);
 
         if ($content->courseid != $courseid) {
-            throw new \moodle_exception('Content does not belong to this course', 'local_lecturebot');
+            throw new \moodle_exception('Content does not belong to this course', 'local_arina_prism_sense');
         }
 
         return $content;
     }
     /**
-     * Emits the PRISM Sense guided-tour script block, but only if the current
-     * user has not seen this tour yet (checked via Moodle user preferences).
+     * Emits the PRISM Sense guided-tour script block.
+     *
+     * The script is ALWAYS emitted so that window.startLecturebotTour() is
+     * always defined on the page (the "Retake Tour" button needs it).
+     * The autoStart flag controls whether the tour kicks off automatically:
+     *  - false  → user has already seen the tour; manual retrigger only.
+     *  - true   → first visit; tour starts automatically after the React app mounts.
      *
      * Call this from any PHP page that should show a guided tour:
-     *   \local_lecturebot\Utils::emitTour($CFG, 'pref_key', ['#sel'], 'teacher');
+     *   \local_arina_prism_sense\Utils::emitTourIfUnseen($CFG, 'pref_key', ['#sel'], 'teacher');
      *
      * @param \stdClass $cfg       Moodle $CFG global.
      * @param string    $prefKey  User-preference key (e.g. lecturebot_tour_teacher_seen).
@@ -453,10 +458,15 @@ class Utils
      * @param string    $tourName Tour identifier matching lib/tour_steps_NAME.json.
      * @return void
      */
-    public static function emitTour($cfg, $prefKey, $pollFor, $tourName)
+    public static function emitTourIfUnseen($cfg, $prefKey, $pollFor, $tourName)
     {
-        $autoStart = !(bool) get_user_preferences($prefKey, 0);
-        $stepsFile = $cfg->dirroot . '/local/lecturebot/lib/tour_steps_' . $tourName . '.json';
+        // autoStart is false when the user has already seen the tour.
+        // prism-tour.js checks cfg.autoStart and skips the poll loop when false,
+        // but window.startLecturebotTour() is always registered for manual retrigger.
+        $alreadySeen = (bool) get_user_preferences($prefKey, 0);
+        $autoStart   = $alreadySeen ? 'false' : 'true';
+
+        $stepsFile = $cfg->dirroot . '/local/arina_prism_sense/lib/tour_steps_' . $tourName . '.json';
         $steps = json_decode(file_get_contents($stepsFile), true);
         $stepsJson = json_encode($steps, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         $pollJson = json_encode($pollFor, JSON_UNESCAPED_SLASHES);
@@ -465,16 +475,16 @@ class Utils
 
         echo '<script>' . "\n";
         echo 'window.PRISM_TOUR_CONFIG = {' . "\n";
-        echo "    shepherdJs  : '{$wwwroot}/local/lecturebot/js/shepherd-tour.min.js',\n";
-        echo "    markSeenUrl : '{$wwwroot}/local/lecturebot/api/mark_tour_seen.php',\n";
+        echo "    shepherdJs  : '{$wwwroot}/local/arina_prism_sense/js/shepherd-tour.min.js',\n";
+        echo "    markSeenUrl : '{$wwwroot}/local/arina_prism_sense/api/mark_tour_seen.php',\n";
         echo "    sesskey     : '{$sesskeyVal}',\n";
         echo "    prefKey     : '{$prefKey}',\n";
-        echo "    autoStart   : " . ($autoStart ? 'true' : 'false') . ",\n";
+        echo "    autoStart   : {$autoStart},\n";
         echo "    pollFor     : {$pollJson},\n";
         echo "    steps       : {$stepsJson}\n";
         echo '}' . ";\n";
         echo '</script>' . "\n";
-        echo '<script src="' . $wwwroot . '/local/lecturebot/lib/prism-tour.js"></script>' . "\n";
+        echo '<script src="' . $wwwroot . '/local/arina_prism_sense/lib/prism-tour.js"></script>' . "\n";
     }
 
     /**
@@ -503,8 +513,8 @@ class Utils
         }
 
         // 2. If IOMAD is installed, get company managers
-        $iomadInstalled = class_exists('\local_lecturebot\CompanyConfig')
-            && \local_lecturebot\CompanyConfig::isIomadInstalled();
+        $iomadInstalled = class_exists('\local_arina_prism_sense\CompanyConfig')
+            && \local_arina_prism_sense\CompanyConfig::isIomadInstalled();
         if ($iomadInstalled) {
             $iomadManagers = self::fetchIomadManagers($userid, $managers);
             $managers = array_replace($managers, $iomadManagers);
