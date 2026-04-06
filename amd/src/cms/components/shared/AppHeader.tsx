@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Typography, useTheme, useMediaQuery } from '@mui/material';
+import { Box, Typography, useTheme, useMediaQuery, IconButton, Tooltip } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NAV_TITLES } from '../../config/mockData';
+import { HelpCircle } from 'lucide-react';
 import { AnimatedNumber } from '../ui/AnimatedNumber';
 import { DeltaBadge } from '../ui/DeltaBadge';
 import { tween } from '../../config/animations';
@@ -170,6 +171,38 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
                             + Add Credits
                         </motion.button>
                     </Box>
+                    <Tooltip title="Retake Tour" arrow PopperProps={{ sx: { zIndex: 100000 } }}>
+                        <IconButton
+                            onClick={() => {
+                                if (typeof window !== 'undefined' && (window as any).startLecturebotTour) {
+                                    (window as any).startLecturebotTour();
+                                }
+                            }}
+                            size="small"
+                            sx={{
+                                width: { xs: 28, sm: 40 },
+                                height: { xs: 28, sm: 40 },
+                                backgroundColor: 'transparent',
+                                border: '1px solid',
+                                borderColor: 'primary.main',
+                                color: 'primary.main',
+                                transition: 'transform 0.15s ease, background-color 0.15s ease',
+                                '&:hover': {
+                                    backgroundColor: 'rgba(15, 108, 191, 0.08)',
+                                    borderColor: 'primary.dark',
+                                    transform: 'scale(1.05)',
+                                },
+                                '&:active': {
+                                    transform: 'scale(0.95)',
+                                },
+                            }}
+                        >
+                            <HelpCircle
+                                size={isMobile ? 16 : 20}
+                                strokeWidth={2}
+                            />
+                        </IconButton>
+                    </Tooltip>
                     <Box component="img" src={`${moodleContext.wwwroot}/local/lecturebot/pix/arina-logo.png?v=1`} alt="Arina AI" sx={{ height: { xs: 32, sm: 40, md: 48 }, width: 'auto', objectFit: 'contain', ml: { xs: 0, sm: 1 } }} onError={(e: any) => { e.currentTarget.style.display = 'none'; }} />
                 </Box>
             </Box>

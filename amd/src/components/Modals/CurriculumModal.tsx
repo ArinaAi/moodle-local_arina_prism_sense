@@ -1,6 +1,6 @@
 // components/modals/CurriculumModal.tsx - Enhanced Version
 // Card-based single section selection with modern UI
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Modal,
   Box,
@@ -10,28 +10,26 @@ import {
   Alert,
   Paper,
   Skeleton,
+  Fade,
+  Tooltip,
   Card,
   CardContent,
-  Radio,
-  FormControlLabel,
   FormControl,
   FormLabel,
   RadioGroup,
-  Fade,
-  Chip,
-  Collapse,
-  TextField,
-  CircularProgress,
-  Tooltip,
+  FormControlLabel,
+  Radio,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import { Close, CheckCircle, WarningAmber, Add } from '@mui/icons-material';
-import { FileText, FolderOpen } from 'lucide-react';
+import { Close, WarningAmber } from '@mui/icons-material';
+import { FolderOpen } from 'lucide-react';
 import { getModalBoxStyles, getModalLayoutStyles } from '../../utils/modalStyles';
 import type { MoodleContext } from '../../types/moodle';
 import type { CurriculumStructure } from '../../types/app';
-import { apiFetch, SessionExpiredError } from '../../utils/apiFetch';
+import { useCurriculumData } from '../../hooks/useCurriculumData';
+import { CurriculumSectionCard } from './Curriculum/CurriculumSectionCard';
+import { CurriculumDepthSelector } from './Curriculum/CurriculumDepthSelector';
 
 interface CurriculumModalProps {
   open: boolean;
@@ -42,14 +40,7 @@ interface CurriculumModalProps {
   availableBalance: number;
 }
 
-interface SectionWithSources {
-  id: number;
-  name: string;
-  sourceCount: number;
-  curriculum?: string;
-  hasCurriculum?: boolean;
-  curriculumChecked: boolean; // true once the API call has resolved
-}
+
 
 // Compose all styles
 const getModalStyles = (isMobile: boolean) => {
@@ -96,207 +87,39 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  const [sectionsWithSources, setSectionsWithSources] = useState<SectionWithSources[]>([]);
-  const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
-  const [contentStrategy, setContentStrategy] = useState<'standard' | 'example_driven'>('standard');
-  const [videoLength, setVideoLength] = useState<string>('5');
+  const {
+    sectionsWithSources,
+    selectedSectionId,
+    contentStrategy,
+    videoLength,
+    loading,
+    error,
+    showCurriculum,
+    curriculumText,
+    addingCurriculumSectionId,
+    newCurriculumText,
+    isSavingCurriculum,
+    saveCurriculumError,
+    setError,
+    setSelectedSectionId,
+    setContentStrategy,
+    setVideoLength,
+    setShowCurriculum,
+    setAddingCurriculumSectionId,
+    setNewCurriculumText,
+    setSaveCurriculumError,
+    handlePreviewCurriculum,
+    handleOpenAddCurriculum,
+    handleSaveCurriculum,
+    handleGenerate,
+  } = useCurriculumData(open, onClose, onGenerate, moodleContext);
 
   // Credit check
   const requiredCredits = CREDIT_COST[videoLength] ?? 6;
   const hasInsufficientCredits = availableBalance < requiredCredits;
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [showCurriculum, setShowCurriculum] = useState(false);
-  const [curriculumText, setCurriculumText] = useState('');
-
-  // Add-curriculum inline panel state
-  const [addingCurriculumSectionId, setAddingCurriculumSectionId] = useState<number | null>(null);
-  const [newCurriculumText, setNewCurriculumText] = useState('');
-  const [isSavingCurriculum, setIsSavingCurriculum] = useState(false);
-  const [saveCurriculumError, setSaveCurriculumError] = useState('');
 
   // Use external helper function
   const styles = getModalStyles(isMobile);
-
-  // Load sections with sources when modal opens
-  useEffect(() => {
-    if (open && moodleContext) {
-      loadSectionsWithSources();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, moodleContext]);
-
-  const loadSectionsWithSources = async () => {
-    setLoading(true);
-    setError('');
-
-    try {
-      const response = await apiFetch(
-        `${moodleContext.wwwroot}/local/lecturebot/api/get_sources.php?courseid=${moodleContext.courseid}`,
-        {
-          method: 'GET',
-          credentials: 'include',
-        }
-      );
-
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to load sources');
-      }
-
-      // Group sources by section
-      const sourcesBySection: Record<number, number> = {};
-      if (data.sources && Array.isArray(data.sources)) {
-        data.sources.forEach((source: { sectionid: number }) => {
-          sourcesBySection[source.sectionid] = (sourcesBySection[source.sectionid] || 0) + 1;
-        });
-      }
-
-      // Filter sections that have sources
-      const baseSections = moodleContext.sections
-        .filter((section) => sourcesBySection[section.id] && sourcesBySection[section.id] > 0)
-        .map((section) => ({
-          id: section.id,
-          name: section.name,
-          sourceCount: sourcesBySection[section.id],
-          hasCurriculum: false as boolean | undefined,
-          curriculum: undefined as string | undefined,
-          curriculumChecked: false,
-        }));
-
-      if (baseSections.length === 0) {
-        throw new Error('No sections with uploaded sources found. Please upload PDFs first.');
-      }
-
-      // Parallel curriculum check for all sections
-      const curriculumResults = await Promise.allSettled(
-        baseSections.map((section) =>
-          apiFetch(
-            `${moodleContext.wwwroot}/local/lecturebot/api/get_curriculum.php?courseid=${moodleContext.courseid}&sectionid=${section.id}`,
-            { method: 'GET', credentials: 'include' }
-          ).then((res) => res.json())
-        )
-      );
-
-      const sections: SectionWithSources[] = baseSections.map((section, idx) => {
-        const result = curriculumResults[idx];
-        if (result.status === 'fulfilled' && result.value?.status === 'success') {
-          const text: string = result.value.curriculum ?? '';
-          return {
-            ...section,
-            hasCurriculum: text.trim().length > 0,
-            curriculum: text,
-            curriculumChecked: true,
-          };
-        }
-        // On fetch failure, treat as unknown — don't block the section
-        return { ...section, hasCurriculum: undefined, curriculumChecked: true };
-      });
-
-      setSectionsWithSources(sections);
-
-      // Auto-select first section that has curriculum; fall back to first section if none
-      const firstValid = sections.find((s) => s.hasCurriculum === true);
-      setSelectedSectionId(firstValid ? firstValid.id : null);
-    } catch (err) {
-      if (err instanceof SessionExpiredError) { return; }
-      console.error('Error loading sources:', err);
-      setError('Failed to load sources. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePreviewCurriculum = (sectionId: number) => {
-    const section = sectionsWithSources.find((s) => s.id === sectionId);
-    if (!section) { return; }
-    setCurriculumText(section.curriculum || '');
-    setShowCurriculum(true);
-  };
-
-  const handleOpenAddCurriculum = (e: React.MouseEvent, sectionId: number) => {
-    e.stopPropagation();
-    setNewCurriculumText('');
-    setSaveCurriculumError('');
-    setAddingCurriculumSectionId((prev) => (prev === sectionId ? null : sectionId));
-  };
-
-  const handleSaveCurriculum = async (e: React.MouseEvent, sectionId: number) => {
-    e.stopPropagation();
-    if (!newCurriculumText.trim()) {
-      setSaveCurriculumError('Please enter curriculum content before saving.');
-      return;
-    }
-    setIsSavingCurriculum(true);
-    setSaveCurriculumError('');
-    try {
-      const response = await apiFetch(
-        `${moodleContext.wwwroot}/local/lecturebot/api/add_curriculum.php`,
-        {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            courseid: moodleContext.courseid,
-            sectionid: sectionId,
-            curriculum_text: newCurriculumText.trim(),
-          }),
-        }
-      );
-      const data = await response.json();
-      if (data.status !== 'success') {
-        throw new Error(data.error || 'Failed to save curriculum.');
-      }
-      // Update section in-place so it becomes selectable
-      setSectionsWithSources((prev) =>
-        prev.map((s) =>
-          s.id === sectionId
-            ? { ...s, hasCurriculum: true, curriculum: newCurriculumText.trim(), curriculumChecked: true }
-            : s
-        )
-      );
-      // Auto-select this section if nothing is selected yet
-      setSelectedSectionId((prev) => prev ?? sectionId);
-      setAddingCurriculumSectionId(null);
-      setNewCurriculumText('');
-    } catch (err: any) {
-      if (err instanceof SessionExpiredError) { return; }
-      setSaveCurriculumError(err.message || 'Something went wrong.');
-    } finally {
-      setIsSavingCurriculum(false);
-    }
-  };
-
-  const handleGenerate = () => {
-    if (!selectedSectionId) {
-      setError('Please select a section');
-      return;
-    }
-
-    // Create a simple curriculum structure
-    // The actual curriculum will be fetched from the course section on the backend
-    const section = sectionsWithSources.find((s) => s.id === selectedSectionId);
-
-    const curriculum: CurriculumStructure = {
-      status: 'success',
-      curriculum_structure: [
-        {
-          title: section?.name || 'Section Content',
-          type: 'topic',
-          subtopics: [
-            {
-              title: 'Content',
-              type: 'sub-topic',
-            },
-          ],
-        },
-      ],
-    };
-
-    onClose();
-    onGenerate(curriculum, contentStrategy, selectedSectionId, videoLength);
-  };
 
   /* Helper Functions */
   const renderLoadingState = () => (
@@ -411,414 +234,35 @@ const CurriculumModal: React.FC<CurriculumModalProps> = ({
 
         {/* Section Cards */}
         <Box sx={{ display: 'grid', gap: 2.5, mb: 3 }}>
-          {sectionsWithSources.map((section, index) => {
-            const missingCurriculum = section.curriculumChecked && section.hasCurriculum === false;
-            const isSelected = selectedSectionId === section.id;
-
-            return (
-              <Fade in key={section.id} timeout={300 + index * 100}>
-                <Card
-                  onClick={() => {
-                    if (!missingCurriculum) { setSelectedSectionId(section.id); }
-                  }}
-                  sx={{
-                    border: missingCurriculum
-                      ? '2px solid #e9ecef'
-                      : isSelected
-                        ? '2px solid #0f6cbf'
-                        : '2px solid #e9ecef',
-                    borderRadius: '12px',
-                    transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                    bgcolor: missingCurriculum
-                      ? '#fafafa'
-                      : isSelected
-                        ? 'rgba(15, 108, 191, 0.05)'
-                        : 'white',
-                    boxShadow: isSelected && !missingCurriculum ? '0 4px 12px rgba(15, 108, 191, 0.15)' : 'none',
-                    cursor: missingCurriculum ? 'not-allowed' : 'pointer',
-                    opacity: missingCurriculum ? 0.65 : 1,
-                    '&:hover': missingCurriculum
-                      ? {}
-                      : {
-                        borderColor: '#0f6cbf',
-                        transform: 'translateY(-2px)',
-                        boxShadow: '0 8px 20px rgba(15, 108, 191, 0.18)',
-                      },
-                    '&:active': missingCurriculum ? {} : { transform: 'scale(0.98)' },
-                  }}
-                >
-                  <CardContent sx={{ p: 'clamp(16px, 2vw + 12px, 24px)' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 'clamp(12px, 1.5vw + 8px, 20px)' }}>
-                      {/* Icon */}
-                      <Box
-                        sx={{
-                          width: 'clamp(40px, 4vw + 24px, 48px)',
-                          height: 'clamp(40px, 4vw + 24px, 48px)',
-                          borderRadius: '12px',
-                          bgcolor: missingCurriculum
-                            ? 'rgba(200, 200, 200, 0.3)'
-                            : isSelected
-                              ? '#0f6cbf'
-                              : 'rgba(15, 108, 191, 0.1)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                          transition: 'background-color 0.2s ease',
-                        }}
-                      >
-                        {isSelected && !missingCurriculum ? (
-                          <CheckCircle sx={{ color: 'white', fontSize: 'clamp(24px, 2.5vw + 14px, 28px)' }} />
-                        ) : missingCurriculum ? (
-                          <WarningAmber sx={{ color: '#b45309', fontSize: 'clamp(20px, 2vw + 12px, 24px)' }} />
-                        ) : (
-                          <FileText
-                            color="#0f6cbf"
-                            strokeWidth={2.5}
-                            style={{ width: 'clamp(20px, 2vw + 12px, 24px)', height: 'clamp(20px, 2vw + 12px, 24px)' }}
-                          />
-                        )}
-                      </Box>
-
-                      {/* Content */}
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography
-                          variant="h6"
-                          sx={{
-                            fontWeight: 600,
-                            color: missingCurriculum ? '#6c757d' : isSelected ? '#0f6cbf' : '#1a1a1a',
-                            mb: 'clamp(4px, 0.5vw + 2px, 8px)',
-                            fontSize: 'clamp(0.95rem, 1vw + 0.75rem, 1.05rem)',
-                            lineHeight: 1.3,
-                          }}
-                        >
-                          {section.name}
-                        </Typography>
-
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-                          <Chip
-                            label={`${section.sourceCount} PDF${section.sourceCount === 1 ? '' : 's'}`}
-                            size="small"
-                            sx={{
-                              bgcolor: missingCurriculum ? 'rgba(0,0,0,0.06)' : 'rgba(13, 92, 162, 0.1)',
-                              color: missingCurriculum ? '#6c757d' : '#0D5CA2',
-                              fontWeight: 600,
-                              fontSize: '0.7rem',
-                            }}
-                          />
-
-                          {/* Show View Curriculum only when curriculum exists */}
-                          {!missingCurriculum && section.curriculum && (
-                            <Button
-                              size="small"
-                              variant="text"
-                              onClick={(e: React.MouseEvent) => {
-                                e.stopPropagation();
-                                handlePreviewCurriculum(section.id);
-                              }}
-                              sx={{
-                                fontSize: '0.75rem',
-                                textTransform: 'none',
-                                minWidth: 'auto',
-                                padding: '2px 8px',
-                                fontWeight: 600,
-                                borderRadius: 2,
-                                border: '1px solid #0f6cbf',
-                                '&:hover': {
-                                  bgcolor: 'rgba(15, 108, 191, 0.1)',
-                                },
-                              }}
-                            >
-                              View Curriculum
-                            </Button>
-                          )}
-
-                          {/* Inline "Add Curriculum" button when curriculum is missing */}
-                          {missingCurriculum && (
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              startIcon={<Add sx={{ fontSize: '0.9rem !important' }} />}
-                              onClick={(e) => handleOpenAddCurriculum(e, section.id)}
-                              sx={{
-                                fontSize: '0.72rem',
-                                textTransform: 'none',
-                                minWidth: 'auto',
-                                padding: '2px 8px',
-                                fontWeight: 600,
-                                borderRadius: 2,
-                                color: '#b45309',
-                                borderColor: '#d97706',
-                                '&:hover': {
-                                  bgcolor: 'rgba(217, 119, 6, 0.08)',
-                                  borderColor: '#b45309',
-                                },
-                              }}
-                            >
-                              Add Curriculum
-                            </Button>
-                          )}
-                        </Box>
-                      </Box>
-
-                      {/* Radio — disabled for missing curriculum */}
-                      <Radio
-                        checked={isSelected}
-                        disabled={missingCurriculum}
-                        value={section.id}
-                        sx={{
-                          color: '#adb5bd',
-                          '&.Mui-checked': { color: '#0f6cbf' },
-                          '&:focus': { outline: 'none !important' },
-                        }}
-                      />
-                    </Box>
-
-                    {/* Inline Add Curriculum panel — expands below the card row */}
-                    <Collapse in={addingCurriculumSectionId === section.id} timeout={250} unmountOnExit>
-                      <Box
-                        onClick={(e) => e.stopPropagation()}
-                        sx={{
-                          mt: 1.5,
-                          pt: 1.5,
-                          borderTop: '1px solid #f0e8d8',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 1.5,
-                        }}
-                      >
-                        <Typography variant="caption" sx={{ color: '#92400e', fontWeight: 600 }}>
-                          Paste or type the curriculum for this section:
-                        </Typography>
-                        <TextField
-                          multiline
-                          minRows={4}
-                          maxRows={10}
-                          fullWidth
-                          placeholder="e.g. Week 1: Introduction to...&#10;Week 2: Core concepts of..."
-                          value={newCurriculumText}
-                          onChange={(e) => {
-                            setNewCurriculumText(e.target.value);
-                            if (saveCurriculumError) { setSaveCurriculumError(''); }
-                          }}
-                          disabled={isSavingCurriculum}
-                          size="small"
-                          sx={{
-                            '& .MuiOutlinedInput-root': {
-                              fontSize: '0.82rem',
-                              borderRadius: '10px',
-                              '& fieldset': { borderColor: '#d97706' },
-                              '&:hover fieldset': { borderColor: '#b45309' },
-                              '&.Mui-focused fieldset': { borderColor: '#b45309' },
-                            },
-                          }}
-                        />
-                        {saveCurriculumError && (
-                          <Typography variant="caption" sx={{ color: 'error.main', fontWeight: 500 }}>
-                            {saveCurriculumError}
-                          </Typography>
-                        )}
-                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                          <Button
-                            size="small"
-                            variant="text"
-                            disabled={isSavingCurriculum}
-                            onClick={(e) => { e.stopPropagation(); setAddingCurriculumSectionId(null); setNewCurriculumText(''); setSaveCurriculumError(''); }}
-                            sx={{ fontSize: '0.78rem', textTransform: 'none', color: 'text.secondary' }}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            size="small"
-                            variant="contained"
-                            disabled={isSavingCurriculum || !newCurriculumText.trim()}
-                            onClick={(e) => handleSaveCurriculum(e, section.id)}
-                            sx={{
-                              fontSize: '0.78rem',
-                              textTransform: 'none',
-                              fontWeight: 600,
-                              bgcolor: '#b45309',
-                              '&:hover': { bgcolor: '#92400e' },
-                              '&:disabled': { bgcolor: 'rgba(0,0,0,0.12)' },
-                              minWidth: 120,
-                            }}
-                          >
-                            {isSavingCurriculum ? (
-                              <CircularProgress size={14} sx={{ color: 'white', mr: 1 }} />
-                            ) : null}
-                            {isSavingCurriculum ? 'Saving…' : 'Save & Add'}
-                          </Button>
-                        </Box>
-                      </Box>
-                    </Collapse>
-                  </CardContent>
-                </Card>
-              </Fade>
-            );
-          })}
+          {sectionsWithSources.map((section, index) => (
+            <CurriculumSectionCard
+              key={section.id}
+              section={section}
+              index={index}
+              selectedSectionId={selectedSectionId}
+              setSelectedSectionId={setSelectedSectionId}
+              addingCurriculumSectionId={addingCurriculumSectionId}
+              setAddingCurriculumSectionId={setAddingCurriculumSectionId}
+              newCurriculumText={newCurriculumText}
+              setNewCurriculumText={setNewCurriculumText}
+              saveCurriculumError={saveCurriculumError}
+              setSaveCurriculumError={setSaveCurriculumError}
+              isSavingCurriculum={isSavingCurriculum}
+              handlePreviewCurriculum={handlePreviewCurriculum}
+              handleOpenAddCurriculum={handleOpenAddCurriculum}
+              handleSaveCurriculum={handleSaveCurriculum}
+            />
+          ))}
         </Box>
 
         {/* Presentation Depth Selector */}
-        <Paper
-          variant="outlined"
-          sx={{
-            p: 'clamp(16px, 2vw + 12px, 24px)',
-            borderRadius: '12px',
-            bgcolor: 'white',
-            border: '2px solid #e9ecef',
-            transition: 'all 0.3s ease',
-            mb: 2.5,
-            '&:hover': {
-              borderColor: '#0f6cbf',
-              boxShadow: '0 4px 12px rgba(15, 108, 191, 0.15)',
-            },
-          }}
-        >
-          <FormControl component="fieldset" fullWidth>
-            <Tooltip
-              title="Determines the depth and detail level for the generated presentation"
-              arrow
-              placement="top"
-              PopperProps={{
-                sx: {
-                  zIndex: 100002,
-                },
-              }}
-            >
-              <FormLabel
-                component="legend"
-                sx={{
-                  mb: 'clamp(8px, 1.5vw + 4px, 12px)',
-                  '&.Mui-focused': {
-                    color: '#1a1a1a',
-                  },
-                  cursor: 'help',
-                  width: '100%',
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography sx={{ fontWeight: 600, color: '#1a1a1a' }}>
-                    Presentation Depth
-                  </Typography>
-                </Box>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                  Video duration scales with slide count.
-                </Typography>
-              </FormLabel>
-            </Tooltip>
-            <RadioGroup
-              value={videoLength}
-              onChange={(e) => setVideoLength(e.target.value)}
-            >
-              <FormControlLabel
-                value="5"
-                control={<Radio />}
-                label={
-                  <Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        Express (~15m)
-                      </Typography>
-                      <Chip label="6 Credits" size="small" sx={{ bgcolor: 'rgba(15, 108, 191, 0.1)', color: '#0f6cbf', fontWeight: 600, fontSize: '0.65rem', height: '18px' }} />
-                    </Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Quick summary or intro.
-                    </Typography>
-                  </Box>
-                }
-                sx={{ mb: 1.5, ml: 0, alignItems: 'flex-start' }}
-              />
-              <FormControlLabel
-                value="15"
-                control={<Radio />}
-                label={
-                  <Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        Standard (~30m)
-                      </Typography>
-                      <Chip label="8 Credits" size="small" sx={{ bgcolor: 'rgba(15, 108, 191, 0.1)', color: '#0f6cbf', fontWeight: 600, fontSize: '0.65rem', height: '18px' }} />
-                    </Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Complete general overview.
-                    </Typography>
-                  </Box>
-                }
-                sx={{ mb: 1.5, ml: 0, alignItems: 'flex-start' }}
-              />
-              <FormControlLabel
-                value="30"
-                control={<Radio />}
-                label={
-                  <Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        Extensive (~45m)
-                      </Typography>
-                      <Chip
-                        label="Recommended"
-                        size="small"
-                        sx={{
-                          bgcolor: 'rgba(46, 125, 50, 0.1)',
-                          color: '#2e7d32',
-                          fontWeight: 600,
-                          fontSize: '0.65rem',
-                          height: '18px',
-                        }}
-                      />
-                      <Chip label="10 Credits" size="small" sx={{ bgcolor: 'rgba(15, 108, 191, 0.1)', color: '#0f6cbf', fontWeight: 600, fontSize: '0.65rem', height: '18px' }} />
-                    </Box>
-                    <Typography variant="caption" color="text.secondary">
-                      In-depth analysis.
-                    </Typography>
-                  </Box>
-                }
-                sx={{ mb: 1.5, ml: 0, alignItems: 'flex-start' }}
-              />
-
-            </RadioGroup>
-          </FormControl>
-
-          {/* Insufficient credits warning — shown inside the depth card */}
-          {hasInsufficientCredits && (
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: 1,
-                mt: 1.5,
-                p: 1.5,
-                borderRadius: '8px',
-                bgcolor: 'rgba(249, 115, 22, 0.08)',
-                border: '1px solid rgba(249, 115, 22, 0.3)',
-              }}
-            >
-              <Box
-                component="span"
-                sx={{
-                  mt: '2px',
-                  flexShrink: 0,
-                  width: 16,
-                  height: 16,
-                  borderRadius: '50%',
-                  bgcolor: '#f97316',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  color: 'white',
-                }}
-              >
-                !
-              </Box>
-              <Typography variant="caption" sx={{ color: '#c2410c', fontWeight: 500, lineHeight: 1.5 }}>
-                You need <strong>{requiredCredits} credits</strong> for this option, but you only have{' '}
-                <strong>{Math.floor(availableBalance)} credit{Math.floor(availableBalance) !== 1 ? 's' : ''}</strong> available. Please choose a lower depth or contact your admin.
-              </Typography>
-            </Box>
-          )}
-        </Paper>
+        <CurriculumDepthSelector
+          videoLength={videoLength}
+          setVideoLength={setVideoLength}
+          hasInsufficientCredits={hasInsufficientCredits}
+          requiredCredits={requiredCredits}
+          availableBalance={availableBalance}
+        />
 
         {/* Content Strategy */}
         <Paper

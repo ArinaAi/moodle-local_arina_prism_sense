@@ -88,7 +88,7 @@ $cmsjsurl = $CFG->wwwroot . '/local/lecturebot/amd/build/cms.min.js?v=' .
 echo html_writer::tag('script', '', ['src' => $cmsjsurl]);
 
 // PRISM Sense In-App Guided Tour (CMS Dashboard)
-\local_lecturebot\Utils::emitTourIfUnseen(
+\local_lecturebot\Utils::emitTour(
     $CFG,
     'lecturebot_tour_cms_seen',
     ['#lecturebot-tour-cms-header', '#lecturebot-tour-cms-sidebar'],

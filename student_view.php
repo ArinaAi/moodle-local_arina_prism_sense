@@ -44,7 +44,7 @@ echo $OUTPUT->header();
 );
 
 // PRISM Sense In-App Guided Tour (Student App)
-\local_lecturebot\Utils::emitTourIfUnseen(
+\local_lecturebot\Utils::emitTour(
     $CFG,
     'lecturebot_tour_student_seen',
     ['#lecturebot-tour-student-header', '#lecturebot-tour-content-navigator'],

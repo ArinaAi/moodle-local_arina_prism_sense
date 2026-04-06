@@ -1,7 +1,7 @@
 import React from 'react';
-import { Box, Typography, useTheme, useMediaQuery, IconButton } from '@mui/material';
+import { Box, Typography, useTheme, useMediaQuery, IconButton, Tooltip } from '@mui/material';
 import type { MoodleContext } from '../../types/moodle';
-import { MessageSquareMore } from 'lucide-react';
+import { MessageSquareMore, HelpCircle } from 'lucide-react';
 
 interface HeaderProps {
     moodleContext: MoodleContext;
@@ -155,6 +155,39 @@ const Header: React.FC<HeaderProps> = ({ moodleContext, children, onBack, onOpen
                 {children}
                 {/* Credit Balance Badge */}
                 {creditBadge}
+                {/* Retake Tour Button */}
+                <Tooltip title="Retake Tour" arrow PopperProps={{ sx: { zIndex: 100000 } }}>
+                    <IconButton
+                        onClick={() => {
+                            if (typeof window !== 'undefined' && (window as any).startLecturebotTour) {
+                                (window as any).startLecturebotTour();
+                            }
+                        }}
+                        size="small"
+                        sx={{
+                            width: { xs: 28, sm: 40 },
+                            height: { xs: 28, sm: 40 },
+                            backgroundColor: 'transparent',
+                            border: '1px solid',
+                            borderColor: 'primary.main',
+                            color: 'primary.main',
+                            transition: 'transform 0.15s ease, background-color 0.15s ease',
+                            '&:hover': {
+                                backgroundColor: 'rgba(15, 108, 191, 0.08)',
+                                borderColor: 'primary.dark',
+                                transform: 'scale(1.05)',
+                            },
+                            '&:active': {
+                                transform: 'scale(0.95)',
+                            },
+                        }}
+                    >
+                        <HelpCircle
+                            size={isMobile ? 16 : 20} // Responsive icon size
+                            strokeWidth={2}
+                        />
+                    </IconButton>
+                </Tooltip>
                 {/* Plugin Feedback Button */}
                 {onOpenPluginFeedback && (
                     <IconButton

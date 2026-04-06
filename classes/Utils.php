@@ -445,7 +445,7 @@ class Utils
      * user has not seen this tour yet (checked via Moodle user preferences).
      *
      * Call this from any PHP page that should show a guided tour:
-     *   \local_lecturebot\Utils::emitTourIfUnseen($CFG, 'pref_key', ['#sel'], 'teacher');
+     *   \local_lecturebot\Utils::emitTour($CFG, 'pref_key', ['#sel'], 'teacher');
      *
      * @param \stdClass $cfg       Moodle $CFG global.
      * @param string    $prefKey  User-preference key (e.g. lecturebot_tour_teacher_seen).
@@ -453,11 +453,9 @@ class Utils
      * @param string    $tourName Tour identifier matching lib/tour_steps_NAME.json.
      * @return void
      */
-    public static function emitTourIfUnseen($cfg, $prefKey, $pollFor, $tourName)
+    public static function emitTour($cfg, $prefKey, $pollFor, $tourName)
     {
-        if ((bool) get_user_preferences($prefKey, 0)) {
-            return;
-        }
+        $autoStart = !(bool) get_user_preferences($prefKey, 0);
         $stepsFile = $cfg->dirroot . '/local/lecturebot/lib/tour_steps_' . $tourName . '.json';
         $steps = json_decode(file_get_contents($stepsFile), true);
         $stepsJson = json_encode($steps, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
@@ -471,6 +469,7 @@ class Utils
         echo "    markSeenUrl : '{$wwwroot}/local/lecturebot/api/mark_tour_seen.php',\n";
         echo "    sesskey     : '{$sesskeyVal}',\n";
         echo "    prefKey     : '{$prefKey}',\n";
+        echo "    autoStart   : " . ($autoStart ? 'true' : 'false') . ",\n";
         echo "    pollFor     : {$pollJson},\n";
         echo "    steps       : {$stepsJson}\n";
         echo '}' . ";\n";
