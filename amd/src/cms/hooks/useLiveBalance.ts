@@ -50,8 +50,8 @@ export function useLiveBalance(enabled: boolean): LiveBalanceResult {
         try {
             const baseUrl = (window.MOODLE_CMS_CONTEXT?.wwwroot) || '';
             const [balRes, reservedRes] = await Promise.all([
-                apiFetch(`${baseUrl}/local/lecturebot/api/cms/get_balance.php`, { credentials: 'include' }),
-                apiFetch(`${baseUrl}/local/lecturebot/api/cms/get_org_reserved.php`, { credentials: 'include' }),
+                apiFetch(`${baseUrl}/local/arina_prism_sense/api/cms/get_balance.php`, { credentials: 'include' }),
+                apiFetch(`${baseUrl}/local/arina_prism_sense/api/cms/get_org_reserved.php`, { credentials: 'include' }),
             ]);
 
             const balResult = await balRes.json();

@@ -123,7 +123,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ moodleContext }) => {
 
         try {
             const response = await apiFetch(
-                `${moodleContext.wwwroot}/local/lecturebot/api/save_chat_feedback.php`,
+                `${moodleContext.wwwroot}/local/arina_prism_sense/api/save_chat_feedback.php`,
                 {
                     method: 'POST',
                     headers: {

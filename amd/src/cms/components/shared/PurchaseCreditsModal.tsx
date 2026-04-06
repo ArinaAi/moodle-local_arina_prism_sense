@@ -39,7 +39,7 @@ export const PurchaseCreditsModal: React.FC<PurchaseCreditsModalProps> = ({ open
 
         try {
             const baseUrl = window.MOODLE_CMS_CONTEXT?.wwwroot || '';
-            const res = await apiFetch(`${baseUrl}/local/lecturebot/api/cms/purchase_credits.php`, {
+            const res = await apiFetch(`${baseUrl}/local/arina_prism_sense/api/cms/purchase_credits.php`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },

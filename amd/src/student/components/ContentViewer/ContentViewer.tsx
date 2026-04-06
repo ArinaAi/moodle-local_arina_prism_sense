@@ -24,7 +24,7 @@ const ContentViewer: React.FC = () => {
     const M = (window as any).M;
     const wwwroot = M?.cfg?.wwwroot || '';
     const courseId = M?.cfg?.courseId || (new URLSearchParams(window.location.search)).get('id') || 0;
-    const videoUrl = `${wwwroot}/local/lecturebot/api/stream_video.php?courseid=${courseId}&contentid=${selectedContent.id}`;
+    const videoUrl = `${wwwroot}/local/arina_prism_sense/api/stream_video.php?courseid=${courseId}&contentid=${selectedContent.id}`;
 
     return (
         <Paper elevation={0} sx={{

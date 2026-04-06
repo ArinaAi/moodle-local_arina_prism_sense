@@ -39,9 +39,9 @@ export const usePreviewListener = (
             }
         };
 
-        window.addEventListener('lecturebot:preview', handlePreview as EventListener);
+        window.addEventListener('arina_prism_sense:preview', handlePreview as EventListener);
         return () => {
-            window.removeEventListener('lecturebot:preview', handlePreview as EventListener);
+            window.removeEventListener('arina_prism_sense:preview', handlePreview as EventListener);
         };
     }, [dispatch, showNotification]);
 };

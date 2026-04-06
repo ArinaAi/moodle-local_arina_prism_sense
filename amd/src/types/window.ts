@@ -32,7 +32,7 @@ declare global {
       init: () => void;
     };
     initLectureBot?: () => void;
-    local_lecturebot?: {
+    local_arina_prism_sense?: {
       init: () => void;
     };
     initLectureBotGlobal?: () => void;

@@ -29,7 +29,7 @@ export const StaffHistoryView: React.FC<StaffHistoryViewProps> = ({ staff, onBac
 
     useEffect(() => {
         const baseUrl = window.MOODLE_CMS_CONTEXT?.wwwroot || '';
-        apiFetch(`${baseUrl}/local/lecturebot/api/cms/get_ledger.php?sub_user_id=${staff.id}`, {
+        apiFetch(`${baseUrl}/local/arina_prism_sense/api/cms/get_ledger.php?sub_user_id=${staff.id}`, {
             credentials: 'include',
         })
             .then((r) => r.json())

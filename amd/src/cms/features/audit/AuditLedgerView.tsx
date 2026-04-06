@@ -66,7 +66,7 @@ export const AuditLedgerView: React.FC = () => {
     const fetchLedger = async () => {
         try {
             const baseUrl = window.MOODLE_CMS_CONTEXT?.wwwroot || '';
-            const res = await apiFetch(`${baseUrl}/local/lecturebot/api/cms/get_ledger.php`, {
+            const res = await apiFetch(`${baseUrl}/local/arina_prism_sense/api/cms/get_ledger.php`, {
                 credentials: 'include'
             });
             const data = await res.json();

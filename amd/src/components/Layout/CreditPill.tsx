@@ -103,7 +103,7 @@ const CreditPill: React.FC<CreditPillProps> = ({
 
     return (
         <Box
-            id="lecturebot-tour-credit-badge"
+            id="arina_prism_sense-tour-credit-badge"
             sx={{
                 display: 'flex',
                 alignItems: 'center',

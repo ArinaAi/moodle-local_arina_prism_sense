@@ -4,7 +4,7 @@ import StudentApp from './StudentApp';
 
 // Export init function to window.LectureBot
 export const initStudent = (): void => {
-    const container = document.getElementById('lecturebot-student-root');
+    const container = document.getElementById('arina_prism_sense-student-root');
     if (container) {
         const root = createRoot(container);
         root.render(React.createElement(StudentApp));

@@ -31,7 +31,7 @@ const Header: React.FC<HeaderProps> = ({ moodleContext, children, onBack, onOpen
 
     return (
         <Box
-            id="lecturebot-tour-header"
+            id="arina_prism_sense-tour-header"
             component="header"
             sx={{
                 backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -220,7 +220,7 @@ const Header: React.FC<HeaderProps> = ({ moodleContext, children, onBack, onOpen
                 )}
                 <Box
                     component="img"
-                    src={`${moodleContext.wwwroot}/local/lecturebot/pix/arina-logo.png?v=1`}
+                    src={`${moodleContext.wwwroot}/local/arina_prism_sense/pix/arina-logo.png?v=1`}
                     alt="Arina AI"
                     sx={{
                         height: { xs: 36, sm: 48, md: 60 },

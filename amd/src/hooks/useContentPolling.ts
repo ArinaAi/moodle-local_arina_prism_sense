@@ -74,7 +74,7 @@ const fetchStatusUpdates = async (
     try {
         const idsParam = generatingIds.join(',');
         const response = await apiFetch(
-            `${state.moodleContext!.wwwroot}/local/lecturebot/api/check_status.php?courseid=${state.moodleContext!.courseid}&ids=${idsParam}`,
+            `${state.moodleContext!.wwwroot}/local/arina_prism_sense/api/check_status.php?courseid=${state.moodleContext!.courseid}&ids=${idsParam}`,
             { method: 'GET', credentials: 'include' }
         );
         const data = await response.json();

@@ -38,7 +38,7 @@ export function useCurriculumData(
 
     try {
       const response = await apiFetch(
-        `${moodleContext.wwwroot}/local/lecturebot/api/get_sources.php?courseid=${moodleContext.courseid}`,
+        `${moodleContext.wwwroot}/local/arina_prism_sense/api/get_sources.php?courseid=${moodleContext.courseid}`,
         {
           method: 'GET',
           credentials: 'include',
@@ -76,7 +76,7 @@ export function useCurriculumData(
       const curriculumResults = await Promise.allSettled(
         baseSections.map((section) =>
           apiFetch(
-            `${moodleContext.wwwroot}/local/lecturebot/api/get_curriculum.php?courseid=${moodleContext.courseid}&sectionid=${section.id}`,
+            `${moodleContext.wwwroot}/local/arina_prism_sense/api/get_curriculum.php?courseid=${moodleContext.courseid}&sectionid=${section.id}`,
             { method: 'GET', credentials: 'include' }
           ).then((res) => res.json())
         )
@@ -140,7 +140,7 @@ export function useCurriculumData(
     setSaveCurriculumError('');
     try {
       const response = await apiFetch(
-        `${moodleContext.wwwroot}/local/lecturebot/api/add_curriculum.php`,
+        `${moodleContext.wwwroot}/local/arina_prism_sense/api/add_curriculum.php`,
         {
           method: 'POST',
           credentials: 'include',

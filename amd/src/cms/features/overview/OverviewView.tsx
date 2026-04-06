@@ -50,7 +50,7 @@ export const OverviewView: React.FC = () => {
     const [usageLoading, setUsageLoading] = React.useState(true);
     React.useEffect(() => {
         const baseUrl = window.MOODLE_CMS_CONTEXT?.wwwroot || '';
-        apiFetch(`${baseUrl}/local/lecturebot/api/cms/get_usage_metrics.php`, { credentials: 'include' })
+        apiFetch(`${baseUrl}/local/arina_prism_sense/api/cms/get_usage_metrics.php`, { credentials: 'include' })
             .then((r) => r.json())
             .then((res) => { if (res.success && res.data) { setUsageData(res.data); } })
             .catch(() => {/* silently ignore */ })

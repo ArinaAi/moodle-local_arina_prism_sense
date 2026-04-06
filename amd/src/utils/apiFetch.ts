@@ -87,7 +87,7 @@ function isHtmlLoginRedirect(response: Response): boolean {
  *   "sessionerror"       — stale session
  *   "invalidsesskey"     — require_sesskey() failure
  */
-function isSessionExpiredByBody(body: unknown, httpStatus: number): boolean {
+function isSessionExpiredByBody(body: unknown): boolean {
     if (typeof body !== 'object' || body === null) {
         return false;
     }
@@ -107,15 +107,6 @@ function isSessionExpiredByBody(body: unknown, httpStatus: number): boolean {
         return true;
     }
 
-    // HTTP 400/500 + our own { success: false } envelope — happens when
-    // require_login($courseid) runs with a guest/invalid session and Moodle
-    // cannot find the course record. The error message is not reliable but
-    // the combination of a non-2xx status + success:false on an internal API
-    // endpoint is unambiguously an auth failure in this codebase.
-    if ((httpStatus === 400 || httpStatus === 500) && obj['success'] === false) {
-        return true;
-    }
-
     return false;
 }
 
@@ -125,7 +116,7 @@ function isSessionExpiredByBody(body: unknown, httpStatus: number): boolean {
  * Drop-in replacement for `fetch()` that adds session-expiry detection.
  *
  * Usage — identical to fetch():
- *   const response = await apiFetch('/local/lecturebot/api/get_sources.php?…');
+ *   const response = await apiFetch('/local/arina_prism_sense/api/get_sources.php?…');
  *   const data = await response.json();
  *
  * On session expiry the function throws `SessionExpiredError` AND begins a
@@ -149,7 +140,7 @@ export async function apiFetch(
     // We only check this for our own API endpoints to avoid false-positives on
     // external CDN calls (React, MUI, exchange-rate APIs, etc.).
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-    const isInternalApi = url.includes('/local/lecturebot/api/');
+    const isInternalApi = url.includes('/local/arina_prism_sense/api/');
 
     if (isInternalApi && isHtmlLoginRedirect(response)) {
         redirectToLogin();
@@ -162,7 +153,7 @@ export async function apiFetch(
         const cloned = response.clone();
         try {
             const body = await cloned.json();
-            if (isSessionExpiredByBody(body, response.status)) {
+            if (isSessionExpiredByBody(body)) {
                 redirectToLogin();
                 throw new SessionExpiredError();
             }

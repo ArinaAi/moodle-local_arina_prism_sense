@@ -44,7 +44,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ onView
     const fetchStaff = async () => {
         try {
             const baseUrl = window.MOODLE_CMS_CONTEXT?.wwwroot || '';
-            const response = await apiFetch(`${baseUrl}/local/lecturebot/api/cms/get_staff.php`, {
+            const response = await apiFetch(`${baseUrl}/local/arina_prism_sense/api/cms/get_staff.php`, {
                 credentials: 'include'
             });
             const result = await response.json();

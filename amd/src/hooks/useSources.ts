@@ -18,7 +18,7 @@ export const useSources = (moodleContext: MoodleContext | null, showSourcesModal
             setLoadingSources(true);
             try {
                 const response = await apiFetch(
-                    `${M.cfg.wwwroot}/local/lecturebot/api/get_sources.php?courseid=${moodleContext.courseid}`,
+                    `${M.cfg.wwwroot}/local/arina_prism_sense/api/get_sources.php?courseid=${moodleContext.courseid}`,
                     {
                         method: 'GET',
                         headers: {

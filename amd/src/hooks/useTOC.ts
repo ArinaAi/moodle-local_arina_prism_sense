@@ -33,7 +33,7 @@ export const useTOC = (contentId: number | null, enabled: boolean = true): UseTO
 
     try {
       const response = await apiFetch(
-        `${M.cfg.wwwroot}/local/lecturebot/api/get_toc.php?contentid=${contentId}`,
+        `${M.cfg.wwwroot}/local/arina_prism_sense/api/get_toc.php?contentid=${contentId}`,
         {
           method: 'GET',
           headers: {

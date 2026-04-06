@@ -11,7 +11,7 @@ export const useContentPreview = ({ contentItems, onAfterPreview }: UseContentPr
         const item = contentItems.find(i => i.id === contentId);
         if (item && item.result) {
             // Dispatch the same event as the eye icon to ensure consistent behavior
-            window.dispatchEvent(new CustomEvent('lecturebot:preview', { detail: { contentItem: item } }));
+            window.dispatchEvent(new CustomEvent('arina_prism_sense:preview', { detail: { contentItem: item } }));
 
             if (onAfterPreview) {
                 onAfterPreview();

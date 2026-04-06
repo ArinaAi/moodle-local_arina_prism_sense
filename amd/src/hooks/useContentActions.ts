@@ -21,7 +21,7 @@ export const useContentActions = (
         }
         try {
             const response = await apiFetch(
-                `${state.moodleContext.wwwroot}/local/lecturebot/api/get_content_state.php?courseid=${state.moodleContext.courseid}`,
+                `${state.moodleContext.wwwroot}/local/arina_prism_sense/api/get_content_state.php?courseid=${state.moodleContext.courseid}`,
                 {
                     method: 'GET',
                     credentials: 'include',
@@ -120,7 +120,7 @@ export const useContentActions = (
 
         try {
             // Use generate_content.php for real backend integration
-            const proxyUrl = `${state.moodleContext.wwwroot}/local/lecturebot/api/generate_content.php?courseid=${state.moodleContext.courseid}&sesskey=${state.moodleContext.sesskey}`;
+            const proxyUrl = `${state.moodleContext.wwwroot}/local/arina_prism_sense/api/generate_content.php?courseid=${state.moodleContext.courseid}&sesskey=${state.moodleContext.sesskey}`;
 
             const requestBody: Record<string, unknown> = {
                 section_id: sectionId,
@@ -274,7 +274,7 @@ export const useContentActions = (
         showNotification(`Video generation started for "${sectionName}"...`, 'info');
 
         try {
-            const response = await apiFetch(`${state.moodleContext.wwwroot}/local/lecturebot/api/generate_content.php?courseid=${state.moodleContext.courseid}&sesskey=${state.moodleContext.sesskey}`, {
+            const response = await apiFetch(`${state.moodleContext.wwwroot}/local/arina_prism_sense/api/generate_content.php?courseid=${state.moodleContext.courseid}&sesskey=${state.moodleContext.sesskey}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -341,7 +341,7 @@ export const useContentActions = (
 
         try {
             const response = await apiFetch(
-                `${state.moodleContext.wwwroot}/local/lecturebot/api/approve_content.php?contentid=${state.currentContentId}&courseid=${state.moodleContext.courseid}&sesskey=${state.moodleContext.sesskey}`,
+                `${state.moodleContext.wwwroot}/local/arina_prism_sense/api/approve_content.php?contentid=${state.currentContentId}&courseid=${state.moodleContext.courseid}&sesskey=${state.moodleContext.sesskey}`,
                 {
                     method: 'POST',
                     credentials: 'include',
@@ -401,7 +401,7 @@ export const useContentActions = (
         try {
 
             // Call simplified publish API
-            const apiUrl = `${state.moodleContext.wwwroot}/local/lecturebot/api/publish_content.php?sesskey=${state.moodleContext.sesskey}`;
+            const apiUrl = `${state.moodleContext.wwwroot}/local/arina_prism_sense/api/publish_content.php?sesskey=${state.moodleContext.sesskey}`;
 
             const response = await apiFetch(apiUrl, {
                 method: 'POST',
@@ -466,7 +466,7 @@ export const useContentActions = (
 
         try {
 
-            const apiUrl = `${state.moodleContext.wwwroot}/local/lecturebot/api/unpublish_content.php?sesskey=${state.moodleContext.sesskey}`;
+            const apiUrl = `${state.moodleContext.wwwroot}/local/arina_prism_sense/api/unpublish_content.php?sesskey=${state.moodleContext.sesskey}`;
 
             const response = await apiFetch(apiUrl, {
                 method: 'POST',
@@ -513,7 +513,7 @@ export const useContentActions = (
 
         try {
             const response = await apiFetch(
-                `${state.moodleContext.wwwroot}/local/lecturebot/api/cleanup_content.php?courseid=${state.moodleContext.courseid}&sesskey=${state.moodleContext.sesskey}`,
+                `${state.moodleContext.wwwroot}/local/arina_prism_sense/api/cleanup_content.php?courseid=${state.moodleContext.courseid}&sesskey=${state.moodleContext.sesskey}`,
                 {
                     method: 'POST',
                     credentials: 'include',
@@ -550,7 +550,7 @@ export const useContentActions = (
 
         try {
             const response = await apiFetch(
-                `${state.moodleContext.wwwroot}/local/lecturebot/api/delete_content.php?contentid=${contentId}&sesskey=${state.moodleContext.sesskey}`,
+                `${state.moodleContext.wwwroot}/local/arina_prism_sense/api/delete_content.php?contentid=${contentId}&sesskey=${state.moodleContext.sesskey}`,
                 {
                     method: 'POST',
                     credentials: 'include',

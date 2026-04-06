@@ -1,5 +1,5 @@
 /* ─── CMS Root Container ──────────────────────────────────── */
-#lecturebot-cms-root {
+#arina_prism_sense-cms-root {
   min-height: 100vh;
   width: 100%;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -9,9 +9,9 @@
 }
 
 /* ─── Scoped Reset (inside CMS only) ───────────────────────── */
-#lecturebot-cms-root *,
-#lecturebot-cms-root *::before,
-#lecturebot-cms-root *::after {
+#arina_prism_sense-cms-root *,
+#arina_prism_sense-cms-root *::before,
+#arina_prism_sense-cms-root *::after {
   box-sizing: border-box;
 }
 
@@ -28,14 +28,14 @@
 }
 
 /* ─── Custom Scrollbar (scoped to CMS) ─────────────────────── */
-#lecturebot-cms-root ::-webkit-scrollbar {
+#arina_prism_sense-cms-root ::-webkit-scrollbar {
   width: 5px;
 }
-#lecturebot-cms-root ::-webkit-scrollbar-thumb {
+#arina_prism_sense-cms-root ::-webkit-scrollbar-thumb {
   background: rgba(15,108,191,0.25);
   border-radius: 4px;
 }
-#lecturebot-cms-root ::-webkit-scrollbar-track {
+#arina_prism_sense-cms-root ::-webkit-scrollbar-track {
   background: transparent;
 }
 
@@ -53,9 +53,9 @@
 
 /* ─── Accessibility: Reduced Motion ────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  #lecturebot-cms-root *,
-  #lecturebot-cms-root *::before,
-  #lecturebot-cms-root *::after {
+  #arina_prism_sense-cms-root *,
+  #arina_prism_sense-cms-root *::before,
+  #arina_prism_sense-cms-root *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -63,7 +63,7 @@
 }
 
 /* ─── Focus Styles ─────────────────────────────────────────── */
-#lecturebot-cms-root *:focus-visible {
+#arina_prism_sense-cms-root *:focus-visible {
   outline: 2px solid rgba(15,108,191,0.35);
   outline-offset: 2px;
   border-radius: 4px;

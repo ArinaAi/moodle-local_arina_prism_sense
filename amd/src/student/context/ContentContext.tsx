@@ -73,7 +73,7 @@ export const ContentProvider: React.FC<{ children: ReactNode }> = ({ children })
                 throw new Error("Course ID not found");
             }
 
-            const response = await apiFetch(`${wwwroot}/local/lecturebot/api/get_student_content.php?courseid=${courseId}`);
+            const response = await apiFetch(`${wwwroot}/local/arina_prism_sense/api/get_student_content.php?courseid=${courseId}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch content');
             }
@@ -109,7 +109,7 @@ export const ContentProvider: React.FC<{ children: ReactNode }> = ({ children })
             // Convert status to 1 or 0
             const statusInt = status ? 1 : 0;
 
-            const response = await apiFetch(`${wwwroot}/local/lecturebot/api/track_content.php?courseid=${courseId}&contentid=${contentId}&status=${statusInt}`, {
+            const response = await apiFetch(`${wwwroot}/local/arina_prism_sense/api/track_content.php?courseid=${courseId}&contentid=${contentId}&status=${statusInt}`, {
                 method: 'POST'
             });
             const data = await response.json();

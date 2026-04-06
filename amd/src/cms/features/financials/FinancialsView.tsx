@@ -37,8 +37,8 @@ export const FinancialsView: React.FC = () => {
         try {
             const baseUrl = window.MOODLE_CMS_CONTEXT?.wwwroot || '';
             const [acqRes, couponRes] = await Promise.all([
-                apiFetch(`${baseUrl}/local/lecturebot/api/cms/get_acquisitions.php`, { credentials: 'include' }),
-                apiFetch(`${baseUrl}/local/lecturebot/api/cms/get_coupons.php`, { credentials: 'include' })
+                apiFetch(`${baseUrl}/local/arina_prism_sense/api/cms/get_acquisitions.php`, { credentials: 'include' }),
+                apiFetch(`${baseUrl}/local/arina_prism_sense/api/cms/get_coupons.php`, { credentials: 'include' })
             ]);
 
             const acqData = await acqRes.json();

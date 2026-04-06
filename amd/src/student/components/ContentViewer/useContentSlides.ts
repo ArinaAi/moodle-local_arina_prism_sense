@@ -26,7 +26,7 @@ export const useContentSlides = (selectedContent: any, isVideo: boolean) => {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const M = (window as any).M;
                 const wwwroot = M?.cfg?.wwwroot || '';
-                const response = await apiFetch(`${wwwroot}/local/lecturebot/api/get_slide_images.php?contentid=${selectedContent.id}`);
+                const response = await apiFetch(`${wwwroot}/local/arina_prism_sense/api/get_slide_images.php?contentid=${selectedContent.id}`);
 
                 if (!response.ok) {
                     if (response.status === 401) {

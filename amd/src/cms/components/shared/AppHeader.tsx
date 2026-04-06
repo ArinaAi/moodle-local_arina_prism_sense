@@ -29,7 +29,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
     const fetchBalance = async () => {
         try {
             const baseUrl = moodleContext.wwwroot || '';
-            const res = await apiFetch(`${baseUrl}/local/lecturebot/api/cms/get_balance.php`, { credentials: 'include' });
+            const res = await apiFetch(`${baseUrl}/local/arina_prism_sense/api/cms/get_balance.php`, { credentials: 'include' });
             const data = await res.json();
             if (data.success && data.data) {
                 const newBalance: number = data.data.current_balance || 0;
@@ -81,7 +81,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
         <React.Fragment>
             <Box
                 component="header"
-                id="lecturebot-tour-cms-header"
+                id="arina_prism_sense-tour-cms-header"
                 sx={{
                     backgroundColor: 'var(--paper)',
                     borderBottom: '1px solid var(--border)',
@@ -151,7 +151,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
                 {/* Right — Balance, Button, Logo */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 3 }, flexShrink: 0 }}>
                     <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 2 }}>
-                        <Box id="lecturebot-tour-cms-balance" sx={{ textAlign: 'right' }}>
+                        <Box id="arina_prism_sense-tour-cms-balance" sx={{ textAlign: 'right' }}>
                             <Typography sx={{ fontSize: '0.6875rem', textTransform: 'uppercase', color: 'text.secondary', letterSpacing: '0.04em', fontWeight: 600, lineHeight: 1.2 }}>
                                 Institutional Balance
                             </Typography>
@@ -162,7 +162,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
                             </Typography>
                         </Box>
                         <motion.button
-                            id="lecturebot-tour-cms-add-credits"
+                            id="arina_prism_sense-tour-cms-add-credits"
                             onClick={() => setPurchaseOpen(true)}
                             whileHover={{ backgroundColor: '#0a5a9d', y: -1, boxShadow: '0 4px 12px rgba(15,108,191,0.25)' }}
                             whileTap={{ scale: 0.97 }}
@@ -203,7 +203,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
                             />
                         </IconButton>
                     </Tooltip>
-                    <Box component="img" src={`${moodleContext.wwwroot}/local/lecturebot/pix/arina-logo.png?v=1`} alt="Arina AI" sx={{ height: { xs: 32, sm: 40, md: 48 }, width: 'auto', objectFit: 'contain', ml: { xs: 0, sm: 1 } }} onError={(e: any) => { e.currentTarget.style.display = 'none'; }} />
+                    <Box component="img" src={`${moodleContext.wwwroot}/local/arina_prism_sense/pix/arina-logo.png?v=1`} alt="Arina AI" sx={{ height: { xs: 32, sm: 40, md: 48 }, width: 'auto', objectFit: 'contain', ml: { xs: 0, sm: 1 } }} onError={(e: any) => { e.currentTarget.style.display = 'none'; }} />
                 </Box>
             </Box>
 

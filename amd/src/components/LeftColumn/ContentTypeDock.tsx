@@ -136,7 +136,7 @@ const ContentTypeDock: React.FC<ContentTypeDockProps> = ({
 
   return (
     <Box
-      id="lecturebot-tour-content-dock"
+      id="arina_prism_sense-tour-content-dock"
       ref={containerRef}
       sx={{
         width: '100%',

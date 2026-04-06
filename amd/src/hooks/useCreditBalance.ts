@@ -25,7 +25,7 @@ export const useCreditBalance = (moodleContext: MoodleContext | null): CreditBal
 
         try {
             const res = await apiFetch(
-                `${moodleContext.wwwroot}/local/lecturebot/api/get_teacher_balance.php`,
+                `${moodleContext.wwwroot}/local/arina_prism_sense/api/get_teacher_balance.php`,
                 { method: 'GET', credentials: 'include' }
             );
             const json = await res.json();

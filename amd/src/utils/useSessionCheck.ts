@@ -33,7 +33,7 @@ export function useSessionCheck(context: SessionCheckContext | null): UseSession
         }
 
         apiFetch(
-            `${context.wwwroot}/local/lecturebot/api/ping.php`,
+            `${context.wwwroot}/local/arina_prism_sense/api/ping.php`,
             { method: 'GET', credentials: 'include' }
         ).catch((err) => {
             // SessionExpiredError is already handled inside apiFetch (redirect fired).

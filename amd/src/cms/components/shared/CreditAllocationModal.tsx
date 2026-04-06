@@ -48,7 +48,7 @@ export const CreditAllocationModal: React.FC<CreditAllocationModalProps> = ({
         setError(null);
         try {
             const baseUrl = window.MOODLE_CMS_CONTEXT?.wwwroot || '';
-            const response = await apiFetch(`${baseUrl}/local/lecturebot/api/cms/allocate_credits.php`, {
+            const response = await apiFetch(`${baseUrl}/local/arina_prism_sense/api/cms/allocate_credits.php`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },

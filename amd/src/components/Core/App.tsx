@@ -310,7 +310,7 @@ export const App: React.FC = () => {
 
                   // Make API call
                   const response = await apiFetch(
-                    `${state.moodleContext.wwwroot}/local/lecturebot/api/save_plugin_feedback.php?sesskey=${state.moodleContext.sesskey}`,
+                    `${state.moodleContext.wwwroot}/local/arina_prism_sense/api/save_plugin_feedback.php?sesskey=${state.moodleContext.sesskey}`,
                     {
                       method: 'POST',
                       body: formData,
@@ -357,7 +357,7 @@ export const App: React.FC = () => {
                     const currentItem = state.contentItems.find(item => item.id === state.currentContentId);
 
                     const response = await apiFetch(
-                      `${state.moodleContext.wwwroot}/local/lecturebot/api/save_content_feedback.php?sesskey=${state.moodleContext.sesskey}`,
+                      `${state.moodleContext.wwwroot}/local/arina_prism_sense/api/save_content_feedback.php?sesskey=${state.moodleContext.sesskey}`,
                       {
                         method: 'POST',
                         headers: {
@@ -514,14 +514,14 @@ export const App: React.FC = () => {
 };
 
 export const init = (): void => {
-  const container = document.getElementById('lecturebot-react-root');
+  const container = document.getElementById('arina_prism_sense-react-root');
   if (container) {
     const root = createRoot(container);
     root.render(<App />);
   } else {
     console.error('LectureBot root element not found');
     const fallbackContainer = document.createElement('div');
-    fallbackContainer.id = 'lecturebot-react-root';
+    fallbackContainer.id = 'arina_prism_sense-react-root';
     document.body.appendChild(fallbackContainer);
     const root = createRoot(fallbackContainer);
     root.render(<App />);

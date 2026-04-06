@@ -67,7 +67,7 @@ export function useSourcesUpload(
     const runPoll = async () => {
       try {
         const res = await apiFetch(
-          `${moodleContext.wwwroot}/local/lecturebot/api/poll_processing_status.php` +
+          `${moodleContext.wwwroot}/local/arina_prism_sense/api/poll_processing_status.php` +
           `?courseid=${moodleContext.courseid}&sectionid=${selectedSection}`,
           { method: 'GET', credentials: 'include' }
         );
@@ -131,7 +131,7 @@ export function useSourcesUpload(
 
       try {
         const response = await apiFetch(
-          `${moodleContext.wwwroot}/local/lecturebot/api/get_sources.php?courseid=${moodleContext.courseid}`,
+          `${moodleContext.wwwroot}/local/arina_prism_sense/api/get_sources.php?courseid=${moodleContext.courseid}`,
           { method: 'GET', credentials: 'include' }
         );
         const data = await response.json();
@@ -329,7 +329,7 @@ export function useSourcesUpload(
     await loadSections();
     if (selectedSection === null) {return;}
     const sourcesResponse = await apiFetch(
-      `${moodleContext.wwwroot}/local/lecturebot/api/get_sources.php?courseid=${moodleContext.courseid}&sectionid=${selectedSection}`,
+      `${moodleContext.wwwroot}/local/arina_prism_sense/api/get_sources.php?courseid=${moodleContext.courseid}&sectionid=${selectedSection}`,
       { method: 'GET', credentials: 'include' }
     );
     const sourcesData = await sourcesResponse.json();
@@ -353,7 +353,7 @@ export function useSourcesUpload(
       });
 
       const response = await apiFetch(
-        `${moodleContext.wwwroot}/local/lecturebot/api/upload_source.php?courseid=${moodleContext.courseid}&sectionid=${selectedSection}&sesskey=${moodleContext.sesskey}`,
+        `${moodleContext.wwwroot}/local/arina_prism_sense/api/upload_source.php?courseid=${moodleContext.courseid}&sectionid=${selectedSection}&sesskey=${moodleContext.sesskey}`,
         { method: 'POST', body: formData, credentials: 'include' }
       );
       const data = await response.json();
@@ -398,7 +398,7 @@ export function useSourcesUpload(
     setRetryingBoxes((prev) => new Set(prev).add(boxIndex));
     try {
       const response = await apiFetch(
-        `${moodleContext.wwwroot}/local/lecturebot/api/retry_source.php?courseid=${moodleContext.courseid}&sesskey=${moodleContext.sesskey}`,
+        `${moodleContext.wwwroot}/local/arina_prism_sense/api/retry_source.php?courseid=${moodleContext.courseid}&sesskey=${moodleContext.sesskey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -438,7 +438,7 @@ export function useSourcesUpload(
     setIsDeleting(true);
     try {
       const response = await apiFetch(
-        `${moodleContext.wwwroot}/local/lecturebot/api/delete_source.php?courseid=${moodleContext.courseid}&sesskey=${moodleContext.sesskey}`,
+        `${moodleContext.wwwroot}/local/arina_prism_sense/api/delete_source.php?courseid=${moodleContext.courseid}&sesskey=${moodleContext.sesskey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

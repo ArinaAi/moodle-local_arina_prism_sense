@@ -64,7 +64,7 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
     }
     // Download the actual PPTX file
     if (moodleContext) {
-      const downloadUrl = `${moodleContext.wwwroot}/local/lecturebot/api/download_pptx.php?contentid=${currentContentId}`;
+      const downloadUrl = `${moodleContext.wwwroot}/local/arina_prism_sense/api/download_pptx.php?contentid=${currentContentId}`;
       window.location.href = downloadUrl;
     }
   };
@@ -186,7 +186,7 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
 
   return (
     <Card
-      id="lecturebot-tour-center-col"
+      id="arina_prism_sense-tour-center-col"
       sx={{
         height: '100%',
         display: 'flex',

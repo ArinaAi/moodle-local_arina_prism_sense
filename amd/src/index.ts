@@ -6,7 +6,7 @@ import './types/window';
 
 // Simple global initialization
 const initLectureBot = (): void => {
-  const container = document.getElementById('lecturebot-react-root');
+  const container = document.getElementById('arina_prism_sense-react-root');
   if (container) {
     const root = createRoot(container);
     root.render(React.createElement(App));
@@ -22,7 +22,7 @@ window.LectureBot = {
 
 window.initLectureBot = initLectureBot;
 
-window.local_lecturebot = {
+window.local_arina_prism_sense = {
   init: initLectureBot,
 };
 

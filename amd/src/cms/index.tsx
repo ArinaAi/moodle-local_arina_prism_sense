@@ -5,12 +5,12 @@ import './styles/index.css';
 
 // Mount the Credit Management System React app
 const initCMS = (): void => {
-    const container = document.getElementById('lecturebot-cms-root');
+    const container = document.getElementById('arina_prism_sense-cms-root');
     if (container) {
         const root = createRoot(container);
         root.render(React.createElement(App));
     } else {
-        console.error('CMS root element (#lecturebot-cms-root) not found');
+        console.error('CMS root element (#arina_prism_sense-cms-root) not found');
     }
 };
 
