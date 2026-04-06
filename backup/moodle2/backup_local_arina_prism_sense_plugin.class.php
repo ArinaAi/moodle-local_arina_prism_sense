@@ -1,19 +1,20 @@
 <?php
+
 /**
- * Backup plugin class for local_lecturebot
+ * Backup plugin class for local_arina_prism_sense
  *
  * Hooks into Moodle's course-level backup and exports all plugin data
  * that is associated with the course being backed up:
  *
- *  - local_lecturebot_sources   (uploaded PDFs per section)
- *  - local_lecturebot_content   (generated content records)
- *  - local_lecturebot_tracking  (student completion tracking)
- *  - local_lecturebot_feedback  (structured feedback records)
+ *  - local_arina_prism_sense_sources   (uploaded PDFs per section)
+ *  - local_arina_prism_sense_content   (generated content records)
+ *  - local_arina_prism_sense_tracking  (student completion tracking)
+ *  - local_arina_prism_sense_feedback  (structured feedback records)
  *
- * Note: local_lecturebot_company_config is company-level IOMAD config and
+ * Note: local_arina_prism_sense_company_config is company-level IOMAD config and
  * is intentionally excluded — it is not course-specific.
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -21,17 +22,16 @@
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Defines the backup plugin structure for local_lecturebot.
+ * Defines the backup plugin structure for local_arina_prism_sense.
  *
  * Moodle calls define_course_plugin_structure() automatically when performing
  * a full course backup, provided this class lives at:
- *   backup/moodle2/backup_local_lecturebot_plugin.class.php
+ *   backup/moodle2/backup_local_arina_prism_sense_plugin.class.php
  */
-class backup_local_lecturebot_plugin extends backup_local_plugin // NOSONAR
+class backup_local_arina_prism_sense_plugin extends backup_local_plugin // NOSONAR
 {
-
     /**
-     * Define the complete local_lecturebot structure to be attached to the
+     * Define the complete local_arina_prism_sense structure to be attached to the
      * 'course' XML element during backup.
      *
      * @return backup_plugin_element
@@ -44,13 +44,13 @@ class backup_local_lecturebot_plugin extends backup_local_plugin // NOSONAR
 
         // ── sources ───────────────────────────────────────────────────────────
         $sources = new backup_nested_element(
-            'lecturebot_sources',
+            'arina_prism_sense_sources',
             null,
             null
         );
 
         $source = new backup_nested_element(
-            'lecturebot_source',
+            'arina_prism_sense_source',
             ['id'],
             [
                 'courseid',
@@ -71,13 +71,13 @@ class backup_local_lecturebot_plugin extends backup_local_plugin // NOSONAR
 
         // ── content ───────────────────────────────────────────────────────────
         $contents = new backup_nested_element(
-            'lecturebot_contents',
+            'arina_prism_sense_contents',
             null,
             null
         );
 
         $content = new backup_nested_element(
-            'lecturebot_content',
+            'arina_prism_sense_content',
             ['id'],
             [
                 'courseid',
@@ -104,13 +104,13 @@ class backup_local_lecturebot_plugin extends backup_local_plugin // NOSONAR
 
         // ── tracking ──────────────────────────────────────────────────────────
         $trackings = new backup_nested_element(
-            'lecturebot_trackings',
+            'arina_prism_sense_trackings',
             null,
             null
         );
 
         $tracking = new backup_nested_element(
-            'lecturebot_tracking',
+            'arina_prism_sense_tracking',
             ['id'],
             [
                 'userid',
@@ -124,13 +124,13 @@ class backup_local_lecturebot_plugin extends backup_local_plugin // NOSONAR
 
         // ── feedback ──────────────────────────────────────────────────────────
         $feedbacks = new backup_nested_element(
-            'lecturebot_feedbacks',
+            'arina_prism_sense_feedbacks',
             null,
             null
         );
 
         $feedback = new backup_nested_element(
-            'lecturebot_feedback',
+            'arina_prism_sense_feedback',
             ['id'],
             [
                 'contentid',
@@ -164,22 +164,22 @@ class backup_local_lecturebot_plugin extends backup_local_plugin // NOSONAR
 
         // ── Define data sources (SQL queries) ─────────────────────────────────
         $source->set_source_table(
-            'local_lecturebot_sources',
+            'local_arina_prism_sense_sources',
             ['courseid' => backup::VAR_COURSEID]
         );
 
         $content->set_source_table(
-            'local_lecturebot_content',
+            'local_arina_prism_sense_content',
             ['courseid' => backup::VAR_COURSEID]
         );
 
         $tracking->set_source_table(
-            'local_lecturebot_tracking',
+            'local_arina_prism_sense_tracking',
             ['courseid' => backup::VAR_COURSEID]
         );
 
         $feedback->set_source_table(
-            'local_lecturebot_feedback',
+            'local_arina_prism_sense_feedback',
             ['courseid' => backup::VAR_COURSEID]
         );
 
@@ -200,7 +200,7 @@ class backup_local_lecturebot_plugin extends backup_local_plugin // NOSONAR
         $feedback->annotate_ids('course', 'courseid');
 
         // ── Include Moodle file storage (uploaded PDFs) ───────────────────────
-        $source->annotate_files('local_lecturebot', 'sources', 'fileitemid');
+        $source->annotate_files('local_arina_prism_sense', 'sources', 'fileitemid');
 
         return $plugin;
     }

@@ -1,20 +1,21 @@
 <?php
+
 /**
- * Restore plugin class for local_lecturebot
+ * Restore plugin class for local_arina_prism_sense
  *
  * Hooks into Moodle's course-level restore and re-creates all plugin data
- * that was exported by backup_local_lecturebot_plugin:
+ * that was exported by backup_local_arina_prism_sense_plugin:
  *
- *  - local_lecturebot_sources   (uploaded PDFs per section)
- *  - local_lecturebot_content   (generated content records)
- *  - local_lecturebot_tracking  (student completion tracking)
- *  - local_lecturebot_feedback  (structured feedback records)
+ *  - local_arina_prism_sense_sources   (uploaded PDFs per section)
+ *  - local_arina_prism_sense_content   (generated content records)
+ *  - local_arina_prism_sense_tracking  (student completion tracking)
+ *  - local_arina_prism_sense_feedback  (structured feedback records)
  *
  * ID-mapping is handled by Moodle's restore engine — all annotated foreign
  * keys (courseid, sectionid, userid, etc.) are automatically remapped to the
  * new IDs in the target system.
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -22,11 +23,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Defines the restore plugin structure for local_lecturebot.
+ * Defines the restore plugin structure for local_arina_prism_sense.
  */
-class restore_local_lecturebot_plugin extends restore_local_plugin // NOSONAR
+class restore_local_arina_prism_sense_plugin extends restore_local_plugin // NOSONAR
 {
-
     /**
      * Define the elements to be restored from the backup XML and where they
      * map to in the database.
@@ -40,26 +40,26 @@ class restore_local_lecturebot_plugin extends restore_local_plugin // NOSONAR
 
         // ── sources ───────────────────────────────────────────────────────────
         $paths[] = new restore_path_element(
-            'lecturebot_source',
-            '/course/plugin_local_lecturebot_course/lecturebot_sources/lecturebot_source'
+            'arina_prism_sense_source',
+            '/course/plugin_local_arina_prism_sense_course/arina_prism_sense_sources/arina_prism_sense_source'
         );
 
         // ── content ───────────────────────────────────────────────────────────
         $paths[] = new restore_path_element(
-            'lecturebot_content',
-            '/course/plugin_local_lecturebot_course/lecturebot_contents/lecturebot_content'
+            'arina_prism_sense_content',
+            '/course/plugin_local_arina_prism_sense_course/arina_prism_sense_contents/arina_prism_sense_content'
         );
 
         // ── tracking ──────────────────────────────────────────────────────────
         $paths[] = new restore_path_element(
-            'lecturebot_tracking',
-            '/course/plugin_local_lecturebot_course/lecturebot_trackings/lecturebot_tracking'
+            'arina_prism_sense_tracking',
+            '/course/plugin_local_arina_prism_sense_course/arina_prism_sense_trackings/arina_prism_sense_tracking'
         );
 
         // ── feedback ──────────────────────────────────────────────────────────
         $paths[] = new restore_path_element(
-            'lecturebot_feedback',
-            '/course/plugin_local_lecturebot_course/lecturebot_feedbacks/lecturebot_feedback'
+            'arina_prism_sense_feedback',
+            '/course/plugin_local_arina_prism_sense_course/arina_prism_sense_feedbacks/arina_prism_sense_feedback'
         );
 
         return $paths;
@@ -70,11 +70,11 @@ class restore_local_lecturebot_plugin extends restore_local_plugin // NOSONAR
     // =========================================================================
 
     /**
-     * Restore a single local_lecturebot_sources record.
+     * Restore a single local_arina_prism_sense_sources record.
      *
      * @param array $data Parsed element data from the backup XML.
      */
-    public function process_lecturebot_source($data)
+    public function process_arina_prism_sense_source($data)
     {
         global $DB;
 
@@ -88,20 +88,20 @@ class restore_local_lecturebot_plugin extends restore_local_plugin // NOSONAR
         // Remove the old primary key — DB will auto-generate a new one.
         unset($data->id);
 
-        $newid = $DB->insert_record('local_lecturebot_sources', $data);
+        $newid = $DB->insert_record('local_arina_prism_sense_sources', $data);
 
         // Store the old→new mapping so linked records (tracking, feedback) can
         // resolve contentid references later during the same restore pass.
-        $this->set_mapping('lecturebot_source', $oldid, $newid, true);
+        $this->set_mapping('arina_prism_sense_source', $oldid, $newid, true);
         // 'true' above tells the restore engine to also restore associated files.
     }
 
     /**
-     * Restore a single local_lecturebot_content record.
+     * Restore a single local_arina_prism_sense_content record.
      *
      * @param array $data Parsed element data from the backup XML.
      */
-    public function process_lecturebot_content($data)
+    public function process_arina_prism_sense_content($data)
     {
         global $DB;
 
@@ -126,9 +126,9 @@ class restore_local_lecturebot_plugin extends restore_local_plugin // NOSONAR
         $data->feedback_id       = null;
 
         unset($data->id);
-        $newid = $DB->insert_record('local_lecturebot_content', $data);
+        $newid = $DB->insert_record('local_arina_prism_sense_content', $data);
 
-        $this->set_mapping('lecturebot_content', $oldid, $newid);
+        $this->set_mapping('arina_prism_sense_content', $oldid, $newid);
 
         // Defer self-referential mapping updates until after_restore_course().
         // Store the old-ID hints on the object for logging (not persisted here).
@@ -136,11 +136,11 @@ class restore_local_lecturebot_plugin extends restore_local_plugin // NOSONAR
     }
 
     /**
-     * Restore a single local_lecturebot_tracking record.
+     * Restore a single local_arina_prism_sense_tracking record.
      *
      * @param array $data Parsed element data from the backup XML.
      */
-    public function process_lecturebot_tracking($data)
+    public function process_arina_prism_sense_tracking($data)
     {
         global $DB;
 
@@ -148,7 +148,7 @@ class restore_local_lecturebot_plugin extends restore_local_plugin // NOSONAR
 
         $data->courseid  = $this->get_mappingid('course', $data->courseid);
         $data->userid    = $this->get_mappingid('user', $data->userid);
-        $data->contentid = $this->get_mappingid('lecturebot_content', $data->contentid);
+        $data->contentid = $this->get_mappingid('arina_prism_sense_content', $data->contentid);
 
         // Skip orphaned tracking rows (content was not restored).
         if (!$data->contentid) {
@@ -156,15 +156,15 @@ class restore_local_lecturebot_plugin extends restore_local_plugin // NOSONAR
         }
 
         unset($data->id);
-        $DB->insert_record('local_lecturebot_tracking', $data);
+        $DB->insert_record('local_arina_prism_sense_tracking', $data);
     }
 
     /**
-     * Restore a single local_lecturebot_feedback record.
+     * Restore a single local_arina_prism_sense_feedback record.
      *
      * @param array $data Parsed element data from the backup XML.
      */
-    public function process_lecturebot_feedback($data)
+    public function process_arina_prism_sense_feedback($data)
     {
         global $DB;
 
@@ -173,7 +173,7 @@ class restore_local_lecturebot_plugin extends restore_local_plugin // NOSONAR
 
         $data->courseid   = $this->get_mappingid('course', $data->courseid);
         $data->userid     = $this->get_mappingid('user', $data->userid);
-        $data->contentid  = $this->get_mappingid('lecturebot_content', $data->contentid);
+        $data->contentid  = $this->get_mappingid('arina_prism_sense_content', $data->contentid);
 
         // Skip orphaned feedback rows.
         if (!$data->contentid) {
@@ -181,14 +181,14 @@ class restore_local_lecturebot_plugin extends restore_local_plugin // NOSONAR
         }
 
         unset($data->id);
-        $newid = $DB->insert_record('local_lecturebot_feedback', $data);
+        $newid = $DB->insert_record('local_arina_prism_sense_feedback', $data);
 
-        $this->set_mapping('lecturebot_feedback', $oldid, $newid);
+        $this->set_mapping('arina_prism_sense_feedback', $oldid, $newid);
     }
 
     /**
      * Post-restore hook: fix up self-referential foreign keys in
-     * local_lecturebot_content that could not be resolved during the first pass.
+     * local_arina_prism_sense_content that could not be resolved during the first pass.
      *
      * parent_content_id and feedback_id both reference rows in the same table /
      * the feedback table, so they can only be resolved after all rows are inserted.
@@ -199,14 +199,14 @@ class restore_local_lecturebot_plugin extends restore_local_plugin // NOSONAR
 
         $courseid = $this->get_courseid();
 
-        $contents = $DB->get_records('local_lecturebot_content', ['courseid' => $courseid]);
+        $contents = $DB->get_records('local_arina_prism_sense_content', ['courseid' => $courseid]);
         foreach ($contents as $row) {
             $needsUpdate = false;
             $update = new stdClass();
             $update->id = $row->id;
 
             if (!empty($row->parent_content_id)) {
-                $newParent = $this->get_mappingid('lecturebot_content', $row->parent_content_id);
+                $newParent = $this->get_mappingid('arina_prism_sense_content', $row->parent_content_id);
                 if ($newParent) {
                     $update->parent_content_id = $newParent;
                     $needsUpdate = true;
@@ -214,7 +214,7 @@ class restore_local_lecturebot_plugin extends restore_local_plugin // NOSONAR
             }
 
             if (!empty($row->feedback_id)) {
-                $newFeedback = $this->get_mappingid('lecturebot_feedback', $row->feedback_id);
+                $newFeedback = $this->get_mappingid('arina_prism_sense_feedback', $row->feedback_id);
                 if ($newFeedback) {
                     $update->feedback_id = $newFeedback;
                     $needsUpdate = true;
@@ -222,7 +222,7 @@ class restore_local_lecturebot_plugin extends restore_local_plugin // NOSONAR
             }
 
             if ($needsUpdate) {
-                $DB->update_record('local_lecturebot_content', $update);
+                $DB->update_record('local_arina_prism_sense_content', $update);
             }
         }
     }
