@@ -1,23 +1,24 @@
 <?php
+
 /**
  * API endpoint to upload source PDFs for a specific section
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 define('AJAX_SCRIPT', true);
-require_once(__DIR__ . '/../../../config.php');
+require_once __DIR__ . '/../../../config.php';
 
-use local_lecturebot\CompanyConfig;
+use local_arina_prism_sense\CompanyConfig;
 
-require_once(__DIR__ . '/../config_api.php');
-require_once($CFG->libdir . '/filelib.php');
-require_once(__DIR__ . '/../lib_azure_storage.php');
-require_once(__DIR__ . '/../classes/exception/curl_execution_exception.php');
-require_once(__DIR__ . '/../classes/exception/api_http_exception.php');
-require_once(__DIR__ . '/cms/CreditServiceClient.php');
+require_once __DIR__ . '/../config_api.php';
+require_once $CFG->libdir . '/filelib.php';
+require_once __DIR__ . '/../lib_azure_storage.php';
+require_once __DIR__ . '/../classes/exception/curl_execution_exception.php';
+require_once __DIR__ . '/../classes/exception/api_http_exception.php';
+require_once __DIR__ . '/cms/CreditServiceClient.php';
 
 header('Content-Type: application/json');
 
@@ -38,7 +39,7 @@ try {
     require_sesskey();
 
     // Check existing sources for this section (max 3)
-    $existingcount = $DB->count_records('local_lecturebot_sources', [
+    $existingcount = $DB->count_records('local_arina_prism_sense_sources', [
         'courseid' => $courseid,
         'sectionid' => $sectionid
     ]);
@@ -69,11 +70,10 @@ try {
             }
         }
         // Get titles and authors as arrays
-        $titles = isset($_POST['title']) && is_array($_POST['title']) ? $_POST['title'] : [];
-        $authors = isset($_POST['author']) && is_array($_POST['author']) ? $_POST['author'] : [];
+        $titles = optional_param_array('title', [], PARAM_TEXT);
+        $authors = optional_param_array('author', [], PARAM_TEXT);
         // Get is_photograph flag array for scanned PDF detection
-        $isPhotographs = isset($_POST['is_photograph']) &&
-            is_array($_POST['is_photograph']) ? $_POST['is_photograph'] : [];
+        $isPhotographs = optional_param_array('is_photograph', [], PARAM_TEXT);
     } else {
         // Single file upload (backward compatibility)
         if ($_FILES['pdf']['error'] === UPLOAD_ERR_OK) {
@@ -157,7 +157,7 @@ try {
         // Prepare file record
         $filerecord = array(
             'contextid' => $context->id,
-            'component' => 'local_lecturebot',
+            'component' => 'local_arina_prism_sense',
             'filearea' => 'sources',
             'itemid' => $itemid,
             'filepath' => '/',
@@ -232,7 +232,7 @@ try {
             // Get tenant ID, regen count and API key.
             $tenantConfig = CompanyConfig::getTenantId();
             $tenantId = is_numeric($tenantConfig) ? (int) $tenantConfig : 1;
-            $regenCount = local_lecturebot_get_azure_regen_count($courseid, $sectionid);
+            $regenCount = local_arina_prism_sense_get_azure_regen_count($courseid, $sectionid);
             // Fetch API key once — used both in start_batch_upload and per-file upload.
             $apiKey = CompanyConfig::getApiKey();
 
@@ -250,7 +250,7 @@ try {
 
             // Look for an existing batch_id for this section.
             $existingBatchRecord = $DB->get_record_select(
-                'local_lecturebot_sources',
+                'local_arina_prism_sense_sources',
                 'courseid = ? AND sectionid = ? AND batch_id IS NOT NULL',
                 [$courseid, $sectionid],
                 'batch_id',
@@ -413,7 +413,7 @@ try {
                         $fileData['record']->batch_id = $batchId;
                         $fileData['record']->upload_id = $uploadId;
                         $fileData['record']->processing_status = 'processing';
-                        $dbId = $DB->insert_record('local_lecturebot_sources', $fileData['record']);
+                        $dbId = $DB->insert_record('local_arina_prism_sense_sources', $fileData['record']);
                         $uploadResult['success'] = true;
                         $uploadResult['db_id'] = $dbId;
                         error_log(
@@ -433,7 +433,6 @@ try {
                         }
                         throw new \moodle_exception($errorMsg);
                     }
-
                 } catch (Exception $fileError) {
                     // This file failed - log error and clean up its Moodle file
                     error_log("LectureBot: Failed to upload file $index: " . $fileError->getMessage());
@@ -443,7 +442,6 @@ try {
 
                 $uploadResults[] = $uploadResult;
             }
-
         } catch (Exception $backendError) {
             // Batch creation failed - Clean up all Moodle files and records
             error_log('LectureBot: Batch creation error: ' . $backendError->getMessage());
@@ -467,7 +465,7 @@ try {
         error_log('LectureBot: Backend PDF upload is disabled');
         foreach ($storedFiles as $fileData) {
             $fileData['record']->processing_status = 'uploaded';
-            $dbId = $DB->insert_record('local_lecturebot_sources', $fileData['record']);
+            $dbId = $DB->insert_record('local_arina_prism_sense_sources', $fileData['record']);
             $uploadResults[] = [
                 'filename' => $fileData['file']->get_filename(),
                 'index' => $fileData['index'],
@@ -520,7 +518,6 @@ try {
 
     // Return success with file details
     echo json_encode($responseData);
-
 } catch (\Throwable $e) {
     http_response_code(500);
     echo json_encode([

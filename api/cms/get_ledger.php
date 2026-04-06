@@ -1,4 +1,5 @@
 <?php
+
 /**
  * CMS API: Get Wallet Ledger (Transactions)
  *
@@ -9,16 +10,16 @@
  * For per-staff filtering (sub_user_id provided), it falls back to
  * GET /wallets/{sub_wallet_id}/transactions as before.
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2026 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 define('AJAX_SCRIPT', true);
-require_once(__DIR__ . '/../../../../config.php');
-require_once($CFG->libdir . '/moodlelib.php');
-require_once(__DIR__ . '/CreditServiceClient.php');
-require_once(__DIR__ . '/get_wallet_helper.php');
+require_once __DIR__ . '/../../../../config.php';
+require_once $CFG->libdir . '/moodlelib.php';
+require_once __DIR__ . '/CreditServiceClient.php';
+require_once __DIR__ . '/get_wallet_helper.php';
 
 // Require login and admin cap
 require_login();
@@ -45,10 +46,10 @@ $typeLabels = [
 ];
 
 // ── Action-key → service label map ────────────────────────────────────────────
-define('LABEL_SLIDE_GENERATION',   'Slide Generation');
+define('LABEL_SLIDE_GENERATION', 'Slide Generation');
 define('LABEL_SLIDE_REGENERATION', 'Slide Regeneration');
-define('LABEL_VIDEO_GENERATION',   'Video Generation');
-define('LABEL_DOC_PROCESSING',     'Document Processing');
+define('LABEL_VIDEO_GENERATION', 'Video Generation');
+define('LABEL_DOC_PROCESSING', 'Document Processing');
 
 $actionLabels = [
     'slide_generation'            => LABEL_SLIDE_GENERATION,
@@ -57,8 +58,8 @@ $actionLabels = [
     'slide_generation_deep_dive'  => LABEL_SLIDE_GENERATION,
     'slide_regeneration'          => LABEL_SLIDE_REGENERATION,
     'slide_regeneration_standard' => LABEL_SLIDE_REGENERATION,
-    'slide_regeneration_extensive'=> LABEL_SLIDE_REGENERATION,
-    'slide_regeneration_deep_dive'=> LABEL_SLIDE_REGENERATION,
+    'slide_regeneration_extensive' => LABEL_SLIDE_REGENERATION,
+    'slide_regeneration_deep_dive' => LABEL_SLIDE_REGENERATION,
     'video_generation'            => LABEL_VIDEO_GENERATION,
     'doc_processing'              => LABEL_DOC_PROCESSING,
     'upload_pdf'                  => 'PDF Upload',
@@ -141,7 +142,7 @@ function fallbackMetaPart($txType)
     $map = [
         'PURCHASE'      => 'Credit purchase',
         'CONSUMPTION'   => 'Service usage (details not available)',
-        'ALLOCATION_OUT'=> 'Credit transfer',
+        'ALLOCATION_OUT' => 'Credit transfer',
         'ALLOCATION_IN' => 'Credit transfer',
         'RECLAIM_OUT'   => 'Credit reclaim',
         'RECLAIM_IN'    => 'Credit reclaim',
@@ -223,11 +224,11 @@ function formatTx($tx, $typeLabels, $uuidNameCache, $walletIdNameCache, $actionL
 // Main handler
 // =============================================================================
 try {
-    $client = new \local_lecturebot\cms\CreditServiceClient();
+    $client = new \local_arina_prism_sense\cms\CreditServiceClient();
 
     // 1. Resolve org wallet ID
-    $orgWalletId = local_lecturebot_get_wallet_id_or_exit($client);
-    $orgUuid     = get_config('local_lecturebot', 'org_wallet_owner_id');
+    $orgWalletId = local_arina_prism_sense_get_wallet_id_or_exit($client);
+    $orgUuid     = get_config('local_arina_prism_sense', 'org_wallet_owner_id');
 
     // Seed name caches
     $uuidNameCache     = [];
@@ -278,11 +279,10 @@ try {
     }
 
     // ── Determine which wallet/endpoint to use ────────────────────────────────
-    $subUserRequested = !empty($_GET['sub_user_id']);
+    $subUserId = optional_param('sub_user_id', 0, PARAM_INT);
+    $subUserRequested = ($subUserId > 0);
 
     if ($subUserRequested) {
-        // ── PER-STAFF VIEW: single wallet transactions ────────────────────────
-        $subUserId   = (int) $_GET['sub_user_id'];
         $subWalletId = $client->getOrInitializeSubUserWallet($subUserId);
 
         $res = $client->getTransactions($subWalletId);
@@ -314,7 +314,6 @@ try {
         }
 
         $fetchWalletId = $subWalletId;
-
     } else {
         // ── ORG-WIDE VIEW: child-transactions (all sub-user transactions) ─────
         $res = $client->getChildTransactions($orgWalletId);
@@ -396,7 +395,6 @@ try {
         'success' => true,
         'data'    => $ledger
     ]);
-
 } catch (\Exception $e) {
     http_response_code(500);
     echo json_encode([

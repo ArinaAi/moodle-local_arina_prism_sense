@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Save plugin feedback via Arina Feedback Service
  *
@@ -6,7 +7,7 @@
  * Arina Feedback Service REST API instead of writing directly to
  * PostgreSQL / Azure Blob Storage.
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2026 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -15,11 +16,11 @@ define('AJAX_SCRIPT', true);
 
 require_once __DIR__ . '/../../../config.php';
 
-use local_lecturebot\CompanyConfig;
+use local_arina_prism_sense\CompanyConfig;
 
 require_once __DIR__ . '/../config_api.php';
 
-use local_lecturebot\exception\ValidationException;
+use local_arina_prism_sense\exception\ValidationException;
 
 // User must be logged in
 require_login();
@@ -60,10 +61,14 @@ try {
     // 1. Parse & validate incoming form data
     // ----------------------------------------------------------------
     $hasFile        = isset($_FILES['screenshot']) && $_FILES['screenshot']['error'] !== UPLOAD_ERR_NO_FILE;
-    $userId         = isset($_POST['user_id'])         ? trim($_POST['user_id'])         : null;
-    $ownerId        = isset($_POST['owner_id'])         ? trim($_POST['owner_id'])         : null;
-    $issueTypes     = isset($_POST['issue_types'])     ? $_POST['issue_types']           : null;
-    $issueDesc      = isset($_POST['issue_description']) ? $_POST['issue_description']   : null;
+    $userId         = optional_param('user_id', null, PARAM_ALPHANUMEXT);
+    $ownerId        = optional_param('owner_id', null, PARAM_ALPHANUMEXT);
+    if (isset($_POST['issue_types']) && is_array($_POST['issue_types'])) {
+        $issueTypes = optional_param_array('issue_types', null, PARAM_RAW);
+    } else {
+        $issueTypes = optional_param('issue_types', null, PARAM_RAW);
+    }
+    $issueDesc      = optional_param('issue_description', null, PARAM_RAW);
 
     if (!$userId) {
         throw new ValidationException('Missing required field: user_id');
@@ -220,7 +225,6 @@ try {
             'error'   => "Feedback service returned HTTP {$httpCode}.",
         ]);
     }
-
 } catch (ValidationException $e) {
     http_response_code(400);
     echo json_encode([
