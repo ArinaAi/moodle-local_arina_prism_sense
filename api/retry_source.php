@@ -7,7 +7,7 @@
  * On success the local processing_status for the source row is reset to
  * 'processing' so the polling loop picks it up on the next tick.
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -15,7 +15,7 @@
 define('AJAX_SCRIPT', true);
 require_once(__DIR__ . '/../../../config.php');
 
-use local_lecturebot\CompanyConfig;
+use local_arina_prism_sense\CompanyConfig;
 
 require_once(__DIR__ . '/../config_api.php');
 
@@ -39,7 +39,7 @@ try {
     require_sesskey();
 
     // Load the source record.
-    $source = $DB->get_record('local_lecturebot_sources', ['id' => $sourceid, 'courseid' => $courseid]);
+    $source = $DB->get_record('local_arina_prism_sense_sources', ['id' => $sourceid, 'courseid' => $courseid]);
     if (!$source) {
         throw new moodle_exception('Source not found');
     }
@@ -109,7 +109,7 @@ try {
     }
 
     // Success — flip the local status back to processing so the poller picks it up.
-    $DB->set_field('local_lecturebot_sources', 'processing_status', 'processing', ['id' => $sourceid]);
+    $DB->set_field('local_arina_prism_sense_sources', 'processing_status', 'processing', ['id' => $sourceid]);
 
     error_log("LectureBot retry_source: source $sourceid reset to 'processing'");
 

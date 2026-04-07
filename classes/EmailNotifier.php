@@ -1,18 +1,18 @@
 <?php
 /**
- * Email notification helper for local_lecturebot
+ * Email notification helper for local_arina_prism_sense
  *
  * Sends transactional emails to users when content generation or PDF document
  * processing completes or fails. Uses Moodle's email_to_user() so that the
  * fully self-contained HTML templates are delivered exactly as designed,
  * without Moodle's site-shell wrapping.
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_lecturebot;
+namespace local_arina_prism_sense;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -61,7 +61,7 @@ class EmailNotifier
     /**
      * Send a "generation completed" email to the user who triggered the job.
      *
-     * @param  object $content  DB record from local_lecturebot_content
+     * @param  object $content  DB record from local_arina_prism_sense_content
      */
     public static function sendContentSuccess($content): void
     {
@@ -103,7 +103,7 @@ class EmailNotifier
     /**
      * Send a "generation failed" email to the user who triggered the job.
      *
-     * @param  object $content       DB record from local_lecturebot_content
+     * @param  object $content       DB record from local_arina_prism_sense_content
      * @param  string $errorMessage  Human-readable error reason
      */
     public static function sendContentFailure($content, string $errorMessage): void
@@ -166,7 +166,7 @@ class EmailNotifier
      * Send a "PDF processing completed" email.
      * The recipient is looked up from Moodle's files table (the person who uploaded the PDF).
      *
-     * @param  object $source  DB record from local_lecturebot_sources
+     * @param  object $source  DB record from local_arina_prism_sense_sources
      * @param  object $user    Moodle user object (already resolved by caller)
      */
     public static function sendSourceSuccess($source, $user): void
@@ -224,7 +224,7 @@ class EmailNotifier
     /**
      * Send a "PDF processing failed" email.
      *
-     * @param  object $source  DB record from local_lecturebot_sources
+     * @param  object $source  DB record from local_arina_prism_sense_sources
      * @param  object $user    Moodle user object (already resolved by caller)
      */
     public static function sendSourceFailure($source, $user): void
@@ -363,7 +363,7 @@ class EmailNotifier
         }
 
         $template = $isZero ? 'low_credits_org_zero.html' : 'low_credits_org.html';
-        $cmsUrl = $CFG->wwwroot . '/local/lecturebot/cms.php';
+        $cmsUrl = $CFG->wwwroot . '/local/arina_prism_sense/cms.php';
 
         $introText = $isZero
             ? "Your organization wallet has nearly run out of credits. "
@@ -422,7 +422,7 @@ class EmailNotifier
         }
 
         $template = $isZero ? 'low_credits_user_zero.html' : 'low_credits_user.html';
-        $dashboardUrl = $CFG->wwwroot . '/local/lecturebot/cms.php'; // CMS page
+        $dashboardUrl = $CFG->wwwroot . '/local/arina_prism_sense/cms.php'; // CMS page
 
         $fullName = htmlspecialchars($subUser->firstname . ' ' . $subUser->lastname, ENT_QUOTES, 'UTF-8');
 
@@ -519,7 +519,7 @@ class EmailNotifier
      * Returns [user, processName, dashboardUrl] on success, or null if the email
      * cannot be sent (user not found or invalid email — already logged internally).
      *
-     * @param  object    $content  DB record from local_lecturebot_content
+     * @param  object    $content  DB record from local_arina_prism_sense_content
      * @return array|null          [object $user, string $processName, string $dashboardUrl]
      */
     private static function resolveContentContext($content): ?array
@@ -627,7 +627,7 @@ class EmailNotifier
     {
         global $CFG;
         // Use Moodle's pix directory for the plugin logo if available.
-        return $CFG->wwwroot . '/local/lecturebot/pix/arina-logo.png';
+        return $CFG->wwwroot . '/local/arina_prism_sense/pix/arina-logo.png';
     }
 
     /**

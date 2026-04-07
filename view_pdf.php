@@ -3,7 +3,7 @@
  * Secure PDF viewer endpoint
  * Serves PDF files with permission checks
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2026 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -17,14 +17,14 @@ try {
     global $DB, $USER;
 
     // Get source record
-    $source = $DB->get_record('local_lecturebot_sources', ['id' => $sourceid], '*', MUST_EXIST);
+    $source = $DB->get_record('local_arina_prism_sense_sources', ['id' => $sourceid], '*', MUST_EXIST);
 
     // Require login and check course access
     require_login($source->courseid);
 
     // Check if user has capability to view/generate content here (teachers/admins)
     $context = context_course::instance($source->courseid);
-    require_capability('local/lecturebot:generatecontent', $context);
+    require_capability('local/arina_prism_sense:generatecontent', $context);
 
     // Get the file from Moodle file storage
     $fs = get_file_storage();
@@ -35,7 +35,7 @@ try {
     // Retrieve file from Moodle's file API
     $files = $fs->get_area_files(
         $filecontext->id,
-        'local_lecturebot',
+        'local_arina_prism_sense',
         'sources',
         $source->fileitemid,
         'itemid, filepath, filename',
@@ -62,5 +62,5 @@ try {
     debugging('Error viewing PDF: ' . $e->getMessage(), DEBUG_DEVELOPER);
 
     // Show error page
-    print_error('errorviewingpdf', 'local_lecturebot', '', null, $e->getMessage());
+    print_error('errorviewingpdf', 'local_arina_prism_sense', '', null, $e->getMessage());
 }

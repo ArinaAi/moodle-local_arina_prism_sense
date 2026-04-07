@@ -2,7 +2,7 @@
 /**
  * Get slide images from PPTX file
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -16,7 +16,7 @@ require_once __DIR__ . '/../configurator_azure.php';
 require_once __DIR__ . '/../lib_azure_storage.php';
 require_once __DIR__ . '/../config_api.php';
 
-use local_lecturebot\CompanyConfig;
+use local_arina_prism_sense\CompanyConfig;
 
 // Developer Mode: Redirect to mock handler
 if (defined('DEVELOPER_MODE') && DEVELOPER_MODE) {
@@ -38,7 +38,7 @@ header('Content-Type: application/json');
 
 try {
     // Get the content record
-    $content = $DB->get_record('local_lecturebot_content', ['id' => $contentid], '*', MUST_EXIST);
+    $content = $DB->get_record('local_arina_prism_sense_content', ['id' => $contentid], '*', MUST_EXIST);
 
 // Verify user has access to this course
     $course = get_course($content->courseid);
@@ -55,7 +55,7 @@ try {
     $generationData = json_decode($content->generationdata, true);
     
     // Extract images from Azure
-    $images = local_lecturebot_extractImagesFromPptx('', $contentid);
+    $images = local_arina_prism_sense_extractImagesFromPptx('', $contentid);
     
     echo json_encode([
         'status' => 'success',
@@ -86,13 +86,13 @@ try {
  * @param int $contentid Content ID from database
  * @return array Array of base64 encoded images or Azure URLs
  */
-function local_lecturebot_extractImagesFromPptx($pptxPath, $contentid)
+function local_arina_prism_sense_extractImagesFromPptx($pptxPath, $contentid)
 {
     global $DB;
 
     // Get content info
     $content = $DB->get_record(
-        'local_lecturebot_content',
+        'local_arina_prism_sense_content',
         ['id' => $contentid],
         'courseid, sectionid,
         timecreated,
@@ -109,10 +109,10 @@ function local_lecturebot_extractImagesFromPptx($pptxPath, $contentid)
     $useNewStructure = isset($genData['azure_folder']);
 
     if ($useNewStructure) {
-        return local_lecturebot_extractImagesFromAzure($genData, $tenantId);
+        return local_arina_prism_sense_extractImagesFromAzure($genData, $tenantId);
     }
 
-    return local_lecturebot_extractImagesFromZip($pptxPath);
+    return local_arina_prism_sense_extractImagesFromZip($pptxPath);
 }
 
 /**
@@ -121,14 +121,14 @@ function local_lecturebot_extractImagesFromPptx($pptxPath, $contentid)
  * @param int $tenantId
  * @return array
  */
-function local_lecturebot_extractImagesFromAzure($genData, $tenantId)
+function local_arina_prism_sense_extractImagesFromAzure($genData, $tenantId)
 {
     $azureFolderId = $genData['azure_folder'];
     $containerName = isset($genData['azure_container']) ?
         strtolower($genData['azure_container']) :
         strtolower('Blob-Tutorial-Gen-' . $tenantId);
 
-    return local_lecturebot_generateAzureImageUrls($azureFolderId, $containerName);
+    return local_arina_prism_sense_generateAzureImageUrls($azureFolderId, $containerName);
 }
 
 /**
@@ -136,13 +136,13 @@ function local_lecturebot_extractImagesFromAzure($genData, $tenantId)
  * @param array $genData
  * @return int
  */
-function local_lecturebot_calculateAzureSlideCount($genData)
+function local_arina_prism_sense_calculateAzureSlideCount($genData)
 {
     $slideCount = isset($genData['slide_count']) ? intval($genData['slide_count']) : 0;
 
     // Fallback: If slide_count missing, try to detect or guess
     if ($slideCount <= 0) {
-        $slideCount = local_lecturebot_calculateSlidesFromResult($genData);
+        $slideCount = local_arina_prism_sense_calculateSlidesFromResult($genData);
     }
 
     if ($slideCount <= 0) {
@@ -157,7 +157,7 @@ function local_lecturebot_calculateAzureSlideCount($genData)
  * @param array $genData
  * @return int
  */
-function local_lecturebot_calculateSlidesFromResult($genData)
+function local_arina_prism_sense_calculateSlidesFromResult($genData)
 {
     if (!isset($genData['result'])) {
         return 0;
@@ -184,7 +184,7 @@ function local_lecturebot_calculateSlidesFromResult($genData)
  * @param string $containerName
  * @return array
  */
-function local_lecturebot_generateAzureImageUrls($azureFolderId, $containerName)
+function local_arina_prism_sense_generateAzureImageUrls($azureFolderId, $containerName)
 {
     $images = [];
     $apiKey = CompanyConfig::getApiKey();
@@ -216,7 +216,7 @@ function local_lecturebot_generateAzureImageUrls($azureFolderId, $containerName)
 
     if ($httpCode === 401) {
         error_log("LectureBot get_slide_images: Auth Service returned HTTP 401(API key is missing or incorrect)");
-        throw new \local_lecturebot\exception\api_http_exception('API key is missing or incorrect.
+        throw new \local_arina_prism_sense\exception\api_http_exception('API key is missing or incorrect.
         Please check your settings.');
     } elseif ($httpCode !== 200 || empty($response)) {
         error_log("LectureBot get_slide_images: Auth Service returned HTTP {$httpCode} Error: {$curlErr}");
@@ -259,7 +259,7 @@ function local_lecturebot_generateAzureImageUrls($azureFolderId, $containerName)
  * @param string $pptxPath
  * @return array
  */
-function local_lecturebot_extractImagesFromZip($pptxPath)
+function local_arina_prism_sense_extractImagesFromZip($pptxPath)
 {
     $images = [];
 
@@ -268,7 +268,7 @@ function local_lecturebot_extractImagesFromZip($pptxPath)
     try {
         $zip = new ZipArchive();
         if ($zip->open($pptxPath) === true) {
-            $extractedImages = local_lecturebot_processZipArchive($zip);
+            $extractedImages = local_arina_prism_sense_processZipArchive($zip);
             $zip->close();
 
             if (!empty($extractedImages)) {
@@ -291,7 +291,7 @@ function local_lecturebot_extractImagesFromZip($pptxPath)
  * @param ZipArchive $zip
  * @return array
  */
-function local_lecturebot_processZipArchive($zip)
+function local_arina_prism_sense_processZipArchive($zip)
 {
     $extractedImages = [];
 

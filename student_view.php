@@ -21,33 +21,37 @@ require_once(__DIR__ . '/classes/Utils.php');
 $courseid = required_param('courseid', PARAM_INT);
 require_login($courseid);
 
-$PAGE->set_url(new moodle_url('/local/lecturebot/student_view.php', ['courseid' => $courseid]));
+$PAGE->set_url(new moodle_url('/local/arina_prism_sense/student_view.php', ['courseid' => $courseid]));
 $PAGE->set_pagelayout('popup');
 $PAGE->set_title('Course Materials');
 $PAGE->set_heading('Course Materials');
 
-$context_json = \local_lecturebot\Utils::prepareContext($COURSE, $CFG->wwwroot);
+$context_json = \local_arina_prism_sense\Utils::prepareContext($COURSE, $CFG->wwwroot);
 
 // Request student bundle
-$builtjsurl = \local_lecturebot\Utils::getJsUrl($CFG->wwwroot, $CFG->dirroot . '/local/lecturebot', 'student.min.js');
+$builtjsurl = \local_arina_prism_sense\Utils::getJsUrl(
+    $CFG->wwwroot,
+    $CFG->dirroot . '/local/arina_prism_sense',
+    'student.min.js'
+);
 
 echo $OUTPUT->header();
 ?>
 
 <?php
 // Render Student App
-\local_lecturebot\Utils::renderReactApp(
+\local_arina_prism_sense\Utils::renderReactApp(
     $context_json,
     $builtjsurl,
     'LectureBot.initStudent',
-    'lecturebot-student-root'
+    'arina_prism_sense-student-root'
 );
 
 // PRISM Sense In-App Guided Tour (Student App)
-\local_lecturebot\Utils::emitTour(
+\local_arina_prism_sense\Utils::emitTour(
     $CFG,
-    'lecturebot_tour_student_seen',
-    ['#lecturebot-tour-student-header', '#lecturebot-tour-content-navigator'],
+    'arina_prism_sense_tour_student_seen',
+    ['#arina_prism_sense-tour-student-header', '#arina_prism_sense-tour-content-navigator'],
     'student'
 );
 echo $OUTPUT->footer();

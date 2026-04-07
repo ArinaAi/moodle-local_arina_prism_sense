@@ -10,7 +10,7 @@
  * Marks the PRISM Sense guided tour as seen for the current user.
  * Called by the in-page tour script via fetch().
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2026 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -24,9 +24,9 @@ $pref = required_param('pref', PARAM_ALPHANUMEXT);
 
 // Allowlist — only our own tour preference keys may be set via this endpoint.
 $allowed = [
-    'lecturebot_tour_teacher_seen',
-    'lecturebot_tour_student_seen',
-    'lecturebot_tour_cms_seen',
+    'arina_prism_sense_tour_teacher_seen',
+    'arina_prism_sense_tour_student_seen',
+    'arina_prism_sense_tour_cms_seen',
 ];
 
 if (!in_array($pref, $allowed)) {

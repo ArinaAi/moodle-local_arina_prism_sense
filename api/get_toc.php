@@ -2,7 +2,7 @@
 /**
  * Get TOC (Table of Contents) from Azure blob storage
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -13,7 +13,7 @@ define('AJAX_SCRIPT', true);
 define('REDIRECT_STDERR', ' 2>&1');
 require_once(__DIR__ . '/../../../config.php');
 
-use local_lecturebot\CompanyConfig;
+use local_arina_prism_sense\CompanyConfig;
 
 require_once(__DIR__ . '/../configurator_azure.php');
 require_once(__DIR__ . '/../lib_azure_storage.php');
@@ -32,11 +32,11 @@ header('Content-Type: application/json');
 
 try {
     // Get the content record
-    $content = $DB->get_record('local_lecturebot_content', ['id' => $contentid], '*', MUST_EXIST);
+    $content = $DB->get_record('local_arina_prism_sense_content', ['id' => $contentid], '*', MUST_EXIST);
 
     // Verify user has permission to generate content in this course
     $context = context_course::instance($content->courseid);
-    require_capability('local/lecturebot:generatecontent', $context);
+    require_capability('local/arina_prism_sense:generatecontent', $context);
 
     // Release session lock to prevent blocking
     \core\session\manager::write_close();
@@ -47,7 +47,7 @@ try {
     if (!isset($generationData['azure_folder'])) {
         throw new moodle_exception(
             'missingazurefolder',
-            'local_lecturebot',
+            'local_arina_prism_sense',
             '',
             null,
             'Content does not have Azure folder information'
@@ -61,7 +61,7 @@ try {
         : strtolower('Blob-Tutorial-Gen-' . $tenantId);
 
     // Fetch TOC from Azure
-    $tocData = local_lecturebot_fetchTocFromAzure($azureFolderId, $containerName);
+    $tocData = local_arina_prism_sense_fetchTocFromAzure($azureFolderId, $containerName);
 
     echo json_encode([
         'status' => 'success',
@@ -83,7 +83,7 @@ try {
  * @param string $containerName Azure container name
  * @return array|null TOC data or null if not found
  */
-function local_lecturebot_fetchTocFromAzure($azureFolderId, $containerName)
+function local_arina_prism_sense_fetchTocFromAzure($azureFolderId, $containerName)
 {
     $accountName = AZURE_STORAGE_ACCOUNT_NAME;
     $accountKey = AZURE_STORAGE_ACCOUNT_KEY;
@@ -92,8 +92,8 @@ function local_lecturebot_fetchTocFromAzure($azureFolderId, $containerName)
     $blobName = $azureFolderId . '/toc.json';
 
     // Generate SAS token for access
-    $sasToken = local_lecturebot_generate_blob_sas_token($accountName, $containerName, $blobName, $accountKey);
-    $blobUrl = local_lecturebot_get_azure_blob_url($accountName, $containerName, $blobName) . $sasToken;
+    $sasToken = local_arina_prism_sense_generate_blob_sas_token($accountName, $containerName, $blobName, $accountKey);
+    $blobUrl = local_arina_prism_sense_get_azure_blob_url($accountName, $containerName, $blobName) . $sasToken;
 
     // Fetch the TOC file
     $ch = curl_init($blobUrl);
@@ -110,7 +110,7 @@ function local_lecturebot_fetchTocFromAzure($azureFolderId, $containerName)
         error_log("LectureBot: Failed to fetch TOC from Azure. HTTP: $httpCode, Error: $curlError");
         throw new moodle_exception(
             'tocfetchfailed',
-            'local_lecturebot',
+            'local_arina_prism_sense',
             '',
             null,
             'Failed to fetch TOC from storage'
@@ -122,7 +122,7 @@ function local_lecturebot_fetchTocFromAzure($azureFolderId, $containerName)
         error_log('LectureBot: Invalid JSON in TOC file: ' . json_last_error_msg());
         throw new moodle_exception(
             'invalidtocformat',
-            'local_lecturebot',
+            'local_arina_prism_sense',
             '',
             null,
             'Invalid TOC data format'

@@ -13,7 +13,7 @@
  *  - Site Admin: can select any IOMAD company and edit its config
  *  - Company Manager (managertype=1 in mdl_company_users): locked to their own company only
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2026 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -21,7 +21,7 @@
 require_once(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 
-use local_lecturebot\CompanyConfig;
+use local_arina_prism_sense\CompanyConfig;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -29,7 +29,7 @@ global $USER, $DB, $OUTPUT, $PAGE;
 
 // ── Page setup MUST come before require_login() ───────────────────────────────
 $PAGE->set_context(context_system::instance());
-$PAGE->set_url(new moodle_url('/local/lecturebot/company_settings.php'));
+$PAGE->set_url(new moodle_url('/local/arina_prism_sense/company_settings.php'));
 $PAGE->set_title('PRISM Sense — Company Settings');
 $PAGE->set_heading('PRISM Sense — Company Settings');
 $PAGE->set_pagelayout('admin');
@@ -40,7 +40,7 @@ require_login();
 if (!CompanyConfig::isIomadInstalled()) {
     throw new moodle_exception(
         'errornoiomad',
-        'local_lecturebot',
+        'local_arina_prism_sense',
         '',
         null,
         'IOMAD is not installed. This page is only available in an IOMAD Moodle installation.'
@@ -100,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Update URL with selected company for proper breadcrumb/history
 if ($selectedCompanyId) {
     $PAGE->set_url(new moodle_url(
-        '/local/lecturebot/company_settings.php',
+        '/local/arina_prism_sense/company_settings.php',
         ['companyid' => $selectedCompanyId]
     ));
 }

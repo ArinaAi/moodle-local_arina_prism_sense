@@ -2,7 +2,7 @@
 /**
  * Delete generated content from database (preserves Azure files for restore)
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -17,7 +17,7 @@ header('Content-Type: application/json');
 
 try {
     // Get the content record
-    $content = $DB->get_record('local_lecturebot_content', ['id' => $contentid], '*', MUST_EXIST);
+    $content = $DB->get_record('local_arina_prism_sense_content', ['id' => $contentid], '*', MUST_EXIST);
 
     // Verify user has permission to delete this content
     $context = context_course::instance($content->courseid);
@@ -41,12 +41,12 @@ try {
     error_log('LectureBot: Azure restoration info: ' . json_encode($azureInfo));
 
     // Delete from database only (Azure files remain for restore)
-    $deleted = $DB->delete_records('local_lecturebot_content', ['id' => $contentid]);
+    $deleted = $DB->delete_records('local_arina_prism_sense_content', ['id' => $contentid]);
 
     if ($deleted) {
         // Optionally: Store deletion info in a separate restoration table
         // This would allow tracking what was deleted and when
-        // $DB->insert_record('local_lecturebot_deleted', $azureInfo);
+        // $DB->insert_record('local_arina_prism_sense_deleted', $azureInfo);
 
         echo json_encode([
             'status' => 'success',

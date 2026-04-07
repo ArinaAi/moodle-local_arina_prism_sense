@@ -2,7 +2,7 @@
 /**
  * API endpoint to get all source PDFs for a course, grouped by section
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -39,14 +39,14 @@ try {
         $params['sectionid'] = $sectionid;
     }
 
-    $sources = $DB->get_records('local_lecturebot_sources', $params, 'sectionid, timecreated');
+    $sources = $DB->get_records('local_arina_prism_sense_sources', $params, 'sectionid, timecreated');
 
     // If requesting specific section, return grouped format (for modal)
     if ($sectionid !== null) {
         $result = [];
         foreach ($sources as $source) {
             // Generate secure view URL
-            $view_url = new moodle_url('/local/lecturebot/view_pdf.php', ['id' => $source->id]);
+            $view_url = new moodle_url('/local/arina_prism_sense/view_pdf.php', ['id' => $source->id]);
 
             $result[] = [
                 'id' => $source->id,
@@ -72,7 +72,7 @@ try {
         $result = [];
         foreach ($sources as $source) {
             // Generate secure view URL
-            $view_url = new moodle_url('/local/lecturebot/view_pdf.php', ['id' => $source->id]);
+            $view_url = new moodle_url('/local/arina_prism_sense/view_pdf.php', ['id' => $source->id]);
 
             $result[] = [
                 'id' => $source->id,

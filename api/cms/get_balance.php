@@ -2,7 +2,7 @@
 /**
  * CMS API: Get Institution Balance
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2026 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -20,7 +20,7 @@ require_capability('moodle/site:config', $context);
 header('Content-Type: application/json');
 
 try {
-    $client = new \local_lecturebot\cms\CreditServiceClient();
+    $client = new \local_arina_prism_sense\cms\CreditServiceClient();
     
     // Get organization owner UUID (external identifier stored in Moodle config)
     // Note: Some APIs require owner_id (UUID), others require wallet_id

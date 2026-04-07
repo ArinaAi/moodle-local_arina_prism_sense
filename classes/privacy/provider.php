@@ -15,21 +15,21 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Privacy API provider for the local_lecturebot plugin.
+ * Privacy API provider for the local_arina_prism_sense plugin.
  *
  * Declares all personal data collected by this plugin:
- *  - local_lecturebot_content  : createdby / approvedby / publishedby user IDs
- *  - local_lecturebot_tracking : userid (student completion records)
- *  - local_lecturebot_feedback : userid + free-text comments / star rating
- *  - User preference           : lecturebot_wallet_sub_user_id
+ *  - local_arina_prism_sense_content  : createdby / approvedby / publishedby user IDs
+ *  - local_arina_prism_sense_tracking : userid (student completion records)
+ *  - local_arina_prism_sense_feedback : userid + free-text comments / star rating
+ *  - User preference           : arina_prism_sense_wallet_sub_user_id
  *  - External service          : Arina AI API (user UUID sent for credit tracking)
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_lecturebot\privacy;
+namespace local_arina_prism_sense\privacy;
 
 use core_privacy\local\metadata\collection;
 use core_privacy\local\request\approved_contextlist;
@@ -42,7 +42,7 @@ use core_privacy\local\request\writer;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Privacy provider for local_lecturebot.
+ * Privacy provider for local_arina_prism_sense.
  */
 // phpcs:ignore Generic.Classes.OpeningBraceSameLine -- intentional per Moodle PSR2 style; brace on next line.
 // phpcs:ignore moodle.NamingConventions.ValidFunctionName --
@@ -66,53 +66,53 @@ class provider implements
     public static function get_metadata(collection $collection): collection
     {
 
-        // local_lecturebot_content — stores which user created / approved / published content.
+        // local_arina_prism_sense_content — stores which user created / approved / published content.
         $collection->add_database_table(
-            'local_lecturebot_content',
+            'local_arina_prism_sense_content',
             [
-                'createdby'   => 'privacy:metadata:local_lecturebot_content:createdby',
-                'approvedby'  => 'privacy:metadata:local_lecturebot_content:approvedby',
-                'publishedby' => 'privacy:metadata:local_lecturebot_content:publishedby',
-                'timecreated' => 'privacy:metadata:local_lecturebot_content:timecreated',
+                'createdby'   => 'privacy:metadata:local_arina_prism_sense_content:createdby',
+                'approvedby'  => 'privacy:metadata:local_arina_prism_sense_content:approvedby',
+                'publishedby' => 'privacy:metadata:local_arina_prism_sense_content:publishedby',
+                'timecreated' => 'privacy:metadata:local_arina_prism_sense_content:timecreated',
             ],
-            'privacy:metadata:local_lecturebot_content'
+            'privacy:metadata:local_arina_prism_sense_content'
         );
 
-        // local_lecturebot_tracking — student completion records.
+        // local_arina_prism_sense_tracking — student completion records.
         $collection->add_database_table(
-            'local_lecturebot_tracking',
+            'local_arina_prism_sense_tracking',
             [
-                'userid'       => 'privacy:metadata:local_lecturebot_tracking:userid',
-                'contentid'    => 'privacy:metadata:local_lecturebot_tracking:contentid',
-                'status'       => 'privacy:metadata:local_lecturebot_tracking:status',
-                'timecreated'  => 'privacy:metadata:local_lecturebot_tracking:timecreated',
-                'timemodified' => 'privacy:metadata:local_lecturebot_tracking:timemodified',
+                'userid'       => 'privacy:metadata:local_arina_prism_sense_tracking:userid',
+                'contentid'    => 'privacy:metadata:local_arina_prism_sense_tracking:contentid',
+                'status'       => 'privacy:metadata:local_arina_prism_sense_tracking:status',
+                'timecreated'  => 'privacy:metadata:local_arina_prism_sense_tracking:timecreated',
+                'timemodified' => 'privacy:metadata:local_arina_prism_sense_tracking:timemodified',
             ],
-            'privacy:metadata:local_lecturebot_tracking'
+            'privacy:metadata:local_arina_prism_sense_tracking'
         );
 
-        // local_lecturebot_feedback — user feedback including free-text comments.
+        // local_arina_prism_sense_feedback — user feedback including free-text comments.
         $collection->add_database_table(
-            'local_lecturebot_feedback',
+            'local_arina_prism_sense_feedback',
             [
-                'userid'               => 'privacy:metadata:local_lecturebot_feedback:userid',
-                'selected_categories'  => 'privacy:metadata:local_lecturebot_feedback:selected_categories',
-                'topics_needing_depth' => 'privacy:metadata:local_lecturebot_feedback:topics_needing_depth',
-                'topics_overexplained' => 'privacy:metadata:local_lecturebot_feedback:topics_overexplained',
-                'extra_topics'         => 'privacy:metadata:local_lecturebot_feedback:extra_topics',
-                'missing_subtopics'    => 'privacy:metadata:local_lecturebot_feedback:missing_subtopics',
-                'reordered_flow'       => 'privacy:metadata:local_lecturebot_feedback:reordered_flow',
-                'rating'               => 'privacy:metadata:local_lecturebot_feedback:rating',
-                'comments'             => 'privacy:metadata:local_lecturebot_feedback:comments',
-                'timecreated'          => 'privacy:metadata:local_lecturebot_feedback:timecreated',
+                'userid'               => 'privacy:metadata:local_arina_prism_sense_feedback:userid',
+                'selected_categories'  => 'privacy:metadata:local_arina_prism_sense_feedback:selected_categories',
+                'topics_needing_depth' => 'privacy:metadata:local_arina_prism_sense_feedback:topics_needing_depth',
+                'topics_overexplained' => 'privacy:metadata:local_arina_prism_sense_feedback:topics_overexplained',
+                'extra_topics'         => 'privacy:metadata:local_arina_prism_sense_feedback:extra_topics',
+                'missing_subtopics'    => 'privacy:metadata:local_arina_prism_sense_feedback:missing_subtopics',
+                'reordered_flow'       => 'privacy:metadata:local_arina_prism_sense_feedback:reordered_flow',
+                'rating'               => 'privacy:metadata:local_arina_prism_sense_feedback:rating',
+                'comments'             => 'privacy:metadata:local_arina_prism_sense_feedback:comments',
+                'timecreated'          => 'privacy:metadata:local_arina_prism_sense_feedback:timecreated',
             ],
-            'privacy:metadata:local_lecturebot_feedback'
+            'privacy:metadata:local_arina_prism_sense_feedback'
         );
 
         // User preference: wallet sub-user UUID stored for credit tracking.
         $collection->add_user_preference(
-            'lecturebot_wallet_sub_user_id',
-            'privacy:metadata:preference:lecturebot_wallet_sub_user_id'
+            'arina_prism_sense_wallet_sub_user_id',
+            'privacy:metadata:preference:arina_prism_sense_wallet_sub_user_id'
         );
 
         // External service: Arina AI API receives the user's UUID for credit tracking.
@@ -144,7 +144,7 @@ class provider implements
         // Content created/approved/published by this user (course context).
         $sql = "SELECT ctx.id
                   FROM {context} ctx
-                  JOIN {local_lecturebot_content} c ON c.courseid = ctx.instanceid
+                  JOIN {local_arina_prism_sense_content} c ON c.courseid = ctx.instanceid
                  WHERE ctx.contextlevel = :ctxlevel
                    AND (c.createdby = :uid1 OR c.approvedby = :uid2 OR c.publishedby = :uid3)";
         $contextlist->add_from_sql($sql, [
@@ -157,7 +157,7 @@ class provider implements
         // Tracking records (student completion) — course context.
         $sql = "SELECT ctx.id
                   FROM {context} ctx
-                  JOIN {local_lecturebot_tracking} t ON t.courseid = ctx.instanceid
+                  JOIN {local_arina_prism_sense_tracking} t ON t.courseid = ctx.instanceid
                  WHERE ctx.contextlevel = :ctxlevel
                    AND t.userid = :userid";
         $contextlist->add_from_sql($sql, [
@@ -168,7 +168,7 @@ class provider implements
         // Feedback submitted by this user — course context.
         $sql = "SELECT ctx.id
                   FROM {context} ctx
-                  JOIN {local_lecturebot_feedback} f ON f.courseid = ctx.instanceid
+                  JOIN {local_arina_prism_sense_feedback} f ON f.courseid = ctx.instanceid
                  WHERE ctx.contextlevel = :ctxlevel
                    AND f.userid = :userid";
         $contextlist->add_from_sql($sql, [
@@ -197,29 +197,29 @@ class provider implements
 
         // Users who created, approved, or published content.
         $sql = "SELECT createdby AS userid
-                  FROM {local_lecturebot_content}
+                  FROM {local_arina_prism_sense_content}
                  WHERE courseid = :courseid AND createdby IS NOT NULL";
         $userlist->add_from_sql('userid', $sql, $params);
 
         $sql = "SELECT approvedby AS userid
-                  FROM {local_lecturebot_content}
+                  FROM {local_arina_prism_sense_content}
                  WHERE courseid = :courseid AND approvedby IS NOT NULL";
         $userlist->add_from_sql('userid', $sql, $params);
 
         $sql = "SELECT publishedby AS userid
-                  FROM {local_lecturebot_content}
+                  FROM {local_arina_prism_sense_content}
                  WHERE courseid = :courseid AND publishedby IS NOT NULL";
         $userlist->add_from_sql('userid', $sql, $params);
 
         // Users with tracking records.
         $sql = "SELECT userid
-                  FROM {local_lecturebot_tracking}
+                  FROM {local_arina_prism_sense_tracking}
                  WHERE courseid = :courseid";
         $userlist->add_from_sql('userid', $sql, $params);
 
         // Users who submitted feedback.
         $sql = "SELECT userid
-                  FROM {local_lecturebot_feedback}
+                  FROM {local_arina_prism_sense_feedback}
                  WHERE courseid = :courseid";
         $userlist->add_from_sql('userid', $sql, $params);
     }
@@ -247,7 +247,7 @@ class provider implements
 
             // --- Content records ---
             $content = $DB->get_records_select(
-                'local_lecturebot_content',
+                'local_arina_prism_sense_content',
                 'courseid = :courseid AND (createdby = :uid1 OR approvedby = :uid2 OR publishedby = :uid3)',
                 ['courseid' => $courseid, 'uid1' => $userid, 'uid2' => $userid, 'uid3' => $userid],
                 '',
@@ -256,48 +256,51 @@ class provider implements
             );
             if ($content) {
                 writer::with_context($context)->export_data(
-                    [get_string('privacy:path:content', 'local_lecturebot')],
+                    [get_string('privacy:path:content', 'local_arina_prism_sense')],
                     (object) ['content' => array_values($content)]
                 );
             }
 
             // --- Tracking records ---
             $tracking = $DB->get_records(
-                'local_lecturebot_tracking',
+                'local_arina_prism_sense_tracking',
                 ['userid' => $userid, 'courseid' => $courseid],
                 '',
                 'id, contentid, status, timecreated, timemodified'
             );
             if ($tracking) {
                 writer::with_context($context)->export_data(
-                    [get_string('privacy:path:tracking', 'local_lecturebot')],
+                    [get_string('privacy:path:tracking', 'local_arina_prism_sense')],
                     (object) ['tracking' => array_values($tracking)]
                 );
             }
 
             // --- Feedback records ---
             $feedback = $DB->get_records(
-                'local_lecturebot_feedback',
+                'local_arina_prism_sense_feedback',
                 ['userid' => $userid, 'courseid' => $courseid],
                 '',
                 'id, contentid, feedback_type, selected_categories, rating, comments, timecreated'
             );
             if ($feedback) {
                 writer::with_context($context)->export_data(
-                    [get_string('privacy:path:feedback', 'local_lecturebot')],
+                    [get_string('privacy:path:feedback', 'local_arina_prism_sense')],
                     (object) ['feedback' => array_values($feedback)]
                 );
             }
         }
 
         // --- User preference ---
-        $pref = get_user_preferences('lecturebot_wallet_sub_user_id', null, $userid);
+        $pref = get_user_preferences('arina_prism_sense_wallet_sub_user_id', null, $userid);
         if ($pref !== null) {
             writer::with_context(\context_user::instance($userid))->export_user_preference(
-                'local_lecturebot',
-                'lecturebot_wallet_sub_user_id',
+                'local_arina_prism_sense',
+                'arina_prism_sense_wallet_sub_user_id',
                 $pref,
-                get_string('privacy:metadata:preference:lecturebot_wallet_sub_user_id', 'local_lecturebot')
+                get_string(
+                    'privacy:metadata:preference:arina_prism_sense_wallet_sub_user_id',
+                    'local_arina_prism_sense'
+                )
             );
         }
     }
@@ -321,16 +324,16 @@ class provider implements
         $courseid = $context->instanceid;
 
         // Delete tracking records (hard delete — these are purely user-linked).
-        $DB->delete_records('local_lecturebot_tracking', ['courseid' => $courseid]);
+        $DB->delete_records('local_arina_prism_sense_tracking', ['courseid' => $courseid]);
 
         // Delete feedback records.
-        $DB->delete_records('local_lecturebot_feedback', ['courseid' => $courseid]);
+        $DB->delete_records('local_arina_prism_sense_feedback', ['courseid' => $courseid]);
 
         // Anonymise content records — nullify user ID fields rather than deleting
         // the content item itself (content has value beyond the individual user).
-        $DB->set_field('local_lecturebot_content', 'createdby', null, ['courseid' => $courseid]);
-        $DB->set_field('local_lecturebot_content', 'approvedby', null, ['courseid' => $courseid]);
-        $DB->set_field('local_lecturebot_content', 'publishedby', null, ['courseid' => $courseid]);
+        $DB->set_field('local_arina_prism_sense_content', 'createdby', null, ['courseid' => $courseid]);
+        $DB->set_field('local_arina_prism_sense_content', 'approvedby', null, ['courseid' => $courseid]);
+        $DB->set_field('local_arina_prism_sense_content', 'publishedby', null, ['courseid' => $courseid]);
     }
 
     // -------------------------------------------------------------------------
@@ -355,13 +358,13 @@ class provider implements
             $courseid = $context->instanceid;
 
             // Delete tracking records for this user in this course.
-            $DB->delete_records('local_lecturebot_tracking', [
+            $DB->delete_records('local_arina_prism_sense_tracking', [
                 'userid'   => $userid,
                 'courseid' => $courseid,
             ]);
 
             // Delete feedback records for this user in this course.
-            $DB->delete_records('local_lecturebot_feedback', [
+            $DB->delete_records('local_arina_prism_sense_feedback', [
                 'userid'   => $userid,
                 'courseid' => $courseid,
             ]);
@@ -369,21 +372,21 @@ class provider implements
             // Anonymise content authorship — only nullify the fields that
             // point to this specific user, leaving other fields intact.
             $DB->set_field_select(
-                'local_lecturebot_content',
+                'local_arina_prism_sense_content',
                 'createdby',
                 null,
                 'courseid = :courseid AND createdby = :userid',
                 ['courseid' => $courseid, 'userid' => $userid]
             );
             $DB->set_field_select(
-                'local_lecturebot_content',
+                'local_arina_prism_sense_content',
                 'approvedby',
                 null,
                 'courseid = :courseid AND approvedby = :userid',
                 ['courseid' => $courseid, 'userid' => $userid]
             );
             $DB->set_field_select(
-                'local_lecturebot_content',
+                'local_arina_prism_sense_content',
                 'publishedby',
                 null,
                 'courseid = :courseid AND publishedby = :userid',
@@ -392,7 +395,7 @@ class provider implements
         }
 
         // Delete user preference (wallet UUID).
-        unset_user_preference('lecturebot_wallet_sub_user_id', $userid);
+        unset_user_preference('arina_prism_sense_wallet_sub_user_id', $userid);
     }
 
     /**
@@ -420,35 +423,35 @@ class provider implements
 
         // Delete tracking records for these users.
         $DB->delete_records_select(
-            'local_lecturebot_tracking',
+            'local_arina_prism_sense_tracking',
             "courseid = :courseid AND userid $insql",
             array_merge(['courseid' => $courseid], $inparams)
         );
 
         // Delete feedback records for these users.
         $DB->delete_records_select(
-            'local_lecturebot_feedback',
+            'local_arina_prism_sense_feedback',
             "courseid = :courseid AND userid $insql",
             array_merge(['courseid' => $courseid], $inparams)
         );
 
         // Anonymise content authorship fields.
         $DB->set_field_select(
-            'local_lecturebot_content',
+            'local_arina_prism_sense_content',
             'createdby',
             null,
             "courseid = :courseid1 AND createdby $insql",
             array_merge(['courseid1' => $courseid], $inparams)
         );
         $DB->set_field_select(
-            'local_lecturebot_content',
+            'local_arina_prism_sense_content',
             'approvedby',
             null,
             "courseid = :courseid2 AND approvedby $insql",
             array_merge(['courseid2' => $courseid], $inparams)
         );
         $DB->set_field_select(
-            'local_lecturebot_content',
+            'local_arina_prism_sense_content',
             'publishedby',
             null,
             "courseid = :courseid3 AND publishedby $insql",

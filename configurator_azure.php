@@ -20,7 +20,7 @@
  * 1. For LOCAL development: It tries to load keys from a local .env file.
  * 2. For PRODUCTION: It uses standard Environment Variables set on the server.
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  */
 
@@ -34,7 +34,7 @@ defined('MOODLE_INTERNAL') || die();
  *
  * @param string $envFile Path to .env file
  */
-function local_lecturebot_load_env_file($envFile)
+function local_arina_prism_sense_load_env_file($envFile)
 {
     if (file_exists($envFile)) {
         $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
@@ -60,7 +60,7 @@ function local_lecturebot_load_env_file($envFile)
  * @param string $constName Name of constant to define
  * @param mixed $defaultVal Optional default value if env var is missing
  */
-function local_lecturebot_define_from_env($constName, $defaultVal = null)
+function local_arina_prism_sense_define_from_env($constName, $defaultVal = null)
 {
     if (!defined($constName)) {
         $val = getenv($constName);
@@ -72,22 +72,22 @@ function local_lecturebot_define_from_env($constName, $defaultVal = null)
     }
 }
 
-function local_lecturebot_init_azure_config()
+function local_arina_prism_sense_init_azure_config()
 {
     // 1. Try to load local .env (for development)
-    local_lecturebot_load_env_file(__DIR__ . '/.env');
+    local_arina_prism_sense_load_env_file(__DIR__ . '/.env');
 
     // 2. Define Constants
-    local_lecturebot_define_from_env('AZURE_STORAGE_ACCOUNT_NAME');
-    local_lecturebot_define_from_env('AZURE_STORAGE_ACCOUNT_KEY');
-    local_lecturebot_define_from_env('LECTUREBOT_TENANT_ID', 'default_tenant');
+    local_arina_prism_sense_define_from_env('AZURE_STORAGE_ACCOUNT_NAME');
+    local_arina_prism_sense_define_from_env('AZURE_STORAGE_ACCOUNT_KEY');
+    local_arina_prism_sense_define_from_env('LECTUREBOT_TENANT_ID', 'default_tenant');
     
     // PostgreSQL Database Constants
-    local_lecturebot_define_from_env('PG_HOST');
-    local_lecturebot_define_from_env('PG_PORT', '5432');
-    local_lecturebot_define_from_env('PG_DATABASE');
-    local_lecturebot_define_from_env('PG_USER');
-    local_lecturebot_define_from_env('PG_PASSWORD');
+    local_arina_prism_sense_define_from_env('PG_HOST');
+    local_arina_prism_sense_define_from_env('PG_PORT', '5432');
+    local_arina_prism_sense_define_from_env('PG_DATABASE');
+    local_arina_prism_sense_define_from_env('PG_USER');
+    local_arina_prism_sense_define_from_env('PG_PASSWORD');
 
     if (!defined('AZURE_BLOB_CONTAINER_NAME')) {
         $val = getenv('AZURE_BLOB_CONTAINER_NAME');
@@ -108,4 +108,4 @@ function local_lecturebot_init_azure_config()
 }
 
 // Execute initialization
-local_lecturebot_init_azure_config();
+local_arina_prism_sense_init_azure_config();

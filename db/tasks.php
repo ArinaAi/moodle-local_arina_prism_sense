@@ -7,9 +7,9 @@
 // (at your option) any later version.
 
 /**
- * Scheduled tasks for local_lecturebot
+ * Scheduled tasks for local_arina_prism_sense
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -18,7 +18,7 @@ defined('MOODLE_INTERNAL') || die();
 
 $tasks = [
     [
-        'classname' => 'local_lecturebot\task\poll_content_status_task',
+        'classname' => 'local_arina_prism_sense\task\poll_content_status_task',
         'blocking' => 0,
         'minute' => '*',      // Every minute
         'hour' => '*',

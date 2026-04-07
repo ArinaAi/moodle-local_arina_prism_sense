@@ -7,7 +7,7 @@
  * and other browser-side resources to authenticate without exposing the
  * API key in the URL.
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -20,7 +20,7 @@ ob_start();
 
 require_once __DIR__ . '/../../../config.php';
 
-use local_lecturebot\CompanyConfig;
+use local_arina_prism_sense\CompanyConfig;
 
 require_once __DIR__ . '/../config_api.php';
 

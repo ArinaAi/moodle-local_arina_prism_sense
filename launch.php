@@ -26,7 +26,7 @@ $courseid = required_param('courseid', PARAM_INT);
 require_login($courseid);
 
 // Validate API key before allowing access to the plugin
-$apiKey = get_config('local_lecturebot', 'api_key');
+$apiKey = get_config('local_arina_prism_sense', 'api_key');
 $validationFailed = false;
 $errorMessage = '';
 
@@ -65,7 +65,7 @@ if (empty($apiKey)) {
     }
 }
 
-$PAGE->set_url(new moodle_url('/local/lecturebot/launch.php', ['courseid' => $courseid]));
+$PAGE->set_url(new moodle_url('/local/arina_prism_sense/launch.php', ['courseid' => $courseid]));
 $PAGE->set_pagelayout('popup'); // Use popup layout for full-screen app
 $PAGE->set_title('Generate AI Lecture');
 $PAGE->set_heading('Generate AI Lecture');
@@ -83,7 +83,7 @@ if ($validationFailed) {
     // Show settings link for admins
     $systemContext = context_system::instance();
     if (has_capability('moodle/site:config', $systemContext)) {
-        $settingsUrl = new moodle_url('/admin/settings.php', ['section' => 'local_lecturebot']);
+        $settingsUrl = new moodle_url('/admin/settings.php', ['section' => 'local_arina_prism_sense']);
         echo '<p style="margin: 30px 0;"><a href="' . $settingsUrl . '" class="btn btn-warning"
         style="margin-right: 10px;">Configure API Key</a></p>';
     } else {
@@ -100,34 +100,38 @@ if ($validationFailed) {
 
 // Bootstrap per-company config (resolves tenantid, api_key, org_wallet_owner_id for IOMAD).
 // Must be called before prepareContext() so getTenantId() returns the correct value.
-\local_lecturebot\CompanyConfig::bootstrap($USER->id);
+\local_arina_prism_sense\CompanyConfig::bootstrap($USER->id);
 
 // Get course sections and context using Utils
 // Note: Utils::prepareContext includes sections and sesskey
-$context_json = \local_lecturebot\Utils::prepareContext($COURSE, $CFG->wwwroot);
+$context_json = \local_arina_prism_sense\Utils::prepareContext($COURSE, $CFG->wwwroot);
 
 // Get versioned JS URL
-$builtjsurl = \local_lecturebot\Utils::getJsUrl($CFG->wwwroot, $CFG->dirroot . '/local/lecturebot', 'teacher.min.js');
+$builtjsurl = \local_arina_prism_sense\Utils::getJsUrl(
+    $CFG->wwwroot,
+    $CFG->dirroot . '/local/arina_prism_sense',
+    'teacher.min.js'
+);
 
 echo $OUTPUT->header();
 ?>
 
 <?php
 // Render Teacher App
-\local_lecturebot\Utils::renderReactApp(
+\local_arina_prism_sense\Utils::renderReactApp(
     $context_json,
     $builtjsurl,
     'LectureBot.init',
-    'lecturebot-react-root'
+    'arina_prism_sense-react-root'
 );
 ?>
 
 <?php
 // PRISM Sense In-App Guided Tour (Teacher App)
-\local_lecturebot\Utils::emitTour(
+\local_arina_prism_sense\Utils::emitTour(
     $CFG,
-    'lecturebot_tour_teacher_seen',
-    ['#lecturebot-tour-header', '#lecturebot-tour-sources-panel'],
+    'arina_prism_sense_tour_teacher_seen',
+    ['#arina_prism_sense-tour-header', '#arina_prism_sense-tour-sources-panel'],
     'teacher'
 );
 

@@ -17,14 +17,14 @@
 /**
  * Credit Management System - Admin Dashboard
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2026 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_once(__DIR__ . '/../../config.php');
 
-use local_lecturebot\CompanyConfig;
+use local_arina_prism_sense\CompanyConfig;
 
 require_once(__DIR__ . '/configurator_azure.php');
 
@@ -36,9 +36,9 @@ require_capability('moodle/site:config', context_system::instance());
 // Page setup
 $PAGE->set_context(context_system::instance());
 $PAGE->set_pagelayout('embedded'); // Use embedded layout for clean, chrome-free experience
-$PAGE->set_url(new moodle_url('/local/lecturebot/cms.php'));
-$PAGE->set_title(get_string('creditmanagement', 'local_lecturebot'));
-$PAGE->set_heading(get_string('creditmanagement', 'local_lecturebot'));
+$PAGE->set_url(new moodle_url('/local/arina_prism_sense/cms.php'));
+$PAGE->set_title(get_string('creditmanagement', 'local_arina_prism_sense'));
+$PAGE->set_heading(get_string('creditmanagement', 'local_arina_prism_sense'));
 
 echo $OUTPUT->header();
 
@@ -55,7 +55,7 @@ $moodlecontext = json_encode([
 echo html_writer::tag('script', "window.MOODLE_CMS_CONTEXT = {$moodlecontext};", ['type' => 'text/javascript']);
 
 // React root container
-echo html_writer::div('', '', ['id' => 'lecturebot-cms-root', 'style' => 'min-height: 100vh;']);
+echo html_writer::div('', '', ['id' => 'arina_prism_sense-cms-root', 'style' => 'min-height: 100vh;']);
 
 // React and ReactDOM must be globals BEFORE cms.min.js runs.
 // webpack.config.js declares them as externals: { 'react': 'React', 'react-dom': 'ReactDOM' }
@@ -75,23 +75,23 @@ echo html_writer::tag('script', '', [
 
 // Shared vendor chunk (MUI, Emotion, framer-motion) extracted by webpack splitChunks.
 // Must load before the app bundle since the bundle imports from these modules.
-$vendorbuildpath = $CFG->dirroot . '/local/lecturebot/amd/build/vendor.min.js';
+$vendorbuildpath = $CFG->dirroot . '/local/arina_prism_sense/amd/build/vendor.min.js';
 if (file_exists($vendorbuildpath)) {
-    $vendorjsurl = $CFG->wwwroot . '/local/lecturebot/amd/build/vendor.min.js?v=' .
+    $vendorjsurl = $CFG->wwwroot . '/local/arina_prism_sense/amd/build/vendor.min.js?v=' .
         filemtime($vendorbuildpath);
     echo html_writer::tag('script', '', ['src' => $vendorjsurl]);
 }
 
-$cmsbuildpath = $CFG->dirroot . '/local/lecturebot/amd/build/cms.min.js';
-$cmsjsurl = $CFG->wwwroot . '/local/lecturebot/amd/build/cms.min.js?v=' .
+$cmsbuildpath = $CFG->dirroot . '/local/arina_prism_sense/amd/build/cms.min.js';
+$cmsjsurl = $CFG->wwwroot . '/local/arina_prism_sense/amd/build/cms.min.js?v=' .
     filemtime($cmsbuildpath);
 echo html_writer::tag('script', '', ['src' => $cmsjsurl]);
 
 // PRISM Sense In-App Guided Tour (CMS Dashboard)
-\local_lecturebot\Utils::emitTour(
+\local_arina_prism_sense\Utils::emitTour(
     $CFG,
-    'lecturebot_tour_cms_seen',
-    ['#lecturebot-tour-cms-header', '#lecturebot-tour-cms-sidebar'],
+    'arina_prism_sense_tour_cms_seen',
+    ['#arina_prism_sense-tour-cms-header', '#arina_prism_sense-tour-cms-sidebar'],
     'cms'
 );
 echo $OUTPUT->footer();

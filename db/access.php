@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Capability definitions for the local_lecturebot plugin.
+ * Capability definitions for the local_arina_prism_sense plugin.
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -26,7 +26,7 @@ defined('MOODLE_INTERNAL') || die();
 
 $capabilities = [
 
-    'local/lecturebot:approvecontent' => [
+    'local/arina_prism_sense:approvecontent' => [
         'captype' => 'write',
         'contextlevel' => CONTEXT_COURSE,
         'archetypes' => [
@@ -35,7 +35,7 @@ $capabilities = [
         ]
     ],
 
-    'local/lecturebot:generatecontent' => [
+    'local/arina_prism_sense:generatecontent' => [
         'captype' => 'write',
         'contextlevel' => CONTEXT_COURSE,
         'archetypes' => [

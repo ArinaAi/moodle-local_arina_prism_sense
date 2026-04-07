@@ -2,7 +2,7 @@
 /**
  * API endpoint to mark content as complete for the current user
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -26,7 +26,7 @@ try {
     $userid = $USER->id;
     
     // Check if tracking record exists
-    $tracking = $DB->get_record('local_lecturebot_tracking', [
+    $tracking = $DB->get_record('local_arina_prism_sense_tracking', [
         'userid' => $userid,
         'contentid' => $contentid
     ]);
@@ -35,7 +35,7 @@ try {
         // Update existing
         $tracking->status = $status;
         $tracking->timemodified = time();
-        $DB->update_record('local_lecturebot_tracking', $tracking);
+        $DB->update_record('local_arina_prism_sense_tracking', $tracking);
     } else {
         // Create new
         $new_record = new stdClass();
@@ -45,7 +45,7 @@ try {
         $new_record->status = $status;
         $new_record->timecreated = time();
         $new_record->timemodified = time();
-        $DB->insert_record('local_lecturebot_tracking', $new_record);
+        $DB->insert_record('local_arina_prism_sense_tracking', $new_record);
     }
     
     echo json_encode([

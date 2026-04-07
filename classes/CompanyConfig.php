@@ -18,12 +18,12 @@
  *  - The user is not assigned to any company (Site Admin)
  *  - No per-company config row exists yet
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2026 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_lecturebot;
+namespace local_arina_prism_sense;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -74,7 +74,7 @@ class CompanyConfig
             FROM {company_users} cu
             JOIN {company} c
               ON c.id = cu.companyid
-            LEFT JOIN {local_lecturebot_company_config} cfg
+            LEFT JOIN {local_arina_prism_sense_company_config} cfg
               ON cfg.companyid = cu.companyid
             WHERE cu.userid = ?
             LIMIT 1
@@ -113,7 +113,7 @@ class CompanyConfig
 
     /**
      * Get the Arina API key for the current user's company.
-     * Source: mdl_local_lecturebot_company_config.api_key — set via company_settings.php.
+     * Source: mdl_local_arina_prism_sense_company_config.api_key — set via company_settings.php.
      */
     public static function getApiKey(): ?string
     {
@@ -122,7 +122,7 @@ class CompanyConfig
 
     /**
      * Get the Credit Service org wallet owner UUID for the current user's company.
-     * Source: mdl_local_lecturebot_company_config.org_wallet_owner_id — JIT-created.
+     * Source: mdl_local_arina_prism_sense_company_config.org_wallet_owner_id — JIT-created.
      */
     public static function getOrgWalletOwnerId(): ?string
     {
@@ -141,7 +141,7 @@ class CompanyConfig
     {
         if (self::$companyId === null) {
             // Standalone / Site Admin — fall back to global config.
-            set_config('org_wallet_owner_id', $uuid, 'local_lecturebot');
+            set_config('org_wallet_owner_id', $uuid, 'local_arina_prism_sense');
             return;
         }
 
@@ -149,13 +149,13 @@ class CompanyConfig
         $now = time();
 
         $existing = $DB->get_record(
-            'local_lecturebot_company_config',
+            'local_arina_prism_sense_company_config',
             ['companyid' => self::$companyId]
         );
 
         if ($existing) {
             $DB->update_record(
-                'local_lecturebot_company_config',
+                'local_arina_prism_sense_company_config',
                 (object) [
                     'id'                  => $existing->id,
                     'org_wallet_owner_id' => $uuid,
@@ -164,7 +164,7 @@ class CompanyConfig
             );
         } else {
             $DB->insert_record(
-                'local_lecturebot_company_config',
+                'local_arina_prism_sense_company_config',
                 (object) [
                     'companyid'           => self::$companyId,
                     'org_wallet_owner_id' => $uuid,
@@ -193,7 +193,7 @@ class CompanyConfig
         $now = time();
 
         $existing = $DB->get_record(
-            'local_lecturebot_company_config',
+            'local_arina_prism_sense_company_config',
             ['companyid' => $companyId]
         );
 
@@ -202,13 +202,13 @@ class CompanyConfig
                 ['id' => $existing->id, 'timemodified' => $now],
                 array_intersect_key($data, array_flip(['api_key', 'org_wallet_owner_id']))
             );
-            $DB->update_record('local_lecturebot_company_config', $record);
+            $DB->update_record('local_arina_prism_sense_company_config', $record);
         } else {
             $record = (object) array_merge(
                 ['companyid' => $companyId, 'timecreated' => $now, 'timemodified' => $now],
                 array_intersect_key($data, array_flip(['api_key', 'org_wallet_owner_id']))
             );
-            $DB->insert_record('local_lecturebot_company_config', $record);
+            $DB->insert_record('local_arina_prism_sense_company_config', $record);
         }
 
         // Bust in-memory cache so the next getter call reflects the new values.
@@ -225,7 +225,7 @@ class CompanyConfig
     public static function getForCompany(int $companyId)
     {
         global $DB;
-        return $DB->get_record('local_lecturebot_company_config', ['companyid' => $companyId]);
+        return $DB->get_record('local_arina_prism_sense_company_config', ['companyid' => $companyId]);
     }
 
     // ── IOMAD detection ───────────────────────────────────────────────────────
@@ -279,8 +279,8 @@ class CompanyConfig
 
         return (object) [
             'tenant_id' => $tenantId,
-            'api_key' => get_config('local_lecturebot', 'api_key') ?: null,
-            'org_wallet_owner_id' => get_config('local_lecturebot', 'org_wallet_owner_id') ?: null,
+            'api_key' => get_config('local_arina_prism_sense', 'api_key') ?: null,
+            'org_wallet_owner_id' => get_config('local_arina_prism_sense', 'org_wallet_owner_id') ?: null,
         ];
     }
 }

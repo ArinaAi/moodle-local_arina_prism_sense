@@ -74,11 +74,11 @@ class Utils
      * @param string $plugindir Plugin directory path
      * @return string Versioned JavaScript URL
      */
-    public static function getJsUrl($wwwroot, $plugindir, $filename = 'lecturebot_built.js')
+    public static function getJsUrl($wwwroot, $plugindir, $filename = 'arina_prism_sense_built.js')
     {
         $filesToCheck = [
             '/amd/build/' . $filename,
-            '/amd/build/lecturebot_built.js',
+            '/amd/build/arina_prism_sense_built.js',
         ];
 
         $jsversion = time(); // Default fallback
@@ -112,7 +112,7 @@ class Utils
         $contextJson,
         $jsUrl,
         $initFunction = 'LectureBot.init',
-        $rootId = 'lecturebot-react-root'
+        $rootId = 'arina_prism_sense-react-root'
     ) {
         // Safe defaults for styles
         $spinnerColor = '#0b57d0';
@@ -453,7 +453,7 @@ class Utils
      *   \local_arina_prism_sense\Utils::emitTourIfUnseen($CFG, 'pref_key', ['#sel'], 'teacher');
      *
      * @param \stdClass $cfg       Moodle $CFG global.
-     * @param string    $prefKey  User-preference key (e.g. lecturebot_tour_teacher_seen).
+     * @param string    $prefKey  User-preference key (e.g. arina_prism_sense_tour_teacher_seen).
      * @param string[]  $pollFor  CSS selectors the engine waits for before auto-starting.
      * @param string    $tourName Tour identifier matching lib/tour_steps_NAME.json.
      * @return void

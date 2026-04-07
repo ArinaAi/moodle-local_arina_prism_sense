@@ -17,7 +17,7 @@
 /**
  * LectureBot plugin for Moodle.
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -26,7 +26,7 @@ defined('MOODLE_INTERNAL') || die();
 
 $plugin->version      = 2026032500;
 $plugin->requires     = 2024100700;
-$plugin->component    = 'local_lecturebot';
+$plugin->component    = 'local_arina_prism_sense';
 $plugin->maturity     = MATURITY_STABLE;
 $plugin->release      = '1.5';
 $plugin->dependencies = [];

@@ -2,7 +2,7 @@
 /**
  * CMS API: Get Wallet Acquisitions (Purchase History)
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2026 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -20,7 +20,7 @@ require_capability('moodle/site:config', $context);
 header('Content-Type: application/json');
 
 try {
-    $client = new \local_lecturebot\cms\CreditServiceAcquisitionClient();
+    $client = new \local_arina_prism_sense\cms\CreditServiceAcquisitionClient();
     
     // Get Org Owner UUID (acquisitions API requires owner_id/user_id, not wallet_id)
     // This is the external identifier stored in Moodle config

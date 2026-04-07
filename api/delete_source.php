@@ -2,7 +2,7 @@
 /**
  * API endpoint to delete a source PDF
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -10,7 +10,7 @@
 define('AJAX_SCRIPT', true);
 require_once(__DIR__ . '/../../../config.php');
 
-use local_lecturebot\CompanyConfig;
+use local_arina_prism_sense\CompanyConfig;
 
 require_once($CFG->libdir . '/filelib.php');
 require_once(__DIR__ . '/../config_api.php');
@@ -36,7 +36,7 @@ try {
 
 
     // Get source record
-    $source = $DB->get_record('local_lecturebot_sources', ['id' => $sourceid, 'courseid' => $courseid]);
+    $source = $DB->get_record('local_arina_prism_sense_sources', ['id' => $sourceid, 'courseid' => $courseid]);
 
     if (!$source) {
         throw new moodle_exception('Source not found');
@@ -97,7 +97,7 @@ try {
     $fs = get_file_storage();
     $files = $fs->get_area_files(
         $context->id,
-        'local_lecturebot',
+        'local_arina_prism_sense',
         'sources',
         $source->fileitemid,
         'id',
@@ -109,7 +109,7 @@ try {
     }
 
     // Delete database record
-    $DB->delete_records('local_lecturebot_sources', ['id' => $sourceid]);
+    $DB->delete_records('local_arina_prism_sense_sources', ['id' => $sourceid]);
 
     echo json_encode([
         'status' => 'success',

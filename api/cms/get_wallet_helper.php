@@ -2,14 +2,14 @@
 /**
  * CMS API: Helper for fetching Wallet ID
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2026 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_once(__DIR__ . '/CreditServiceClient.php');
 
-function local_lecturebot_get_wallet_id_or_exit($client)
+function local_arina_prism_sense_get_wallet_id_or_exit($client)
 {
     // 1. Fetch Org Owner UUID
     $orgOwnerUuid = $client->getOrInitializeOrgWallet();

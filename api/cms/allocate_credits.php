@@ -2,7 +2,7 @@
 /**
  * CMS API: Allocate Credits
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2026 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -44,7 +44,7 @@ if ($amount <= 0 || floor($amount) != $amount) {
 
 try {
     global $USER;
-    $client = new \local_lecturebot\cms\CreditServiceClient();
+    $client = new \local_arina_prism_sense\cms\CreditServiceClient();
 
     // Org Wallet: resolve owner UUID -> wallet ID
     // The allocation API requires actual wallet IDs, not owner UUIDs
@@ -121,7 +121,7 @@ try {
 
                     $safeId = substr(preg_replace('/[^a-zA-Z0-9]/', '', $orgWalletId), 0, 10);
                     $cacheKey = 'low_credits_org_' . $safeId;
-                    $lastState = get_config('local_lecturebot', $cacheKey) ?: 'ok';
+                    $lastState = get_config('local_arina_prism_sense', $cacheKey) ?: 'ok';
                     $currentState = 'ok';
                     $isZero = false;
 
@@ -134,18 +134,18 @@ try {
 
                     if ($currentState !== 'ok' && $lastState !== $currentState) {
                         require_once(__DIR__ . '/../../classes/EmailNotifier.php');
-                        $admins = \local_lecturebot\Utils::getAdminsAndCompanyManagers($USER->id);
+                        $admins = \local_arina_prism_sense\Utils::getAdminsAndCompanyManagers($USER->id);
                         foreach ($admins as $adminObj) {
-                            \local_lecturebot\EmailNotifier::sendLowCreditsAdmins(
+                            \local_arina_prism_sense\EmailNotifier::sendLowCreditsAdmins(
                                 $adminObj,
                                 $newBalance,
                                 $thresholdAmount,
                                 $isZero
                             );
                         }
-                        set_config($cacheKey, $currentState, 'local_lecturebot');
+                        set_config($cacheKey, $currentState, 'local_arina_prism_sense');
                     } elseif ($currentState === 'ok' && $lastState !== 'ok') {
-                        set_config($cacheKey, 'ok', 'local_lecturebot');
+                        set_config($cacheKey, 'ok', 'local_arina_prism_sense');
                     }
                 }
             } catch (\Throwable $e) {

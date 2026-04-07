@@ -11,7 +11,7 @@
  *
  * Returns a map of sourceid -> processing_status for all sources that were checked.
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -19,7 +19,7 @@
 define('AJAX_SCRIPT', true);
 require_once(__DIR__ . '/../../../config.php');
 
-use local_lecturebot\CompanyConfig;
+use local_arina_prism_sense\CompanyConfig;
 
 require_once(__DIR__ . '/../config_api.php');
 require_once(__DIR__ . '/../classes/EmailNotifier.php');
@@ -42,7 +42,7 @@ try {
         $params['sectionid'] = $sectionid;
     }
 
-    $sources = $DB->get_records('local_lecturebot_sources', $params);
+    $sources = $DB->get_records('local_arina_prism_sense_sources', $params);
 
     if (empty($sources)) {
         echo json_encode(['success' => true, 'statuses' => []]);
@@ -58,7 +58,7 @@ try {
     // -------------------------------------------------------------------------
     foreach ($sources as $sourceId => $source) {
         if (empty($source->batch_id)) {
-            $DB->set_field('local_lecturebot_sources', 'processing_status', 'uploaded', ['id' => $sourceId]);
+            $DB->set_field('local_arina_prism_sense_sources', 'processing_status', 'uploaded', ['id' => $sourceId]);
             $statuses[$sourceId] = 'uploaded';
             unset($sources[$sourceId]);
         }
@@ -181,14 +181,14 @@ try {
                 continue;
             }
 
-            $DB->set_field('local_lecturebot_sources', 'processing_status', $newStatus, ['id' => $sourceId]);
+            $DB->set_field('local_arina_prism_sense_sources', 'processing_status', $newStatus, ['id' => $sourceId]);
             $statuses[$sourceId] = $newStatus;
 
             // Resolve the uploader from the Moodle files table (sources table has no userid column).
             // We look up the file record that was written at upload time.
             $uploaderUser = null;
             if (!empty($source->fileitemid)) {
-                $sqlWhere = "component = 'local_lecturebot' AND filearea = 'sources'"
+                $sqlWhere = "component = 'local_arina_prism_sense' AND filearea = 'sources'"
                     . " AND itemid = ? AND userid > 0 AND filename != '.'";
                 $fileRecord = $DB->get_record_select(
                     'files',
@@ -211,9 +211,9 @@ try {
             if ($uploaderUser) {
                 try {
                     if ($newStatus === 'uploaded') {
-                        \local_lecturebot\EmailNotifier::sendSourceSuccess($source, $uploaderUser);
+                        \local_arina_prism_sense\EmailNotifier::sendSourceSuccess($source, $uploaderUser);
                     } else {
-                        \local_lecturebot\EmailNotifier::sendSourceFailure($source, $uploaderUser);
+                        \local_arina_prism_sense\EmailNotifier::sendSourceFailure($source, $uploaderUser);
                     }
                 } catch (\Throwable $emailEx) {
                     error_log('LectureBot poll_processing_status: email notification failed (non-fatal): ' .

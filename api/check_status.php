@@ -2,7 +2,7 @@
 /**
  * Check generation status for content items
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -86,7 +86,7 @@ try {
     if ($contentid) {
         // Single ID fetch
         // Single ID fetch
-        $content = $DB->get_record('local_lecturebot_content', ['id' => $contentid, 'courseid' => $courseid]);
+        $content = $DB->get_record('local_arina_prism_sense_content', ['id' => $contentid, 'courseid' => $courseid]);
         if ($content) {
             $contents[] = $content;
         }
@@ -105,12 +105,12 @@ try {
             // Verify courseid too for security
             $sql = "id $insql AND courseid = ?";
             $params = array_merge($inparams, [$courseid]);
-            $contents = $DB->get_records_select('local_lecturebot_content', $sql, $params);
+            $contents = $DB->get_records_select('local_arina_prism_sense_content', $sql, $params);
         }
     } else {
         // Fetch All (Fallback/Load)
         // Fetch All (Fallback/Load)
-        $contents = $DB->get_records('local_lecturebot_content', ['courseid' => $courseid], 'timemodified DESC');
+        $contents = $DB->get_records('local_arina_prism_sense_content', ['courseid' => $courseid], 'timemodified DESC');
     }
 
     $contentList = [];

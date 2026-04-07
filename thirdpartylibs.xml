@@ -2,7 +2,7 @@
 <libraries>
     <!--
         Third-party JavaScript libraries bundled into the compiled AMD output
-        (amd/build/lecturebot.min.js) via webpack. None of these files are
+        (amd/build/arina_prism_sense.min.js) via webpack. None of these files are
         shipped as raw source — they are compiled into a single bundle.
     -->
 

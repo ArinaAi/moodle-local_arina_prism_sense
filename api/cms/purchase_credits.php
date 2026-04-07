@@ -5,7 +5,7 @@
  * Creates an acquisition in the Arina Credit Service and auto-confirms it,
  * simulating a completed purchase without an actual payment gateway.
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2026 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -44,7 +44,7 @@ try {
         exit;
     }
 
-    $client = new \local_lecturebot\cms\CreditServiceAcquisitionClient();
+    $client = new \local_arina_prism_sense\cms\CreditServiceAcquisitionClient();
 
     // 1. Resolve the Org Wallet
     $orgOwnerUuid = $client->getOrInitializeOrgWallet();

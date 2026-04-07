@@ -2,7 +2,7 @@
 /**
  * CMS API: Get Usage Metrics (Aggregated service usage)
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2026 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -21,10 +21,10 @@ require_capability('moodle/site:config', $context);
 header('Content-Type: application/json');
 
 try {
-    $client = new \local_lecturebot\cms\CreditServiceClient();
+    $client = new \local_arina_prism_sense\cms\CreditServiceClient();
     
     // 1-2. Fetch Org Owner UUID and resolve the actual wallet ID
-    $walletId = local_lecturebot_get_wallet_id_or_exit($client);
+    $walletId = local_arina_prism_sense_get_wallet_id_or_exit($client);
     
     // 3. Fetch all child-wallet transactions so sub-user (teacher) usage is
     //    included in the chart alongside any org-level consumption.

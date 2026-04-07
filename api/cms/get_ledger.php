@@ -242,7 +242,12 @@ try {
     // We get all sub-user wallet UUIDs from user_preferences so we can resolve
     // owner_id → staff name in one DB query.
     global $DB;
-    $prefRows = $DB->get_records('user_preferences', ['name' => 'lecturebot_wallet_sub_user_id'], '', 'userid, value');
+    $prefRows = $DB->get_records(
+        'user_preferences',
+        ['name' => 'arina_prism_sense_wallet_sub_user_id'],
+        '',
+        'userid, value'
+    );
 
     // ownerUuid → moodle userId
     $ownerUuidToUserId = [];

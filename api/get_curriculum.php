@@ -2,7 +2,7 @@
 /**
  * API endpoint to fetch curriculum from a section's Page activity
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */

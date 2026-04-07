@@ -2,14 +2,14 @@
 /**
  * Download/view PPTX file from Azure
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_once(__DIR__ . '/../../../config.php');
 
-use local_lecturebot\CompanyConfig;
+use local_arina_prism_sense\CompanyConfig;
 
 require_once(__DIR__ . '/../configurator_azure.php');
 
@@ -18,11 +18,11 @@ require_login();
 CompanyConfig::bootstrap($USER->id);
 
 // Get the content record
-$content = $DB->get_record('local_lecturebot_content', ['id' => $contentid], '*', MUST_EXIST);
+$content = $DB->get_record('local_arina_prism_sense_content', ['id' => $contentid], '*', MUST_EXIST);
 
 // Verify user has permission to generate/download content in this course
 $context = context_course::instance($content->courseid);
-require_capability('local/lecturebot:generatecontent', $context);
+require_capability('local/arina_prism_sense:generatecontent', $context);
 
 // Release session lock to prevent blocking
 \core\session\manager::write_close();

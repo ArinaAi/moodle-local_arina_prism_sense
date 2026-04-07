@@ -213,12 +213,12 @@ try {
     \core\session\manager::write_close();
 
     // Get user's personal wallet UUID for credit tracking.
-    // Admins and sub-users both use the same lecturebot_wallet_sub_user_id preference.
+    // Admins and sub-users both use the same arina_prism_sense_wallet_sub_user_id preference.
     // If the user has no personal wallet yet (no allocation received), $userUuid stays null
     // and the user_id param is simply omitted from the backend API call.
     $userUuid = null;
     try {
-        $userUuid = get_user_preferences('lecturebot_wallet_sub_user_id', null, $USER->id);
+        $userUuid = get_user_preferences('arina_prism_sense_wallet_sub_user_id', null, $USER->id);
     } catch (\Exception $e) {
         // Continue anyway, backend will return appropriate error if UUID is required
         error_log("LectureBot: Failed to get user UUID: " . $e->getMessage());
@@ -364,7 +364,8 @@ try {
                     error_log("LectureBot: Uploading PDF $index to backend: " . $storedfile->get_filename());
 
                     // Create a temporary file with the PDF content
-                    $tempFilePath = $CFG->tempdir . '/lecturebot_upload_' . $fileData['record']->fileitemid . '.pdf';
+                    $tempFilePath = $CFG->tempdir .
+                        '/arina_prism_sense_upload_' . $fileData['record']->fileitemid . '.pdf';
                     file_put_contents($tempFilePath, $pdfContent);
 
                     // Use CURLFile for proper multipart/form-data upload

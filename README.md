@@ -1,4 +1,4 @@
-# PRISM Sense (local_lecturebot)
+# PRISM Sense (local_arina_prism_sense)
 
 AI-powered lecture content generation for Moodle. PRISM Sense connects to the **Arina AI** service to turn existing course materials (PDFs, documents) into structured, interactive lectures — slides, table-of-contents, quizzes, and rich HTML content — directly inside your Moodle course.
 
@@ -28,7 +28,7 @@ AI-powered lecture content generation for Moodle. PRISM Sense connects to the **
 4. Follow the on-screen upgrade confirmation.
 
 **Manual install:**
-1. Extract the folder to `{moodle_root}/local/lecturebot/`.
+1. Extract the folder to `{moodle_root}/local/arina_prism_sense/`.
 2. Visit **Site administration → Notifications** to run the database upgrade.
 
 ### 2. Configure the global API key
@@ -88,10 +88,10 @@ By default, uploaded PDF sources are stored in Moodle's file system. To enable A
 This plugin processes and stores personal data. See [Privacy](#privacy-api) section and the plugin's built-in Privacy API (`classes/privacy/provider.php`).
 
 **Data stored:**
-- `local_lecturebot_content`: User IDs of who created, approved, and published content.
-- `local_lecturebot_tracking`: Student completion records (user ID + content ID + status).
-- `local_lecturebot_feedback`: User feedback including optional free-text comments and ratings.
-- **User preference**: `lecturebot_wallet_sub_user_id` — UUID linking to Arina credit wallet.
+- `local_arina_prism_sense_content`: User IDs of who created, approved, and published content.
+- `local_arina_prism_sense_tracking`: Student completion records (user ID + content ID + status).
+- `local_arina_prism_sense_feedback`: User feedback including optional free-text comments and ratings.
+- **User preference**: `arina_prism_sense_wallet_sub_user_id` — UUID linking to Arina credit wallet.
 
 **External data sharing:**
 - The user's UUID is sent to the **Arina AI API** for credit tracking purposes.
@@ -104,7 +104,7 @@ Moodle's Privacy API is fully implemented. Users can request export or deletion 
 
 1. Go to **Site administration → Plugins → Plugins overview**, find *PRISM Sense*, and click **Uninstall**.
 2. Confirm the database table removal when prompted.
-3. Manually remove the `local/lecturebot` directory.
+3. Manually remove the `local/arina_prism_sense` directory.
 
 ---
 

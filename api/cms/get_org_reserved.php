@@ -5,7 +5,7 @@
  * Returns total reserved credits across the organization and all sub-users (staff).
  * This shows credits currently locked in pending operations.
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2026 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -23,7 +23,7 @@ require_capability('moodle/site:config', $context);
 header('Content-Type: application/json');
 
 try {
-    $client = new \local_lecturebot\cms\CreditServiceClient();
+    $client = new \local_arina_prism_sense\cms\CreditServiceClient();
     
     // Get org owner UUID (this is the external ID used by Credit Service)
     $orgUuid = $client->getOrInitializeOrgWallet();

@@ -2,7 +2,7 @@
 /**
  * Generate content proxy - Updated for new flow with database tracking
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -14,7 +14,7 @@ require_once(__DIR__ . '/../config_api.php');
 require_once(__DIR__ . '/../configurator_azure.php');
 require_once(__DIR__ . '/../lib_azure_storage.php');
 
-use local_lecturebot\CompanyConfig;
+use local_arina_prism_sense\CompanyConfig;
 
 $courseid = required_param('courseid', PARAM_INT);
 require_login($courseid, false);
@@ -119,7 +119,7 @@ try {
     $feedbackId      = isset($input['feedback_id'])      ? (int) $input['feedback_id']      : 0;
 
     // Feedback fields are sent directly from the frontend (the external Arina service
-    // stores the canonical copy; there is no local local_lecturebot_feedback record to look up).
+    // stores the canonical copy; there is no local local_arina_prism_sense_feedback record to look up).
     $rawFeedback = null;
     if ($parentContentId > 0 && isset($input['feedback_topics_needing_depth'])) {
         $rawFeedback = [
@@ -136,7 +136,7 @@ try {
 
     if ($sourceContentId > 0 || $parentContentId > 0) {
         $idToUse = $sourceContentId > 0 ? $sourceContentId : $parentContentId;
-        $sourceContent = $DB->get_record('local_lecturebot_content', ['id' => $idToUse]);
+        $sourceContent = $DB->get_record('local_arina_prism_sense_content', ['id' => $idToUse]);
         if ($sourceContent && !empty($sourceContent->generationdata)) {
             $genData = json_decode($sourceContent->generationdata, true);
             if (isset($genData['curriculum_text'])) {
@@ -194,7 +194,7 @@ try {
     $sectionName = !empty($sectioninfo->name) ? strip_tags($sectioninfo->name) : "Section {$sectioninfo->section}";
 
     // Get source PDFs for this section
-    $sources = $DB->get_records('local_lecturebot_sources', [
+    $sources = $DB->get_records('local_arina_prism_sense_sources', [
         'courseid' => $courseid,
         'sectionid' => $sectionid
     ]);
@@ -253,7 +253,7 @@ try {
     // For regeneration/video (explicit regen_count above), the lock is still
     // acquired to protect the INSERT, but the count value is already fixed.
     // -------------------------------------------------------------------------
-    $lockFactory = \core\lock\lock_config::get_lock_factory('local_lecturebot_regen');
+    $lockFactory = \core\lock\lock_config::get_lock_factory('local_arina_prism_sense_regen');
     $lockKey = "section_{$courseid}_{$sectionid}";
     $lock = $lockFactory->get_lock($lockKey, 10); // wait up to 10 s
 
@@ -268,7 +268,7 @@ try {
         if ($regenCount === null) {
             // Fresh generation: find the highest regen_count already used for this section.
             $maxCount = $DB->get_field_sql(
-                'SELECT MAX(regen_count) FROM {local_lecturebot_content} WHERE courseid = ? AND sectionid = ?',
+                'SELECT MAX(regen_count) FROM {local_arina_prism_sense_content} WHERE courseid = ? AND sectionid = ?',
                 [$courseid, $sectionid]
             );
             $regenCount = ($maxCount !== null && $maxCount !== false) ? (int)$maxCount + 1 : 0;
@@ -302,7 +302,7 @@ try {
         $content->timecreated = time();
         $content->timemodified = time();
 
-        $contentId = $DB->insert_record('local_lecturebot_content', $content);
+        $contentId = $DB->insert_record('local_arina_prism_sense_content', $content);
     } finally {
         // Always release the lock — even if the INSERT threw an exception.
         $lock->release();
@@ -332,7 +332,7 @@ try {
     ];
 
     if (defined('DEVELOPER_MODE') && DEVELOPER_MODE) {
-        $task = new \local_lecturebot\task\generate_content_task_mock();
+        $task = new \local_arina_prism_sense\task\generate_content_task_mock();
         $task->set_custom_data($task_data);
 
         // DEVELOPER MODE: EXECUTE SYNCHRONOUSLY
@@ -341,7 +341,7 @@ try {
         $task->execute();
 
     } else {
-        $task = new \local_lecturebot\task\generate_content_task();
+        $task = new \local_arina_prism_sense\task\generate_content_task();
         $task->set_custom_data($task_data);
 
         // PRODUCTION: Queue the task

@@ -2,7 +2,7 @@
 /**
  * Cleanup script - deletes all content from database
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -21,7 +21,7 @@ try {
 
 
     // Delete all content for this course
-    $DB->delete_records('local_lecturebot_content', ['courseid' => $courseid]);
+    $DB->delete_records('local_arina_prism_sense_content', ['courseid' => $courseid]);
 
     echo json_encode([
         'success' => true,

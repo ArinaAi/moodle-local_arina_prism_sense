@@ -3,7 +3,7 @@
  * API endpoint to securely stream video from Azure
  * Redirects to a temporary SAS URL
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -11,7 +11,7 @@
 define('AJAX_SCRIPT', true);
 require_once __DIR__ . '/../../../config.php';
 
-use local_lecturebot\CompanyConfig;
+use local_arina_prism_sense\CompanyConfig;
 
 require_once __DIR__ . '/../configurator_azure.php';
 require_once __DIR__ . '/../lib_azure_storage.php';
@@ -28,7 +28,7 @@ try {
     // Any enrolled user can view content
     
     // Get content record
-    $content = $DB->get_record('local_lecturebot_content', ['id' => $contentid], '*', MUST_EXIST);
+    $content = $DB->get_record('local_arina_prism_sense_content', ['id' => $contentid], '*', MUST_EXIST);
     
     if ($content->courseid != $courseid) {
         throw new moodle_exception('Content does not belong to this course');

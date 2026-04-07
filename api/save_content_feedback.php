@@ -5,7 +5,7 @@
  * Forwards structured regeneration feedback to the external
  * Arina Customer Feedback Service REST API.
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2026 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -14,7 +14,7 @@ define('AJAX_SCRIPT', true);
 
 require_once __DIR__ . '/../../../config.php';
 
-use local_lecturebot\CompanyConfig;
+use local_arina_prism_sense\CompanyConfig;
 
 require_once __DIR__ . '/../config_api.php';
 
@@ -58,7 +58,7 @@ try {
     $contentid = (int) $input['contentid'];
 
     // Load content record to get course info, video_length, and verify access
-    $content = $DB->get_record('local_lecturebot_content', ['id' => $contentid], '*', MUST_EXIST);
+    $content = $DB->get_record('local_arina_prism_sense_content', ['id' => $contentid], '*', MUST_EXIST);
 
     $context = context_course::instance($content->courseid);
     require_capability(CAPABILITY_GENERATE_CONTENT, $context);
@@ -100,7 +100,7 @@ try {
     // 2. Build JSON payload for the Arina Content-Regen Feedback API
     // ----------------------------------------------------------------
     $payload = [
-        'tenant_id' => (string) get_config('local_lecturebot', 'tenantid') ?:
+        'tenant_id' => (string) get_config('local_arina_prism_sense', 'tenantid') ?:
             CompanyConfig::getTenantId() ?: '0',
         'user_id' => (string) $USER->id,
         'contentid' => (string) $contentid,

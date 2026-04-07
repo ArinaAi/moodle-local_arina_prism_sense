@@ -13,7 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
-namespace local_lecturebot\task;
+namespace local_arina_prism_sense\task;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -29,7 +29,7 @@ require_once(__DIR__ . '/../ErrorClassifier.php');
  * This task now handles the INITIAL API call which returns immediately with a request_id.
  * The actual file download is handled by the scheduled poll_content_status_task.
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  */
 class generate_content_task extends \core\task\adhoc_task
@@ -46,7 +46,7 @@ class generate_content_task extends \core\task\adhoc_task
         $contentId = $taskData['contentId'];
 
         try {
-            $content = $DB->get_record('local_lecturebot_content', ['id' => $contentId]);
+            $content = $DB->get_record('local_arina_prism_sense_content', ['id' => $contentId]);
             if (!$content) {
                 mtrace("Content record $contentId not found, aborting.");
                 return;
@@ -55,7 +55,7 @@ class generate_content_task extends \core\task\adhoc_task
             // Skip trigger_generation for:
             // 1. Feedback-based regenerations — detected via parent_content_id > 0.
             //    NOTE: we cannot use $taskData['data']->feedback because save_content_feedback.php
-            //    stores feedback in the external Arina service, not local_lecturebot_feedback,
+            //    stores feedback in the external Arina service, not local_arina_prism_sense_feedback,
             //    so feedbackDetails is always null here. parent_content_id is the reliable signal.
             // 2. Video generation — trigger_generation doesn't support video params
             //    (language, voice_gender, avatar_strategy); use generate_video directly.
@@ -107,7 +107,7 @@ class generate_content_task extends \core\task\adhoc_task
         // Bootstrap per-tenant config using the originating teacher's user ID.
         // In cron context $USER->id is the CLI user; task data carries the real user.
         if (!empty($data->user_id)) {
-            \local_lecturebot\CompanyConfig::bootstrap((int)$data->user_id);
+            \local_arina_prism_sense\CompanyConfig::bootstrap((int) $data->user_id);
         }
 
         $userUuid = $this->getUserUuidForCredit($data);
@@ -130,7 +130,7 @@ class generate_content_task extends \core\task\adhoc_task
 
     /**
      * If the user's balance is now >= 100 (i.e. they topped up out-of-band),
-     * reset the lecturebot_low_credits_state preference to 'ok' so that the
+     * reset the arina_prism_sense_low_credits_state preference to 'ok' so that the
      * post-generation credit check can fire again when the balance next drops.
      *
      * @param string|null $userUuid The resolved wallet owner UUID
@@ -142,7 +142,7 @@ class generate_content_task extends \core\task\adhoc_task
             return;
         }
         try {
-            $client = new \local_lecturebot\cms\CreditServiceClient();
+            $client = new \local_arina_prism_sense\cms\CreditServiceClient();
             $walletId = $client->resolveWalletId($userUuid);
             if (!$walletId) {
                 return;
@@ -157,9 +157,9 @@ class generate_content_task extends \core\task\adhoc_task
             $balance = (float) $balRes['data']['current_balance'];
             if ($balance >= 100) {
                 $uid = (int) $data->user_id;
-                $lastState = get_user_preferences('lecturebot_low_credits_state', 'ok', $uid);
+                $lastState = get_user_preferences('arina_prism_sense_low_credits_state', 'ok', $uid);
                 if ($lastState !== 'ok') {
-                    set_user_preference('lecturebot_low_credits_state', 'ok', $uid);
+                    set_user_preference('arina_prism_sense_low_credits_state', 'ok', $uid);
                     mtrace("    Reset low credits state to 'ok' for user {$uid} (balance={$balance})");
                 }
             }
@@ -231,7 +231,7 @@ class generate_content_task extends \core\task\adhoc_task
             $this->handleSyncResponse($content, $taskData);
         } else {
             $errorMsg = $this->extractErrorMessage($apiResponse);
-            throw new \local_lecturebot\exception\api_response_exception($errorMsg);
+            throw new \local_arina_prism_sense\exception\api_response_exception($errorMsg);
         }
     }
 
@@ -246,7 +246,7 @@ class generate_content_task extends \core\task\adhoc_task
         $requestId = $apiResponse['request_id'] ?? $apiResponse['content_request_id'] ?? null;
 
         if (!$requestId) {
-            throw new \local_lecturebot\exception\api_response_exception(
+            throw new \local_arina_prism_sense\exception\api_response_exception(
                 'API returned processing status but no request_id'
             );
         }
@@ -350,22 +350,22 @@ class generate_content_task extends \core\task\adhoc_task
 
         mtrace("Found batch_id: $batchId");
 
-        $apiKey = \local_lecturebot\CompanyConfig::getApiKey()
-            ?? get_config('local_lecturebot', 'api_key');
+        $apiKey = \local_arina_prism_sense\CompanyConfig::getApiKey()
+            ?? get_config('local_arina_prism_sense', 'api_key');
         if (empty($apiKey)) {
-            throw new \local_lecturebot\exception\api_http_exception('API key is not configured');
+            throw new \local_arina_prism_sense\exception\api_http_exception('API key is not configured');
         }
 
         // Polling configuration and mutable state bundled together.
         // Total window: 180 attempts × 60 s = 180 min (3 hours).
         // The hard timeout acts as an absolute safety net for the same period.
         $pollCfg = [
-            'maxAttempts'           => 180,          // 180 × 60 s = 3 hours
-            'pollInterval'          => 60,            // seconds between each poll
+            'maxAttempts' => 180,          // 180 × 60 s = 3 hours
+            'pollInterval' => 60,            // seconds between each poll
             'maxUploadWaitAttempts' => 10,            // consecutive "uploads not ready" before abort
-            'hardTimeoutSeconds'    => 3 * 60 * 60,  // 3-hour absolute wall-clock limit
-            'uploadNotReadyCount'   => 0,             // mutable: updated each iteration
-            'startTime'             => time(),        // mutable: wall-clock anchor
+            'hardTimeoutSeconds' => 3 * 60 * 60,  // 3-hour absolute wall-clock limit
+            'uploadNotReadyCount' => 0,             // mutable: updated each iteration
+            'startTime' => time(),        // mutable: wall-clock anchor
         ];
 
         mtrace("Starting trigger_generation polling (max {$pollCfg['maxAttempts']} attempts, " .
@@ -422,13 +422,13 @@ class generate_content_task extends \core\task\adhoc_task
             return null;
         }
 
-        $maxAttempts  = $pollCfg['maxAttempts'];
+        $maxAttempts = $pollCfg['maxAttempts'];
         $pollInterval = $pollCfg['pollInterval'];
-        $elapsed      = $pollCfg['elapsed'];
+        $elapsed = $pollCfg['elapsed'];
 
         mtrace("Attempt $attempt/$maxAttempts (elapsed: {$elapsed}s): Calling trigger_generation...");
 
-        $params       = $this->buildTriggerParams($data, $batchId, $userUuid);
+        $params = $this->buildTriggerParams($data, $batchId, $userUuid);
         $responseData = $this->callTriggerGenerationApi($params, $apiKey);
 
         // null response = transient failure; delegate all other outcomes then sleep once
@@ -481,7 +481,7 @@ class generate_content_task extends \core\task\adhoc_task
             return 'timeout';
         }
 
-        if (!$DB->record_exists('local_lecturebot_content', ['id' => $data->content_id])) {
+        if (!$DB->record_exists('local_arina_prism_sense_content', ['id' => $data->content_id])) {
             mtrace("✗ Content record {$data->content_id} no longer exists. Aborting orphaned poll.");
             return 'orphan';
         }
@@ -507,7 +507,7 @@ class generate_content_task extends \core\task\adhoc_task
                 "The backend may have lost the batch. Aborting.");
             // Throw with the sentinel so handleFailure() writes a recognisable
             // errormessage that the frontend can surface as a specific PDF error.
-            throw new \local_lecturebot\exception\api_response_exception('PDF_UPLOAD_FAILED');
+            throw new \local_arina_prism_sense\exception\api_response_exception('PDF_UPLOAD_FAILED');
         }
 
         sleep($pollInterval);
@@ -531,7 +531,7 @@ class generate_content_task extends \core\task\adhoc_task
         // latest batch_id to determine whether ALL uploads in the section are processed.
         // Using an earlier batch_id would cause generation to fire before the last PDF finishes.
         $sources = $DB->get_records_select(
-            'local_lecturebot_sources',
+            'local_arina_prism_sense_sources',
             'courseid = :courseid AND sectionid = :sectionid AND batch_id IS NOT NULL AND batch_id <> :empty',
             ['courseid' => $courseid, 'sectionid' => $sectionid, 'empty' => ''],
             'timecreated DESC',
@@ -681,13 +681,13 @@ class generate_content_task extends \core\task\adhoc_task
      * Handle trigger generation failure
      *
      * @param array $responseData Response data
-     * @throws \local_lecturebot\exception\api_response_exception
+     * @throws \local_arina_prism_sense\exception\api_response_exception
      */
     private function handleTriggerFailure($responseData)
     {
         $errorMsg = $this->extractErrorMessage($responseData);
         mtrace("✗ FAILED: $errorMsg");
-        throw new \local_lecturebot\exception\api_response_exception($errorMsg);
+        throw new \local_arina_prism_sense\exception\api_response_exception($errorMsg);
     }
 
     /**
@@ -748,7 +748,7 @@ class generate_content_task extends \core\task\adhoc_task
         $isVideo = ($contentType === 'video' || $avatarVideoNeeded === 'yes');
 
         // Update content record with request_id and Azure blob info
-        $content = $DB->get_record('local_lecturebot_content', ['id' => $contentId]);
+        $content = $DB->get_record('local_arina_prism_sense_content', ['id' => $contentId]);
         if ($content) {
             $generationData = json_decode($content->generationdata, true) ?: [];
             $generationData['request_id'] = $requestId;
@@ -760,7 +760,7 @@ class generate_content_task extends \core\task\adhoc_task
             $content->request_id = $requestId;
             $content->generationdata = json_encode($generationData);
             $content->timemodified = time();
-            $DB->update_record('local_lecturebot_content', $content);
+            $DB->update_record('local_arina_prism_sense_content', $content);
         }
     }
 
@@ -846,8 +846,8 @@ class generate_content_task extends \core\task\adhoc_task
      */
     private function executeApiCall($apiUrl)
     {
-        $apiKey = \local_lecturebot\CompanyConfig::getApiKey()
-            ?? get_config('local_lecturebot', 'api_key');
+        $apiKey = \local_arina_prism_sense\CompanyConfig::getApiKey()
+            ?? get_config('local_arina_prism_sense', 'api_key');
         $ch = $this->initializeCurl($apiUrl, $apiKey);
 
         $response = curl_exec($ch);
@@ -867,13 +867,13 @@ class generate_content_task extends \core\task\adhoc_task
      * @param string $apiUrl API URL
      * @param string $apiKey API key
      * @return resource cURL handle
-     * @throws \local_lecturebot\exception\curl_init_exception
+     * @throws \local_arina_prism_sense\exception\curl_init_exception
      */
     private function initializeCurl($apiUrl, $apiKey)
     {
         $ch = curl_init($apiUrl);
         if ($ch === false) {
-            throw new \local_lecturebot\exception\curl_init_exception('Failed to initialize cURL');
+            throw new \local_arina_prism_sense\exception\curl_init_exception('Failed to initialize cURL');
         }
 
         curl_setopt_array($ch, [
@@ -902,14 +902,14 @@ class generate_content_task extends \core\task\adhoc_task
      * Check for cURL errors and throw exception if found
      *
      * @param resource $ch cURL handle
-     * @throws \local_lecturebot\exception\curl_execution_exception
+     * @throws \local_arina_prism_sense\exception\curl_execution_exception
      */
     private function checkCurlErrors($ch)
     {
         if (curl_errno($ch)) {
             $curlError = curl_error($ch);
             curl_close($ch);
-            throw new \local_lecturebot\exception\curl_execution_exception('cURL error: ' . $curlError);
+            throw new \local_arina_prism_sense\exception\curl_execution_exception('cURL error: ' . $curlError);
         }
     }
 
@@ -919,7 +919,7 @@ class generate_content_task extends \core\task\adhoc_task
      * @param int $httpCode HTTP status code
      * @param string $response Response body
      * @return array Decoded JSON response
-     * @throws \local_lecturebot\exception\api_http_exception
+     * @throws \local_arina_prism_sense\exception\api_http_exception
      */
     private function processApiCallResponse($httpCode, $response)
     {
@@ -937,12 +937,12 @@ class generate_content_task extends \core\task\adhoc_task
     /**
      * Handle authentication error (401)
      *
-     * @throws \local_lecturebot\exception\api_http_exception
+     * @throws \local_arina_prism_sense\exception\api_http_exception
      */
     private function handleAuthenticationError()
     {
         mtrace("API authentication failed: HTTP 401 (API key is missing or incorrect)");
-        throw new \local_lecturebot\exception\api_http_exception('API key is missing or incorrect.
+        throw new \local_arina_prism_sense\exception\api_http_exception('API key is missing or incorrect.
             Please check your settings.');
     }
 
@@ -951,7 +951,7 @@ class generate_content_task extends \core\task\adhoc_task
      *
      * @param int $httpCode HTTP status code
      * @param string $response Response body
-     * @throws \local_lecturebot\exception\api_http_exception
+     * @throws \local_arina_prism_sense\exception\api_http_exception
      */
     private function handleApiError($httpCode, $response)
     {
@@ -964,7 +964,7 @@ class generate_content_task extends \core\task\adhoc_task
             }
         }
 
-        throw new \local_lecturebot\exception\api_http_exception($errorMsg);
+        throw new \local_arina_prism_sense\exception\api_http_exception($errorMsg);
     }
 
     /**
@@ -1006,16 +1006,16 @@ class generate_content_task extends \core\task\adhoc_task
         }
 
         $blobName = $folderName . '/' . $remoteFileName;
-        $filepath = $CFG->tempdir . '/lecturebot/' . $localFileName;
+        $filepath = $CFG->tempdir . '/arina_prism_sense/' . $localFileName;
 
-        if (!is_dir($CFG->tempdir . '/lecturebot')) {
-            mkdir($CFG->tempdir . '/lecturebot', 0755, true);
+        if (!is_dir($CFG->tempdir . '/arina_prism_sense')) {
+            mkdir($CFG->tempdir . '/arina_prism_sense', 0755, true);
         }
 
-        $success = \local_lecturebot\Utils::downloadFileFromAzure($blobName, $filepath, $containerName);
+        $success = \local_arina_prism_sense\Utils::downloadFileFromAzure($blobName, $filepath, $containerName);
 
         if (!$success || !file_exists($filepath) || filesize($filepath) === 0) {
-            throw new \local_lecturebot\exception\azure_download_exception(
+            throw new \local_arina_prism_sense\exception\azure_download_exception(
                 "Failed to download file ($remoteFileName) from Azure Blob Storage (or empty file)"
             );
         }
@@ -1068,14 +1068,14 @@ class generate_content_task extends \core\task\adhoc_task
                 'results' => [
                     [
                         'topic' => "Section " . $sectionid,
-                        'videoUrl' => "{$CFG->wwwroot}/local/lecturebot/api/stream_video.php?" .
+                        'videoUrl' => "{$CFG->wwwroot}/local/arina_prism_sense/api/stream_video.php?" .
                             "contentid={$contentId}&courseid={$courseid}",
                         'videoDuration' => 0
                     ]
                 ]
             ];
         } else {
-            $slideCount = \local_lecturebot\Utils::countSlidesInPptx($filepath);
+            $slideCount = \local_arina_prism_sense\Utils::countSlidesInPptx($filepath);
             $genDataUpdate['pptx_file'] = $localFileName;
             $genDataUpdate['pptx_path'] = $filepath;
             $genDataUpdate['slide_count'] = $slideCount;
@@ -1097,7 +1097,7 @@ class generate_content_task extends \core\task\adhoc_task
             $genDataUpdate
         ));
         $content->timemodified = time();
-        $DB->update_record('local_lecturebot_content', $content);
+        $DB->update_record('local_arina_prism_sense_content', $content);
     }
 
     /**
@@ -1109,7 +1109,7 @@ class generate_content_task extends \core\task\adhoc_task
     {
         global $DB;
         $DB->update_record(
-            'local_lecturebot_content',
+            'local_arina_prism_sense_content',
             (object) [
                 'id' => $contentId,
                 'status' => 'error',
@@ -1118,10 +1118,10 @@ class generate_content_task extends \core\task\adhoc_task
             ]
         );
 
-        $content = $DB->get_record('local_lecturebot_content', ['id' => $contentId]);
+        $content = $DB->get_record('local_arina_prism_sense_content', ['id' => $contentId]);
         if ($content) {
             try {
-                \local_lecturebot\EmailNotifier::sendContentFailure($content, $errorMessage);
+                \local_arina_prism_sense\EmailNotifier::sendContentFailure($content, $errorMessage);
             } catch (\Throwable $emailEx) {
                 mtrace("    Email notification failed (non-fatal): " . $emailEx->getMessage());
             }
@@ -1153,10 +1153,10 @@ class generate_content_task extends \core\task\adhoc_task
 
         // Fetch live balance if possible (for accurate number in email body).
         $balance = 0.0;
-        $uuid = get_user_preferences('lecturebot_wallet_sub_user_id', null, $userid);
+        $uuid = get_user_preferences('arina_prism_sense_wallet_sub_user_id', null, $userid);
         if ($uuid) {
             try {
-                $client = new \local_lecturebot\cms\CreditServiceClient();
+                $client = new \local_arina_prism_sense\cms\CreditServiceClient();
                 $walletId = $client->resolveWalletId($uuid);
                 if ($walletId) {
                     $balRes = $client->getWalletBalance($walletId);
@@ -1175,17 +1175,24 @@ class generate_content_task extends \core\task\adhoc_task
 
         try {
             // Notify the user themselves.
-            \local_lecturebot\EmailNotifier::sendLowCreditsUser($user, $balance, 100.0, $isZero);
+            \local_arina_prism_sense\EmailNotifier::sendLowCreditsUser($user, $balance, 100.0, $isZero);
 
             // Notify all admins / company managers about this specific user's low wallet.
-            $admins = \local_lecturebot\Utils::getAdminsAndCompanyManagers($userid);
+            $admins = \local_arina_prism_sense\Utils::getAdminsAndCompanyManagers($userid);
             foreach ($admins as $admin) {
-                \local_lecturebot\EmailNotifier::sendLowCreditsUserToAdmin($admin, $user, $balance, 100.0, $isZero);
+                \local_arina_prism_sense\EmailNotifier::sendLowCreditsUserToAdmin(
+                    $admin,
+                    $user,
+                    $balance,
+                    100.0,
+                    $isZero
+                );
+
             }
 
             // Sync the state preference so the background checker won't re-fire.
             $newState = $isZero ? 'zero' : 'low';
-            set_user_preference('lecturebot_low_credits_state', $newState, $userid);
+            set_user_preference('arina_prism_sense_low_credits_state', $newState, $userid);
         } catch (\Throwable $e) {
             mtrace("    Error sending low-credits alert emails: " . $e->getMessage());
         }
@@ -1210,13 +1217,13 @@ class generate_content_task extends \core\task\adhoc_task
      */
     private function classifyError(string $raw): string
     {
-        return \local_lecturebot\ErrorClassifier::classify($raw);
+        return \local_arina_prism_sense\ErrorClassifier::classify($raw);
     }
 
     /**
      * Get user's personal wallet UUID for credit tracking.
      *
-     * All users (admins and sub-users) use the same lecturebot_wallet_sub_user_id
+     * All users (admins and sub-users) use the same arina_prism_sense_wallet_sub_user_id
      * preference. An admin's personal wallet is created JIT on first allocation from
      * the org wallet. If no wallet exists yet, returns null (generation still works
      * but credits won't be tracked against any specific wallet).
@@ -1235,7 +1242,7 @@ class generate_content_task extends \core\task\adhoc_task
 
         $result = null;
         try {
-            $userUuid = get_user_preferences('lecturebot_wallet_sub_user_id', null, $data->user_id);
+            $userUuid = get_user_preferences('arina_prism_sense_wallet_sub_user_id', null, $data->user_id);
 
             if (!empty($userUuid)) {
                 mtrace("Found personal wallet UUID: " . $userUuid);

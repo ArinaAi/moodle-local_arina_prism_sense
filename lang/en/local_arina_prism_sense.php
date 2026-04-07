@@ -104,7 +104,7 @@ $string['privacy:metadata:local_arina_prism_sense_feedback:timecreated'] =
     'The date and time the feedback was submitted.';
 
 // User preference
-$string['privacy:metadata:preference:lecturebot_wallet_sub_user_id'] =
+$string['privacy:metadata:preference:arina_prism_sense_wallet_sub_user_id'] =
     'A UUID that links this Moodle user to their Arina credit wallet account for usage tracking.';
 
 // External service: Arina AI API

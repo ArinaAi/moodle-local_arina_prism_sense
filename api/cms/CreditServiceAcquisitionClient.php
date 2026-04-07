@@ -2,12 +2,12 @@
 /**
  * Arina Credit Service Acquisition Client
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2026 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_lecturebot\cms;
+namespace local_arina_prism_sense\cms;
 
 defined('MOODLE_INTERNAL') || die();
 

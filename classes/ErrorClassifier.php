@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace local_lecturebot;
+namespace local_arina_prism_sense;
 
 /**
  * Classifies raw backend error strings into sentinel codes.
@@ -30,7 +30,7 @@ namespace local_lecturebot;
  *   VIDEO_FAILED         – video-specific failure (non-credit)
  *   ''                   – generic fallback (slide/content generation)
  *
- * @package local_lecturebot
+ * @package local_arina_prism_sense
  * @copyright 2025 Arina AI <info@arina.ai>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */

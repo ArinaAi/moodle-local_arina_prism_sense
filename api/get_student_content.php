@@ -3,7 +3,7 @@
  * API endpoint to get all course content for the student interface
  * Aggregates visible sections, published content, and user completion status
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -29,7 +29,7 @@ try {
     // can_access_course checks if the user can access this course
     // It considers: enrollment, guest access, admin access, etc.
     if (!can_access_course($course)) {
-        throw new moodle_exception('noaccess', 'local_lecturebot');
+        throw new moodle_exception('noaccess', 'local_arina_prism_sense');
     }
     
     $userid = $USER->id;
@@ -40,14 +40,14 @@ try {
     
     // 2. Get Generated Content (Published Only)
     // We only show published content to students
-    $generatedContent = $DB->get_records('local_lecturebot_content', [
+    $generatedContent = $DB->get_records('local_arina_prism_sense_content', [
         'courseid' => $courseid,
         'status' => 'published'
     ]);
     
     // 3. Get Completion Tracking for this user
     // Fetch all completion records for this user in this course
-    $trackingRecords = $DB->get_records('local_lecturebot_tracking', [
+    $trackingRecords = $DB->get_records('local_arina_prism_sense_tracking', [
         'userid' => $userid,
         'courseid' => $courseid
     ], '', 'contentid, status');

@@ -2,7 +2,7 @@
 /**
  * View PDF file from Azure (Fallback for PPTX Viewer)
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -11,13 +11,13 @@ require_once __DIR__ . '/../../../config.php';
 require_once __DIR__ . '/../configurator_azure.php';
 require_once __DIR__ . '/../config_api.php';
 
-use local_lecturebot\CompanyConfig;
+use local_arina_prism_sense\CompanyConfig;
 
 $contentid = required_param('contentid', PARAM_INT);
 require_login();
 
 // Get the content record
-$content = $DB->get_record('local_lecturebot_content', ['id' => $contentid], '*', MUST_EXIST);
+$content = $DB->get_record('local_arina_prism_sense_content', ['id' => $contentid], '*', MUST_EXIST);
 
 // Verify user has access to this course
 $context = context_course::instance($content->courseid);

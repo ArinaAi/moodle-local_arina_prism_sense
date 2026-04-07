@@ -2,7 +2,7 @@
 /**
  * CMS API: Get Staff Members
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2026 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -21,7 +21,7 @@ header('Content-Type: application/json');
 
 try {
     global $DB;
-    $client = new \local_lecturebot\cms\CreditServiceClient();
+    $client = new \local_arina_prism_sense\cms\CreditServiceClient();
 
     // 1. Fetch Org Wallet ID and Hierarchy (to get balances of all subusers)
     $orgUuid = $client->getOrInitializeOrgWallet();
@@ -87,7 +87,7 @@ try {
 
     // Helper to build a single staff row
     $buildRow = function ($user, $isAdmin) use ($subWallets) {
-        $uuid = get_user_preferences('lecturebot_wallet_sub_user_id', null, $user->id);
+        $uuid = get_user_preferences('arina_prism_sense_wallet_sub_user_id', null, $user->id);
 
         $balance = 0;
         $reservedCredits = 0;

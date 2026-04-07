@@ -17,7 +17,7 @@
 /**
  * LectureBot plugin for Moodle.
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2024 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -28,7 +28,7 @@ require_once(__DIR__ . '/classes/Utils.php');
 require_once(__DIR__ . '/configurator_azure.php');
 require_once(__DIR__ . '/config_api.php');
 
-use local_lecturebot\Utils;
+use local_arina_prism_sense\Utils;
 
 define('SCRIPT_START', '<script>');
 define('SCRIPT_END', '</script>');
@@ -39,17 +39,17 @@ define('SCRIPT_END', '</script>');
  * @param string $wwwroot Moodle wwwroot
  * @return string JavaScript code
  */
-function local_lecturebot_get_button_js($wwwroot)
+function local_arina_prism_sense_get_button_js($wwwroot)
 {
-    $buttontext = get_string('generatelecture', 'local_lecturebot');
-    $unabletoopen = get_string('unabletoopenprism', 'local_lecturebot');
+    $buttontext = get_string('generatelecture', 'local_arina_prism_sense');
+    $unabletoopen = get_string('unabletoopenprism', 'local_arina_prism_sense');
 
     // Minified logic to inject button
     return <<<JS
         (function() {
             function initLectureBotAdmin() {
                 // Remove existing button if any
-                const existingBtn = document.querySelector(".lecturebot-course-button");
+                const existingBtn = document.querySelector(".arina_prism_sense-course-button");
                 if (existingBtn) {existingBtn.remove()};
 
                 // Find injection target
@@ -63,7 +63,7 @@ function local_lecturebot_get_button_js($wwwroot)
                     console.log("LectureBot: Found admin target", targetElement);
                     const button = document.createElement("button");
                     button.type = "button";
-                    button.className = "btn btn-primary lecturebot-course-button";
+                    button.className = "btn btn-primary arina_prism_sense-course-button";
                     button.innerHTML = "{$buttontext}";
                     button.style.cssText = "margin-top: 10px; margin-right: 15px; background: #0f6cbf;" +
                         " border-color: #0f6cbf; color: white;" +
@@ -72,7 +72,7 @@ function local_lecturebot_get_button_js($wwwroot)
 
                     button.addEventListener("click", function() {
                         if (window.MOODLE_CONTEXT && window.MOODLE_CONTEXT.courseid) {
-                            window.location.href = "{$wwwroot}/local/lecturebot/launch.php?courseid=" +
+                            window.location.href = "{$wwwroot}/local/arina_prism_sense/launch.php?courseid=" +
                                 window.MOODLE_CONTEXT.courseid;
                         } else {
                             console.error("❌ MOODLE_CONTEXT not available");
@@ -106,9 +106,9 @@ JS;
  * @param string $wwwroot Moodle wwwroot
  * @return string JavaScript code
  */
-function local_lecturebot_get_student_button_js($wwwroot)
+function local_arina_prism_sense_get_student_button_js($wwwroot)
 {
-    $buttontext = get_string('courseplayer', 'local_lecturebot'); // We need to add this string too
+    $buttontext = get_string('courseplayer', 'local_arina_prism_sense'); // We need to add this string too
     if (empty($buttontext) || $buttontext == '[[courseplayer]]') {
         $buttontext = 'Start Course';
     }
@@ -117,7 +117,7 @@ function local_lecturebot_get_student_button_js($wwwroot)
         (function() {
             function initLectureBotStudent() {
                 // Remove existing button if any
-                const existingBtn = document.querySelector(".lecturebot-student-button");
+                const existingBtn = document.querySelector(".arina_prism_sense-student-button");
                 if (existingBtn) existingBtn.remove();
 
                 // Find injection target - Student view might differ
@@ -130,7 +130,7 @@ function local_lecturebot_get_student_button_js($wwwroot)
                 if (targetElement) {
                     console.log("LectureBot: Found student target", targetElement);
                     const button = document.createElement("a");
-                    button.className = "btn btn-primary lecturebot-student-button"; // Changed to btn-primary
+                    button.className = "btn btn-primary arina_prism_sense-student-button"; // Changed to btn-primary
                     button.innerHTML = '<i class="fa fa-play-circle" aria-hidden="true"></i> ' + "{$buttontext}";
                     button.href = "#";
                     // Matched colors: background: #0f6cbf; border-color: #0f6cbf; color: white;
@@ -142,7 +142,7 @@ function local_lecturebot_get_student_button_js($wwwroot)
                     button.addEventListener("click", function(e) {
                         e.preventDefault();
                         if (window.MOODLE_CONTEXT && window.MOODLE_CONTEXT.courseid) {
-                            window.location.href = "{$wwwroot}/local/lecturebot/student_view.php?courseid=" +
+                            window.location.href = "{$wwwroot}/local/arina_prism_sense/student_view.php?courseid=" +
                                 window.MOODLE_CONTEXT.courseid;
                         } else {
                             console.error("❌ MOODLE_CONTEXT not available");
@@ -175,7 +175,7 @@ JS;
  *
  * @return bool True if user has access
  */
-function local_lecturebot_can_access()
+function local_arina_prism_sense_can_access()
 {
     global $PAGE, $COURSE;
 
@@ -193,7 +193,7 @@ function local_lecturebot_can_access()
  *
  * @return bool True if user has access
  */
-function local_lecturebot_can_access_student()
+function local_arina_prism_sense_can_access_student()
 {
     global $PAGE, $COURSE, $USER;
 
@@ -219,7 +219,7 @@ function local_lecturebot_can_access_student()
 /**
  * Inject JavaScript to add button in correct position with proper styling.
  */
-function local_lecturebot_before_footer()
+function local_arina_prism_sense_before_footer()
 {
     global $COURSE, $CFG;
 
@@ -232,18 +232,18 @@ function local_lecturebot_before_footer()
     $jsToInject = '';
 
     // 1. Teacher Button
-    if (local_lecturebot_can_access()) {
+    if (local_arina_prism_sense_can_access()) {
         if (!$contextPrepared) {
             $moodlecontext = Utils::prepareContext($COURSE, $CFG->wwwroot);
             $jsToInject .= "\n window.MOODLE_CONTEXT = {$moodlecontext};\n";
             $contextPrepared = true;
         }
-        $jsToInject .= local_lecturebot_get_button_js($CFG->wwwroot);
+        $jsToInject .= local_arina_prism_sense_get_button_js($CFG->wwwroot);
     }
 
     // 2. Student Button
     // We show this to students, AND teachers (so they can preview)
-    $canAccessStudent = local_lecturebot_can_access_student();
+    $canAccessStudent = local_arina_prism_sense_can_access_student();
 
     if ($canAccessStudent) {
         if (!$contextPrepared) {
@@ -251,7 +251,7 @@ function local_lecturebot_before_footer()
             $jsToInject .= "\n window.MOODLE_CONTEXT = {$moodlecontext};\n";
             $contextPrepared = true;
         }
-        $jsToInject .= local_lecturebot_get_student_button_js($CFG->wwwroot);
+        $jsToInject .= local_arina_prism_sense_get_student_button_js($CFG->wwwroot);
     }
 
     if ($jsToInject !== '') {
@@ -263,14 +263,14 @@ function local_lecturebot_before_footer()
     // Inject Credit Management link for admins
     if (is_siteadmin()) {
         echo SCRIPT_START;
-        echo local_lecturebot_get_cms_menu_js($CFG->wwwroot);
+        echo local_arina_prism_sense_get_cms_menu_js($CFG->wwwroot);
         echo SCRIPT_END;
     }
 
     // Modern Login Page Styling
-    if (local_lecturebot_is_login_page()) {
-        echo '<style>' . local_lecturebot_get_login_css() . '</style>';
-        echo SCRIPT_START . local_lecturebot_get_login_js() . SCRIPT_END;
+    if (local_arina_prism_sense_is_login_page()) {
+        echo '<style>' . local_arina_prism_sense_get_login_css() . '</style>';
+        echo SCRIPT_START . local_arina_prism_sense_get_login_js() . SCRIPT_END;
     }
 }
 
@@ -280,14 +280,14 @@ function local_lecturebot_before_footer()
  * @param string $wwwroot Moodle wwwroot
  * @return string JavaScript code
  */
-function local_lecturebot_get_cms_menu_js($wwwroot)
+function local_arina_prism_sense_get_cms_menu_js($wwwroot)
 {
-    $creditmanagement = get_string('creditmanagement', 'local_lecturebot');
+    $creditmanagement = get_string('creditmanagement', 'local_arina_prism_sense');
     return <<<JS
         (function() {
             function injectCMSLink() {
                 // Check if link already exists
-                if (document.querySelector('.lecturebot-cms-link')) {
+                if (document.querySelector('.arina_prism_sense-cms-link')) {
                     return;
                 }
 
@@ -306,9 +306,9 @@ function local_lecturebot_get_cms_menu_js($wwwroot)
 
                 // Create the menu item
                 const menuItem = document.createElement('a');
-                menuItem.className = targetLink.className + ' lecturebot-cms-link';
+                menuItem.className = targetLink.className + ' arina_prism_sense-cms-link';
                 menuItem.role = 'menuitem';
-                menuItem.href = '{$wwwroot}/local/lecturebot/cms.php';
+                menuItem.href = '{$wwwroot}/local/arina_prism_sense/cms.php';
                 menuItem.rel = 'noopener noreferrer';
                 
                 // Clone the structure of existing items
@@ -354,7 +354,7 @@ JS;
  *
  * @return bool True if on login page
  */
-function local_lecturebot_is_login_page()
+function local_arina_prism_sense_is_login_page()
 {
     global $PAGE;
     return $PAGE->pagetype === 'login-index';
@@ -365,11 +365,11 @@ function local_lecturebot_is_login_page()
  *
  * @return string CSS code
  */
-function local_lecturebot_get_login_css()
+function local_arina_prism_sense_get_login_css()
 {
-    return local_lecturebot_get_login_base_css()
-        . local_lecturebot_get_login_form_css()
-        . local_lecturebot_get_login_button_css();
+    return local_arina_prism_sense_get_login_base_css()
+        . local_arina_prism_sense_get_login_form_css()
+        . local_arina_prism_sense_get_login_button_css();
 }
 
 /**
@@ -377,12 +377,12 @@ function local_lecturebot_get_login_css()
  *
  * @return string CSS code
  */
-function local_lecturebot_get_login_base_css()
+function local_arina_prism_sense_get_login_base_css()
 {
-    return local_lecturebot_get_login_layout_css()
-        . local_lecturebot_get_login_welcome_css()
-        . local_lecturebot_get_login_footer_css()
-        . local_lecturebot_get_login_responsive_css();
+    return local_arina_prism_sense_get_login_layout_css()
+        . local_arina_prism_sense_get_login_welcome_css()
+        . local_arina_prism_sense_get_login_footer_css()
+        . local_arina_prism_sense_get_login_responsive_css();
 }
 
 /**
@@ -390,7 +390,7 @@ function local_lecturebot_get_login_base_css()
  *
  * @return string CSS code
  */
-function local_lecturebot_get_login_layout_css()
+function local_arina_prism_sense_get_login_layout_css()
 {
     return <<<CSS
         /* ===== LOGIN PAGE BASE STYLES ===== */
@@ -459,11 +459,11 @@ CSS;
  *
  * @return string CSS code
  */
-function local_lecturebot_get_login_welcome_css()
+function local_arina_prism_sense_get_login_welcome_css()
 {
     return <<<CSS
         /* Custom Welcome Section Styles - Fluid Responsive */
-        .lecturebot-welcome-section {
+        .arina_prism_sense-welcome-section {
             text-align: center;
             margin-bottom: clamp(16px, 3vh, 28px);
             animation: fadeIn 0.8s ease-out 0.3s both;
@@ -474,7 +474,7 @@ function local_lecturebot_get_login_welcome_css()
             to { opacity: 1; transform: translateY(0); }
         }
         
-        .lecturebot-welcome-title {
+        .arina_prism_sense-welcome-title {
             font-size: clamp(18px, 4vw, 26px);
             font-weight: 700;
             color: #1a1a2e;
@@ -483,7 +483,7 @@ function local_lecturebot_get_login_welcome_css()
             line-height: 1.2;
         }
         
-        .lecturebot-welcome-subtitle {
+        .arina_prism_sense-welcome-subtitle {
             font-size: clamp(12px, 2.5vw, 15px);
             color: #6b7280;
             margin: 0;
@@ -492,7 +492,7 @@ function local_lecturebot_get_login_welcome_css()
         }
         
         /* Divider line - Fluid Responsive */
-        .lecturebot-divider {
+        .arina_prism_sense-divider {
             height: 1px;
             background: linear-gradient(90deg, transparent, #e5e7eb, transparent);
             margin: clamp(16px, 3vh, 24px) 0;
@@ -505,11 +505,11 @@ CSS;
  *
  * @return string CSS code
  */
-function local_lecturebot_get_login_footer_css()
+function local_arina_prism_sense_get_login_footer_css()
 {
     return <<<CSS
         /* Footer Styles - Fluid Responsive */
-        .lecturebot-login-footer {
+        .arina_prism_sense-login-footer {
             text-align: center;
             margin-top: clamp(20px, 4vh, 32px);
             padding-top: clamp(16px, 3vh, 24px);
@@ -517,13 +517,13 @@ function local_lecturebot_get_login_footer_css()
             animation: fadeIn 0.8s ease-out 0.5s both;
         }
         
-        .lecturebot-footer-text {
+        .arina_prism_sense-footer-text {
             font-size: clamp(11px, 2vw, 12px);
             color: #9ca3af;
             margin: 0 0 clamp(3px, 0.5vh, 4px) 0;
         }
         
-        .lecturebot-footer-brand {
+        .arina_prism_sense-footer-brand {
             font-size: clamp(12px, 2.2vw, 13px);
             color: #6b7280;
             font-weight: 500;
@@ -533,13 +533,13 @@ function local_lecturebot_get_login_footer_css()
             gap: clamp(4px, 1vw, 6px);
         }
         
-        .lecturebot-footer-brand svg {
+        .arina_prism_sense-footer-brand svg {
             width: clamp(12px, 2.5vw, 14px);
             height: clamp(12px, 2.5vw, 14px);
         }
         
         /* Feature highlights - Fluid Responsive */
-        .lecturebot-features {
+        .arina_prism_sense-features {
             display: flex;
             justify-content: center;
             flex-wrap: wrap;
@@ -548,7 +548,7 @@ function local_lecturebot_get_login_footer_css()
             animation: fadeIn 0.8s ease-out 0.6s both;
         }
         
-        .lecturebot-feature {
+        .arina_prism_sense-feature {
             display: flex;
             align-items: center;
             gap: clamp(4px, 1vw, 6px);
@@ -556,7 +556,7 @@ function local_lecturebot_get_login_footer_css()
             color: #6b7280;
         }
         
-        .lecturebot-feature svg {
+        .arina_prism_sense-feature svg {
             width: clamp(12px, 2.5vw, 14px);
             height: clamp(12px, 2.5vw, 14px);
             color: #10b981;
@@ -569,7 +569,7 @@ CSS;
  *
  * @return string CSS code
  */
-function local_lecturebot_get_login_responsive_css()
+function local_arina_prism_sense_get_login_responsive_css()
 {
     return <<<CSS
         /* ===== HEIGHT-BASED RESPONSIVE ADJUSTMENTS ===== */
@@ -577,21 +577,21 @@ function local_lecturebot_get_login_responsive_css()
         /* For screens shorter than 700px (like MacBook Pro 13" at 640px) */
         @media (max-height: 700px) {
             /* Hide decorative footer features to save space */
-            .lecturebot-features {
+            .arina_prism_sense-features {
                 display: none !important;
             }
             
             /* Reduce welcome section spacing */
-            .lecturebot-welcome-section {
+            .arina_prism_sense-welcome-section {
                 margin-bottom: 12px !important;
             }
             
-            .lecturebot-welcome-title {
+            .arina_prism_sense-welcome-title {
                 font-size: 20px !important;
                 margin-bottom: 4px !important;
             }
             
-            .lecturebot-welcome-subtitle {
+            .arina_prism_sense-welcome-subtitle {
                 font-size: 13px !important;
             }
             
@@ -610,7 +610,7 @@ function local_lecturebot_get_login_responsive_css()
             }
             
             /* Reduce footer spacing */
-            .lecturebot-login-footer {
+            .arina_prism_sense-login-footer {
                 margin-top: 16px !important;
                 padding-top: 12px !important;
             }
@@ -619,12 +619,12 @@ function local_lecturebot_get_login_responsive_css()
         /* For very short screens (landscape mobile or small laptops) */
         @media (max-height: 600px) {
             /* Hide welcome section entirely */
-            .lecturebot-welcome-section {
+            .arina_prism_sense-welcome-section {
                 display: none !important;
             }
             
             /* Hide footer branding, keep only essential form */
-            .lecturebot-login-footer {
+            .arina_prism_sense-login-footer {
                 display: none !important;
             }
             
@@ -663,7 +663,7 @@ CSS;
  *
  * @return string CSS code
  */
-function local_lecturebot_get_login_form_css()
+function local_arina_prism_sense_get_login_form_css()
 {
     return <<<CSS
         /* ===== LOGIN FORM STYLES ===== */
@@ -759,7 +759,7 @@ CSS;
  *
  * @return string CSS code
  */
-function local_lecturebot_get_login_button_css()
+function local_arina_prism_sense_get_login_button_css()
 {
     return <<<CSS
         /* ===== LOGIN BUTTON STYLES ===== */
@@ -814,7 +814,7 @@ CSS;
  *
  * @return string JavaScript code
  */
-function local_lecturebot_get_login_js()
+function local_arina_prism_sense_get_login_js()
 {
     return <<<JS
         // Fix login page elements after DOM loads
@@ -832,12 +832,12 @@ function local_lecturebot_get_login_js()
                 const loginLogo = document.getElementById('loginlogo') || document.querySelector('.login-logo');
                 const loginForm = document.querySelector('.loginform');
                 
-                if (!document.querySelector('.lecturebot-welcome-section')) {
+                if (!document.querySelector('.arina_prism_sense-welcome-section')) {
                     const welcomeSection = document.createElement('div');
-                    welcomeSection.className = 'lecturebot-welcome-section';
+                    welcomeSection.className = 'arina_prism_sense-welcome-section';
                     welcomeSection.innerHTML = `
-                        <h1 class="lecturebot-welcome-title">Start Learning</h1>
-                        <p class="lecturebot-welcome-subtitle">Sign in to continue your learning journey</p>
+                        <h1 class="arina_prism_sense-welcome-title">Start Learning</h1>
+                        <p class="arina_prism_sense-welcome-subtitle">Sign in to continue your learning journey</p>
                     `;
                     
                     // Insert after the logo container
@@ -851,31 +851,31 @@ function local_lecturebot_get_login_js()
                 
                 // 3. Add Footer with branding
                 const forgetPass = document.querySelector('.login-form-forgotpassword, .forgetpass');
-                if (forgetPass && !document.querySelector('.lecturebot-login-footer')) {
+                if (forgetPass && !document.querySelector('.arina_prism_sense-login-footer')) {
                     const footer = document.createElement('div');
-                    footer.className = 'lecturebot-login-footer';
+                    footer.className = 'arina_prism_sense-login-footer';
                     footer.innerHTML = `
-                        <p class="lecturebot-footer-text">Secure learning environment</p>
-                        <div class="lecturebot-footer-brand">
+                        <p class="arina_prism_sense-footer-text">Secure learning environment</p>
+                        <div class="arina_prism_sense-footer-brand">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                             </svg>
                             Powered by Arina AI
                         </div>
-                        <div class="lecturebot-features">
-                            <span class="lecturebot-feature">
+                        <div class="arina_prism_sense-features">
+                            <span class="arina_prism_sense-feature">
                                 <svg viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
                                 </svg>
                                 AI-Powered
                             </span>
-                            <span class="lecturebot-feature">
+                            <span class="arina_prism_sense-feature">
                                 <svg viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
                                 </svg>
                                 Interactive
                             </span>
-                            <span class="lecturebot-feature">
+                            <span class="arina_prism_sense-feature">
                                 <svg viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
                                 </svg>
@@ -899,7 +899,7 @@ JS;
  *
  * @param global_navigation $navigation The navigation object
  */
-function local_lecturebot_extend_navigation(global_navigation $navigation)
+function local_arina_prism_sense_extend_navigation(global_navigation $navigation)
 {
     global $USER, $PAGE;
 
@@ -911,14 +911,14 @@ function local_lecturebot_extend_navigation(global_navigation $navigation)
     // Try to add to user menu
     $usernode = $navigation->find('myprofile', navigation_node::TYPE_USER);
     if ($usernode) {
-        $url = new moodle_url('/local/lecturebot/cms.php');
+        $url = new moodle_url('/local/arina_prism_sense/cms.php');
         $node = $usernode->add(
-            get_string('creditmanagement', 'local_lecturebot'),
+            get_string('creditmanagement', 'local_arina_prism_sense'),
             $url,
             navigation_node::TYPE_SETTING,
             null,
             'creditmanagement',
-            new pix_icon('i/dashboard', get_string('creditmanagement', 'local_lecturebot'))
+            new pix_icon('i/dashboard', get_string('creditmanagement', 'local_arina_prism_sense'))
         );
         $node->showinflatnavigation = true;
     }

@@ -35,8 +35,8 @@ function xmldb_local_arina_prism_sense_uninstall() // NOSONAR
     //    Moodle does not purge user_preferences automatically on uninstall.
     // -------------------------------------------------------------------------
     $userPreferenceNames = [
-        'lecturebot_wallet_sub_user_id',
-        'lecturebot_low_credits_state',
+        'arina_prism_sense_wallet_sub_user_id',
+        'arina_prism_sense_low_credits_state',
     ];
 
     foreach ($userPreferenceNames as $prefName) {

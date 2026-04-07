@@ -8,7 +8,7 @@
  * will contain the standard Moodle AJAX error (errorcode: requireloginerror)
  * which apiFetch detects and redirects to the login page.
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2026 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */

@@ -13,7 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
-namespace local_lecturebot\task;
+namespace local_arina_prism_sense\task;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -31,7 +31,7 @@ require_once(__DIR__ . '/../EmailNotifier.php');
  * for all content items with status='generating'. A single request is made for all
  * pending items, reducing backend load as the system scales.
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  */
 class poll_content_status_task extends \core\task\scheduled_task
@@ -43,7 +43,7 @@ class poll_content_status_task extends \core\task\scheduled_task
      */
     public function get_name()
     {
-        return get_string('task:poll_content_status', 'local_lecturebot');
+        return get_string('task:poll_content_status', 'local_arina_prism_sense');
     }
 
     /**
@@ -60,7 +60,7 @@ class poll_content_status_task extends \core\task\scheduled_task
 
         // Find all content items that are still generating and have a request_id
         $pendingContent = $DB->get_records_select(
-            'local_lecturebot_content',
+            'local_arina_prism_sense_content',
             "status = 'generating' AND request_id IS NOT NULL AND request_id != ''",
             null,
             'timemodified ASC'
@@ -89,10 +89,10 @@ class poll_content_status_task extends \core\task\scheduled_task
         // bootstrap is sufficient for the batch API call.
         $firstContent = reset($requestIdToContent);
         if (!empty($firstContent->userid)) {
-            \local_lecturebot\CompanyConfig::bootstrap((int) $firstContent->userid);
+            \local_arina_prism_sense\CompanyConfig::bootstrap((int) $firstContent->userid);
         }
-        $apiKey = \local_lecturebot\CompanyConfig::getApiKey()
-            ?? get_config('local_lecturebot', 'api_key');
+        $apiKey = \local_arina_prism_sense\CompanyConfig::getApiKey()
+            ?? get_config('local_arina_prism_sense', 'api_key');
 
         // Single batch call to backend — replaces N individual calls
         mtrace("Calling batch status endpoint with " . count($requestIds) . " request_id(s)...");
@@ -116,8 +116,8 @@ class poll_content_status_task extends \core\task\scheduled_task
 
             // Re-bootstrap for each item's originating user (no-op if same tenant).
             if (!empty($content->userid)) {
-                \local_lecturebot\CompanyConfig::reset();
-                \local_lecturebot\CompanyConfig::bootstrap((int) $content->userid);
+                \local_arina_prism_sense\CompanyConfig::reset();
+                \local_arina_prism_sense\CompanyConfig::bootstrap((int) $content->userid);
             }
 
             try {
@@ -207,7 +207,7 @@ class poll_content_status_task extends \core\task\scheduled_task
     /**
      * Process a single content item given its pre-fetched status response.
      *
-     * @param object $content        DB record from local_lecturebot_content
+     * @param object $content        DB record from local_arina_prism_sense_content
      * @param array  $statusResponse Status data from the batch response for this request_id
      */
     private function processContentStatus($content, array $statusResponse)
@@ -292,22 +292,22 @@ class poll_content_status_task extends \core\task\scheduled_task
         $blobName = $blobInfo['name'];
         $blobUrl = $blobInfo['url'];
 
-        $filepath = $CFG->tempdir . '/lecturebot/' . $localFileName;
+        $filepath = $CFG->tempdir . '/arina_prism_sense/' . $localFileName;
 
-        if (!is_dir($CFG->tempdir . '/lecturebot')) {
-            mkdir($CFG->tempdir . '/lecturebot', 0755, true);
+        if (!is_dir($CFG->tempdir . '/arina_prism_sense')) {
+            mkdir($CFG->tempdir . '/arina_prism_sense', 0755, true);
         }
 
         // Extract blob name from URL if available (authenticated Azure download)
         if ($blobUrl) {
-            $blobName = \local_lecturebot\Utils::extractBlobNameFromUrl($blobUrl);
+            $blobName = \local_arina_prism_sense\Utils::extractBlobNameFromUrl($blobUrl);
             mtrace("    Extracted blob name from URL: {$blobName}");
         }
 
-        $success = \local_lecturebot\Utils::downloadFileFromAzure($blobName, $filepath, $containerName);
+        $success = \local_arina_prism_sense\Utils::downloadFileFromAzure($blobName, $filepath, $containerName);
 
         if (!$success || !file_exists($filepath) || filesize($filepath) === 0) {
-            throw new \local_lecturebot\exception\azure_download_exception(
+            throw new \local_arina_prism_sense\exception\azure_download_exception(
                 "Failed to download file from Azure: {$blobName}"
             );
         }
@@ -346,12 +346,12 @@ class poll_content_status_task extends \core\task\scheduled_task
         $generationData['backend_error_response'] = $statusResponse;
         $content->generationdata = json_encode($generationData);
 
-        $DB->update_record('local_lecturebot_content', $content);
+        $DB->update_record('local_arina_prism_sense_content', $content);
 
         // Notify the user by email. Pass the sentinel so EmailNotifier can
         // translate it to a human-readable message without leaking raw details.
         try {
-            \local_lecturebot\EmailNotifier::sendContentFailure($content, $sentinel);
+            \local_arina_prism_sense\EmailNotifier::sendContentFailure($content, $sentinel);
         } catch (\Throwable $emailEx) {
             mtrace("    Email notification failed (non-fatal): " . $emailEx->getMessage());
         }
@@ -367,7 +367,7 @@ class poll_content_status_task extends \core\task\scheduled_task
      */
     private function classifyError(string $raw): string
     {
-        return \local_lecturebot\ErrorClassifier::classify($raw);
+        return \local_arina_prism_sense\ErrorClassifier::classify($raw);
     }
 
     /**
@@ -398,14 +398,14 @@ class poll_content_status_task extends \core\task\scheduled_task
                 'results' => [
                     [
                         'topic' => "Section " . $sid,
-                        'videoUrl' => "{$CFG->wwwroot}/local/lecturebot/api/stream_video.php?" .
+                        'videoUrl' => "{$CFG->wwwroot}/local/arina_prism_sense/api/stream_video.php?" .
                             "contentid={$content->id}&courseid={$cid}",
                         'videoDuration' => 0
                     ]
                 ]
             ];
         } else {
-            $slideCount = \local_lecturebot\Utils::countSlidesInPptx($fpath);
+            $slideCount = \local_arina_prism_sense\Utils::countSlidesInPptx($fpath);
             $genDataUpdate['pptx_file'] = $localName;
             $genDataUpdate['pptx_path'] = $fpath;
             $genDataUpdate['slide_count'] = $slideCount;
@@ -425,12 +425,12 @@ class poll_content_status_task extends \core\task\scheduled_task
         $content->status = 'ready';
         $content->generationdata = json_encode(array_merge($genData, $genDataUpdate));
         $content->timemodified = time();
-        $DB->update_record('local_lecturebot_content', $content);
+        $DB->update_record('local_arina_prism_sense_content', $content);
         mtrace("    Content {$content->id} marked as ready!");
 
         // Notify the user by email that their content is ready.
         try {
-            \local_lecturebot\EmailNotifier::sendContentSuccess($content);
+            \local_arina_prism_sense\EmailNotifier::sendContentSuccess($content);
         } catch (\Throwable $emailEx) {
             mtrace("    Email notification failed (non-fatal): " . $emailEx->getMessage());
         }
@@ -458,10 +458,10 @@ class poll_content_status_task extends \core\task\scheduled_task
 
         if ($blobUrl) {
             mtrace("    Using URL from backend response: {$blobUrl}");
-            $blobName = \local_lecturebot\Utils::extractBlobNameFromUrl($blobUrl);
+            $blobName = \local_arina_prism_sense\Utils::extractBlobNameFromUrl($blobUrl);
         } else {
             if (!$containerName || !$folderName) {
-                throw new \local_lecturebot\exception\api_response_exception(
+                throw new \local_arina_prism_sense\exception\api_response_exception(
                     "Missing Azure container/folder info in generation data and no URL in response"
                 );
             }
@@ -490,7 +490,7 @@ class poll_content_status_task extends \core\task\scheduled_task
         }
 
         $DB->update_record(
-            'local_lecturebot_content',
+            'local_arina_prism_sense_content',
             (object) [
                 'id' => $content->id,
                 'generationdata' => json_encode($generationData),
@@ -503,7 +503,7 @@ class poll_content_status_task extends \core\task\scheduled_task
      * Delete the parent content record once regenerated content is ready.
      *
      * Only fires when this content is a regeneration (has a parent_content_id).
-     * Feedback records in local_lecturebot_feedback are intentionally preserved.
+     * Feedback records in local_arina_prism_sense_feedback are intentionally preserved.
      * Azure files are NOT touched — they are needed for regen_count calculation.
      *
      * Chain behaviour: A→B→C
@@ -523,12 +523,12 @@ class poll_content_status_task extends \core\task\scheduled_task
 
         $parentId = (int) $content->parent_content_id;
 
-        if (!$DB->record_exists('local_lecturebot_content', ['id' => $parentId])) {
+        if (!$DB->record_exists('local_arina_prism_sense_content', ['id' => $parentId])) {
             mtrace("    Parent content {$parentId} not found, skipping deletion.");
             return;
         }
 
-        $DB->delete_records('local_lecturebot_content', ['id' => $parentId]);
+        $DB->delete_records('local_arina_prism_sense_content', ['id' => $parentId]);
         mtrace("    Deleted parent content record {$parentId} (superseded by content {$content->id}).");
     }
 
@@ -543,12 +543,12 @@ class poll_content_status_task extends \core\task\scheduled_task
             return;
         }
 
-        $uuid = get_user_preferences('lecturebot_wallet_sub_user_id', null, $userid);
+        $uuid = get_user_preferences('arina_prism_sense_wallet_sub_user_id', null, $userid);
         if (!$uuid) {
             return;
         }
 
-        $client = new \local_lecturebot\cms\CreditServiceClient();
+        $client = new \local_arina_prism_sense\cms\CreditServiceClient();
         $walletId = $client->resolveWalletId($uuid);
         if (!$walletId) {
             return;
@@ -575,7 +575,7 @@ class poll_content_status_task extends \core\task\scheduled_task
         }
 
         $balance = (float) $balRes['data']['current_balance'];
-        $lastState = get_user_preferences('lecturebot_low_credits_state', 'ok', $userid);
+        $lastState = get_user_preferences('arina_prism_sense_low_credits_state', 'ok', $userid);
         [$currentState, $isZero] = $this->classifyCreditBalance($balance);
 
         if ($currentState !== 'ok' && $lastState !== $currentState) {
@@ -584,7 +584,7 @@ class poll_content_status_task extends \core\task\scheduled_task
                 $this->notifyCreditAlert($user, $userid, $balance, $currentState, $lastState, $isZero);
             }
         } elseif ($currentState === 'ok' && $lastState !== 'ok') {
-            set_user_preference('lecturebot_low_credits_state', 'ok', $userid);
+            set_user_preference('arina_prism_sense_low_credits_state', 'ok', $userid);
         }
     }
 
@@ -622,12 +622,12 @@ class poll_content_status_task extends \core\task\scheduled_task
             "State changed {$lastState} -> {$currentState}. Sending emails."
         );
         try {
-            \local_lecturebot\EmailNotifier::sendLowCreditsUser($user, $balance, 100.0, $isZero);
+            \local_arina_prism_sense\EmailNotifier::sendLowCreditsUser($user, $balance, 100.0, $isZero);
 
             // Notify admins/managers as well
-            $admins = \local_lecturebot\Utils::getAdminsAndCompanyManagers($userid);
+            $admins = \local_arina_prism_sense\Utils::getAdminsAndCompanyManagers($userid);
             foreach ($admins as $admin) {
-                \local_lecturebot\EmailNotifier::sendLowCreditsUserToAdmin(
+                \local_arina_prism_sense\EmailNotifier::sendLowCreditsUserToAdmin(
                     $admin,
                     $user,
                     $balance,
@@ -635,7 +635,7 @@ class poll_content_status_task extends \core\task\scheduled_task
                     $isZero
                 );
             }
-            set_user_preference('lecturebot_low_credits_state', $currentState, $userid);
+            set_user_preference('arina_prism_sense_low_credits_state', $currentState, $userid);
         } catch (\Throwable $e) {
             mtrace("    Error sending low credits email: " . $e->getMessage());
         }

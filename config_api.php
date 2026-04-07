@@ -2,7 +2,7 @@
 /**
  * LectureBot API Configuration
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -10,7 +10,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 // Capability constants - change here to update across all plugin files.
-define('CAPABILITY_GENERATE_CONTENT', 'local/lecturebot:generatecontent');
+define('CAPABILITY_GENERATE_CONTENT', 'local/arina_prism_sense:generatecontent');
 
 // Load environment variables from .env file
 $envFile = __DIR__ . '/.env';

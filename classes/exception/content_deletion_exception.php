@@ -13,7 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
-namespace local_lecturebot\exception;
+namespace local_arina_prism_sense\exception;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -31,7 +31,7 @@ class content_deletion_exception extends \moodle_exception
     {
         // Using 'generalexceptionmessage' with 'error' component as a safe fallback
         // to ensure the message is displayed if specific lang string doesn't exist.
-        // Ideally 'deleteerror' or similar would be in local_lecturebot lang file.
+        // Ideally 'deleteerror' or similar would be in local_arina_prism_sense lang file.
         parent::__construct('generalexceptionmessage', 'error', '', $debuginfo);
     }
 }

@@ -3,7 +3,7 @@
  * Get all content state from database for a course
  * Returns generating, ready, and published content
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -27,7 +27,7 @@ try {
     \core\session\manager::write_close();
 
     // Get all content for this course
-    $contents = $DB->get_records('local_lecturebot_content', ['courseid' => $courseid], 'timecreated DESC');
+    $contents = $DB->get_records('local_arina_prism_sense_content', ['courseid' => $courseid], 'timecreated DESC');
 
     // Get section names
     $modinfo = get_fast_modinfo($courseid);
@@ -85,7 +85,7 @@ try {
 
                 // Update database
                 $DB->update_record(
-                    'local_lecturebot_content',
+                    'local_arina_prism_sense_content',
                     (object) [
                         'id' => $content->id,
                         'generationdata' => json_encode($generationData),
@@ -98,7 +98,7 @@ try {
 
 
         // Check for student tracking status
-        $tracking = $DB->get_record('local_lecturebot_tracking', [
+        $tracking = $DB->get_record('local_arina_prism_sense_tracking', [
             'userid' => $USER->id,
             'contentid' => $content->id
         ]);

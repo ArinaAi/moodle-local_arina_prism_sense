@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/lecturebot/db" VERSION="20251213" COMMENT="XMLDB file for Moodle local/lecturebot"
+<XMLDB PATH="local/arina_prism_sense/db" VERSION="20251213" COMMENT="XMLDB file for Moodle local/arina_prism_sense"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
   <TABLES>
-    <TABLE NAME="local_lecturebot_sources" COMMENT="Stores source PDF files uploaded for content generation per section">
+    <TABLE NAME="local_arina_prism_sense_sources" COMMENT="Stores source PDF files uploaded for content generation per section">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Course ID"/>
@@ -29,7 +29,7 @@
         <INDEX NAME="courseid_sectionid" UNIQUE="false" FIELDS="courseid, sectionid"/>
       </INDEXES>
     </TABLE>
-    <TABLE NAME="local_lecturebot_content" COMMENT="Stores generated content state and metadata">
+    <TABLE NAME="local_arina_prism_sense_content" COMMENT="Stores generated content state and metadata">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Course ID"/>
@@ -59,14 +59,14 @@
         <KEY NAME="approvedby" TYPE="foreign" FIELDS="approvedby" REFTABLE="user" REFFIELDS="id"/>
         <KEY NAME="createdby" TYPE="foreign" FIELDS="createdby" REFTABLE="user" REFFIELDS="id"/>
         <KEY NAME="publishedby" TYPE="foreign" FIELDS="publishedby" REFTABLE="user" REFFIELDS="id"/>
-        <KEY NAME="parent_content_id" TYPE="foreign" FIELDS="parent_content_id" REFTABLE="local_lecturebot_content" REFFIELDS="id"/>
+        <KEY NAME="parent_content_id" TYPE="foreign" FIELDS="parent_content_id" REFTABLE="local_arina_prism_sense_content" REFFIELDS="id"/>
       </KEYS>
       <INDEXES>
         <INDEX NAME="courseid_status" UNIQUE="false" FIELDS="courseid, status"/>
         <INDEX NAME="courseid_sectionid" UNIQUE="false" FIELDS="courseid, sectionid"/>
       </INDEXES>
     </TABLE>
-    <TABLE NAME="local_lecturebot_tracking" COMMENT="Tracks student completion of content">
+    <TABLE NAME="local_arina_prism_sense_tracking" COMMENT="Tracks student completion of content">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="User ID"/>
@@ -79,13 +79,13 @@
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
         <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
-        <KEY NAME="contentid" TYPE="foreign" FIELDS="contentid" REFTABLE="local_lecturebot_content" REFFIELDS="id"/>
+        <KEY NAME="contentid" TYPE="foreign" FIELDS="contentid" REFTABLE="local_arina_prism_sense_content" REFFIELDS="id"/>
       </KEYS>
       <INDEXES>
         <INDEX NAME="userid_contentid" UNIQUE="true" FIELDS="userid, contentid"/>
       </INDEXES>
     </TABLE>
-    <TABLE NAME="local_lecturebot_feedback" COMMENT="Stores user feedback for content regeneration">
+    <TABLE NAME="local_arina_prism_sense_feedback" COMMENT="Stores user feedback for content regeneration">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="contentid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Original content ID the feedback is for"/>
@@ -104,12 +104,12 @@
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-        <KEY NAME="contentid" TYPE="foreign" FIELDS="contentid" REFTABLE="local_lecturebot_content" REFFIELDS="id"/>
+        <KEY NAME="contentid" TYPE="foreign" FIELDS="contentid" REFTABLE="local_arina_prism_sense_content" REFFIELDS="id"/>
         <KEY NAME="courseid" TYPE="foreign" FIELDS="courseid" REFTABLE="course" REFFIELDS="id"/>
         <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
       </KEYS>
     </TABLE>
-    <TABLE NAME="local_lecturebot_company_config" COMMENT="Stores per-company IOMAD config: API key and org wallet owner ID">
+    <TABLE NAME="local_arina_prism_sense_company_config" COMMENT="Stores per-company IOMAD config: API key and org wallet owner ID">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="companyid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="IOMAD company ID (mdl_company.id)"/>

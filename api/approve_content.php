@@ -3,7 +3,7 @@
  * Approve content API endpoint
  * Marks content as approved and records who approved it and when
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -21,7 +21,7 @@ try {
     // Require login and capability
     require_login($courseid);
     $context = context_course::instance($courseid);
-    if (!has_capability('local/lecturebot:approvecontent', $context)) {
+    if (!has_capability('local/arina_prism_sense:approvecontent', $context)) {
         throw new moodle_exception('error', 'moodle', '', 'You do not have permission to approve content.');
     }
     require_sesskey();
@@ -31,7 +31,7 @@ try {
     \core\session\manager::write_close();
     
     // Get the content record
-    $content = $DB->get_record('local_lecturebot_content', ['id' => $contentid, 'courseid' => $courseid]);
+    $content = $DB->get_record('local_arina_prism_sense_content', ['id' => $contentid, 'courseid' => $courseid]);
     
     if (!$content) {
         throw new moodle_exception('error', 'moodle', '', 'Content not found');
@@ -48,7 +48,7 @@ try {
     $content->timeapproved = time();
     $content->timemodified = time();
     
-    $DB->update_record('local_lecturebot_content', $content);
+    $DB->update_record('local_arina_prism_sense_content', $content);
     
     // Get approver information
     $approver = $DB->get_record('user', ['id' => $USER->id], 'id, firstname, lastname, email');

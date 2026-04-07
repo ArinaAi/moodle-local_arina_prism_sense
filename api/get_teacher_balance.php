@@ -6,7 +6,7 @@
  * Works for both admins (personal wallet, distinct from org wallet) and sub-users.
  * Does NOT require admin capabilities — any logged-in user can check their own balance.
  *
- * @package    local_lecturebot
+ * @package    local_arina_prism_sense
  * @copyright  2026 Arina AI <info@arina.ai>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -23,12 +23,12 @@ header('Content-Type: application/json');
 try {
     // 1. Get this user's personal wallet UUID (same key for admins and sub-users)
     $uuid = null;
-    $client = new \local_lecturebot\cms\CreditServiceClient();
+    $client = new \local_arina_prism_sense\cms\CreditServiceClient();
 
-    // All users — admins and sub-users alike — use their personal lecturebot_wallet_sub_user_id.
+    // All users — admins and sub-users alike — use their personal arina_prism_sense_wallet_sub_user_id.
     // An admin's personal wallet is created JIT on first allocation from the org wallet,
     // so it may not exist yet (uuid will be empty → return has_wallet: false below).
-    $uuid = get_user_preferences('lecturebot_wallet_sub_user_id', null, $USER->id);
+    $uuid = get_user_preferences('arina_prism_sense_wallet_sub_user_id', null, $USER->id);
 
     if (empty($uuid)) {
         // No wallet has been created for this user yet
@@ -45,7 +45,7 @@ try {
     }
 
     // 2. Fetch balance from credit service using the owner UUID
-    $client = new \local_lecturebot\cms\CreditServiceClient();
+    $client = new \local_arina_prism_sense\cms\CreditServiceClient();
     $response = $client->getBalance($uuid);
 
     if ($response['status'] >= 200 && $response['status'] < 300) {
