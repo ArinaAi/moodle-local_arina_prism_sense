@@ -1,6 +1,6 @@
 <?php
 /**
- * LectureBot API Configuration
+ * PRISM Sense API Configuration
  *
  * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>

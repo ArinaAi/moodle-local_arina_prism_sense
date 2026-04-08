@@ -108,6 +108,9 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                 case 'VIDEO_FAILED':
                     return 'Video generation failed. Please try again.';
                 default:
+                    if (item.contenttype === 'video') {
+                        return 'Video generation failed. Please try again.';
+                    }
                     return 'Slide generation failed. Please try again.';
             }
         };

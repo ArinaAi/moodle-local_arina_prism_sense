@@ -48,7 +48,7 @@ echo $OUTPUT->header();
 );
 
 // PRISM Sense In-App Guided Tour (Student App)
-\local_arina_prism_sense\Utils::emitTour(
+\local_arina_prism_sense\Utils::emitTourIfUnseen(
     $CFG,
     'arina_prism_sense_tour_student_seen',
     ['#arina_prism_sense-tour-student-header', '#arina_prism_sense-tour-content-navigator'],

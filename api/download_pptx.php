@@ -11,6 +11,7 @@ require_once(__DIR__ . '/../../../config.php');
 
 use local_arina_prism_sense\CompanyConfig;
 
+require_once(__DIR__ . '/../config_api.php');
 require_once(__DIR__ . '/../configurator_azure.php');
 
 $contentid = required_param('contentid', PARAM_INT);

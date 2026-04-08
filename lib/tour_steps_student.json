@@ -3,24 +3,24 @@
         "id": "welcome",
         "title": "Welcome to PRISM Sense",
         "text": "This quick tour introduces the key areas of your course viewer. Navigate your course content and get AI-powered help — all in one place.",
-        "attachTo": { "element": "#lecturebot-tour-student-header", "on": "bottom" }
+        "attachTo": { "element": "#arina_prism_sense-tour-student-header", "on": "bottom" }
     },
     {
         "id": "content-navigator",
         "title": "Content Navigator",
         "text": "Browse your course sections here. Select any item to view the slides or video lecture your teacher has published.",
-        "attachTo": { "element": "#lecturebot-tour-content-navigator", "on": "right" }
+        "attachTo": { "element": "#arina_prism_sense-tour-content-navigator", "on": "right" }
     },
     {
         "id": "section-filter",
         "title": "Filter by Section",
         "text": "Use this dropdown to jump to a specific course section and view only the content that belongs to it.",
-        "attachTo": { "element": "#lecturebot-tour-section-filter", "on": "right" }
+        "attachTo": { "element": "#arina_prism_sense-tour-section-filter", "on": "right" }
     },
     {
         "id": "content-viewer",
         "title": "Content Viewer",
         "text": "Your selected lecture content is displayed here. Watch videos, flip through slides, or open the AI chat for help understanding the material.",
-        "attachTo": { "element": "#lecturebot-tour-content-viewer", "on": "left" }
+        "attachTo": { "element": "#arina_prism_sense-tour-content-viewer", "on": "left" }
     }
 ]

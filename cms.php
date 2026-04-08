@@ -88,7 +88,7 @@ $cmsjsurl = $CFG->wwwroot . '/local/arina_prism_sense/amd/build/cms.min.js?v=' .
 echo html_writer::tag('script', '', ['src' => $cmsjsurl]);
 
 // PRISM Sense In-App Guided Tour (CMS Dashboard)
-\local_arina_prism_sense\Utils::emitTour(
+\local_arina_prism_sense\Utils::emitTourIfUnseen(
     $CFG,
     'arina_prism_sense_tour_cms_seen',
     ['#arina_prism_sense-tour-cms-header', '#arina_prism_sense-tour-cms-sidebar'],

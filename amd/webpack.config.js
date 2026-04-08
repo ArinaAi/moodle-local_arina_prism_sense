@@ -13,7 +13,7 @@ const appConfig = {
       name: 'LectureBot',
       type: 'window'
     },
-    publicPath: '/local/lecturebot/amd/build/'
+    publicPath: '/local/arina_prism_sense/amd/build/'
   },
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx'],

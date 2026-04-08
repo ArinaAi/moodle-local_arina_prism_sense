@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * LectureBot plugin strings.
+ * Arina Prism Sense plugin strings.
  *
  * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
@@ -43,13 +43,13 @@ $string['local/arina_prism_sense:approvecontent'] = 'Approve AI-generated conten
 $string['local/arina_prism_sense:generatecontent'] = 'Generate AI content';
 
 // ── Settings page ─────────────────────────────────────────────────────────────
-$string['settings:pagetitle']    = 'PRISM Sense';
-$string['settings:apikey']       = 'Arina API Key (Global / Fallback)';
-$string['settings:apikey_desc']  = 'Global API key. Used on standalone Moodle installs (without IOMAD). ' .
+$string['settings:pagetitle'] = 'PRISM Sense';
+$string['settings:apikey'] = 'Arina API Key (Global / Fallback)';
+$string['settings:apikey_desc'] = 'Global API key. Used on standalone Moodle installs (without IOMAD). ' .
     'For IOMAD multi-tenant setups, configure per-company API keys via the ' .
     '<a href="{$a}">Company Settings</a> page instead.';
 $string['settings:iomad_heading'] = 'IOMAD Multi-Tenant Configuration';
-$string['settings:iomad_link']    = '⚙ Configure Per-Company API Keys';
+$string['settings:iomad_link'] = '⚙ Configure Per-Company API Keys';
 
 // ── Privacy API ───────────────────────────────────────────────────────────────
 
@@ -115,6 +115,6 @@ $string['privacy:metadata:arina_api:user_id'] =
     'A unique identifier (UUID) for the user, sent to the Arina API for credit tracking purposes.';
 
 // Export path labels
-$string['privacy:path:content']  = 'Generated Content';
+$string['privacy:path:content'] = 'Generated Content';
 $string['privacy:path:tracking'] = 'Content Completion';
 $string['privacy:path:feedback'] = 'Content Feedback';
