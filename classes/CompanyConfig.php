@@ -264,6 +264,66 @@ class CompanyConfig
         self::$companyId = null;
     }
 
+    // ── CMS Access Guard ──────────────────────────────────────────────────────
+
+    /**
+     * Unified CMS access check — replaces require_capability('moodle/site:config')
+     * across all CMS pages and API endpoints.
+     *
+     * Access is granted when the caller is:
+     *   (a) A Moodle Site Admin, OR
+     *   (b) An IOMAD Company Manager (managertype = 1 in mdl_company_users)
+     *
+     * For case (b) this method also calls bootstrap() so that CompanyConfig
+     * getters (getApiKey, getOrgWalletOwnerId, getCompanyId, etc.) are
+     * immediately usable by the caller without a second bootstrap call.
+     *
+     * Throws \required_capability_exception when access is denied — identical
+     * behaviour to require_capability() so existing error pages still work.
+     *
+     * @throws \required_capability_exception
+     */
+    public static function requireCmsAccess(): void
+    {
+        global $USER, $DB;
+
+        // Site Admins always pass — bootstrap with their userId so getters work.
+        if (is_siteadmin()) {
+            self::bootstrap($USER->id);
+            return;
+        }
+
+        // Non-admins require IOMAD to exist; without it there are no companies.
+        if (!self::isIomadInstalled()) {
+            throw new \required_capability_exception(
+                \context_system::instance(),
+                'moodle/site:config',
+                'nopermissions',
+                ''
+            );
+        }
+
+        // Check for Company Manager role (managertype = 1).
+        // Use record_exists_select — safe boolean check, no IGNORE_MULTIPLE needed.
+        $isCompanyManager = $DB->record_exists_select(
+            'company_users',
+            'userid = :uid AND managertype = 1',
+            ['uid' => $USER->id]
+        );
+
+        if (!$isCompanyManager) {
+            throw new \required_capability_exception(
+                \context_system::instance(),
+                'moodle/site:config',
+                'nopermissions',
+                ''
+            );
+        }
+
+        // Bootstrap scoped to this user so all CompanyConfig getters are ready.
+        self::bootstrap($USER->id);
+    }
+
     // ── Internal helpers ──────────────────────────────────────────────────────
 
     /**

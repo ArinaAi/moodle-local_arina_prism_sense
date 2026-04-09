@@ -13,10 +13,9 @@ require_once($CFG->libdir . '/moodlelib.php');
 require_once(__DIR__ . '/CreditServiceClient.php');
 require_once(__DIR__ . '/get_wallet_helper.php');
 
-// Require login and admin cap
+// Require login; allow Site Admins and IOMAD Company Managers.
 require_login();
-$context = context_system::instance();
-require_capability('moodle/site:config', $context);
+\local_arina_prism_sense\CompanyConfig::requireCmsAccess();
 
 header('Content-Type: application/json');
 

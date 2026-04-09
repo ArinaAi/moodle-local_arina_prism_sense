@@ -260,8 +260,8 @@ function local_arina_prism_sense_before_footer()
         echo SCRIPT_END;
     }
 
-    // Inject Credit Management link for admins
-    if (is_siteadmin()) {
+    // Inject Credit Management link for Site Admins and IOMAD Company Managers.
+    if (local_arina_prism_sense_user_can_access_cms()) {
         echo SCRIPT_START;
         echo local_arina_prism_sense_get_cms_menu_js($CFG->wwwroot);
         echo SCRIPT_END;
@@ -272,6 +272,40 @@ function local_arina_prism_sense_before_footer()
         echo '<style>' . local_arina_prism_sense_get_login_css() . '</style>';
         echo SCRIPT_START . local_arina_prism_sense_get_login_js() . SCRIPT_END;
     }
+}
+
+/**
+ * Returns true if the current user is allowed to access the CMS dashboard.
+ *
+ * Grants access to:
+ *  (a) Moodle Site Admins, OR
+ *  (b) IOMAD Company Managers (managertype = 1 in mdl_company_users)
+ *
+ * This is the lib.php companion to CompanyConfig::requireCmsAccess().
+ * It is a pure boolean check (no exception thrown) so it is safe to use
+ * in navigation hooks and page_init callbacks where throwing would break
+ * unrelated     pages.
+ *
+ * @return bool
+ */
+function local_arina_prism_sense_user_can_access_cms(): bool
+{
+    global $USER, $DB;
+
+    if (!isloggedin() || isguestuser()) {
+        return false;
+    }
+
+    // Site Admins and IOMAD Company Managers (managertype = 1) may access CMS.
+    // Return early for site admins; for others check IOMAD company_users table.
+    $isIomad = \core_plugin_manager::instance()->get_plugin_info('local_iomad') !== null;
+    return is_siteadmin() || (
+        $isIomad && $DB->record_exists_select(
+            'company_users',
+            'userid = :uid AND managertype = 1',
+            ['uid' => $USER->id]
+        )
+    );
 }
 
 /**
@@ -903,8 +937,8 @@ function local_arina_prism_sense_extend_navigation(global_navigation $navigation
 {
     global $USER, $PAGE;
 
-    // Only show for site admins
-    if (!is_siteadmin($USER)) {
+    // Show for Site Admins and IOMAD Company Managers.
+    if (!local_arina_prism_sense_user_can_access_cms()) {
         return;
     }
 

@@ -11,10 +11,9 @@ define('AJAX_SCRIPT', true);
 require_once __DIR__ . '/../../../../config.php';
 require_once __DIR__ . '/CreditServiceAcquisitionClient.php';
 
-// Require login and admin cap
+// Require login; allow Site Admins and IOMAD Company Managers.
 require_login();
-$context = context_system::instance();
-require_capability('moodle/site:config', $context);
+\local_arina_prism_sense\CompanyConfig::requireCmsAccess();
 
 header('Content-Type: application/json');
 

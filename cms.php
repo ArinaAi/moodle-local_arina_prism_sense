@@ -28,10 +28,10 @@ use local_arina_prism_sense\CompanyConfig;
 
 require_once(__DIR__ . '/configurator_azure.php');
 
-// Security: Require login and site admin permissions
+// Security: Require login; allow Site Admins and IOMAD Company Managers.
+// requireCmsAccess() also calls bootstrap() internally so getters are ready.
 require_login();
-CompanyConfig::bootstrap($USER->id);
-require_capability('moodle/site:config', context_system::instance());
+CompanyConfig::requireCmsAccess();
 
 // Page setup
 $PAGE->set_context(context_system::instance());
@@ -44,12 +44,14 @@ echo $OUTPUT->header();
 
 // Inject Moodle context for the React app
 $moodlecontext = json_encode([
-    'wwwroot' => $CFG->wwwroot,
-    'sesskey' => sesskey(),
-    'userid' => $USER->id,
-    'tenantid' => CompanyConfig::getTenantId() ?? 1,
-    'username' => fullname($USER),
-    'useremail' => $USER->email,
+    'wwwroot'          => $CFG->wwwroot,
+    'sesskey'          => sesskey(),
+    'userid'           => $USER->id,
+    'tenantid'         => CompanyConfig::getTenantId() ?? 1,
+    'username'         => fullname($USER),
+    'useremail'        => $USER->email,
+    'isCompanyManager' => !is_siteadmin() && CompanyConfig::getCompanyId() !== null,
+    'companyId'        => CompanyConfig::getCompanyId(),
 ]);
 
 echo html_writer::tag('script', "window.MOODLE_CMS_CONTEXT = {$moodlecontext};", ['type' => 'text/javascript']);
