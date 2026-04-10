@@ -23,7 +23,8 @@ const updateContentItem = (
             refreshCredits();
         }
     } else if (updatedItem.status === 'error') {
-        showNotification(`Failed to generate slides for "${updatedItem.sectionname}". Please try again.`, 'error');
+        const contentTypeStr = updatedItem.contenttype === 'video' ? 'video' : 'slides';
+        showNotification(`Failed to generate ${contentTypeStr} for "${updatedItem.sectionname}". Please try again.`, 'error');
         if (refreshCredits) {
             refreshCredits();
         }

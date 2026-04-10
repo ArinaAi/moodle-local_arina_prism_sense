@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Paper, Button, useTheme, useMediaQuery } from '@mui/material';
+import { Box, Paper, Button, Typography, useTheme, useMediaQuery } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CloseIcon from '@mui/icons-material/Close';
 import ContentNavigator from '../ContentNavigator/ContentNavigator';
@@ -162,6 +162,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ moodleContext }) => {
             {/* Header with Back Support */}
             <Header moodleContext={moodleContext} onBack={handleMobileBack}>
                 <Button
+                    disabled
                     onClick={() => setIsChatOpen(!isChatOpen)}
                     startIcon={isChatOpen ? <CloseIcon /> : <AutoAwesomeIcon />}
                     variant="outlined"
@@ -174,10 +175,34 @@ const MainLayout: React.FC<MainLayoutProps> = ({ moodleContext }) => {
                         fontWeight: 600,
                         minHeight: buttonStyles.minHeight,
                         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                        ...(isChatOpen ? chatOpenStyles : chatClosedStyles(buttonStyles.hoverTransform))
+                        ...(isChatOpen ? chatOpenStyles : chatClosedStyles(buttonStyles.hoverTransform)),
+                        "&.Mui-disabled": {
+                            background: 'rgba(0, 0, 0, 0.04)',
+                            borderColor: 'rgba(0, 0, 0, 0.12)',
+                            color: 'rgba(0, 0, 0, 0.26)',
+                        }
                     }}
                 >
-                    {buttonText}
+                    <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1 }}>
+                        <span>{buttonText}</span>
+                        <Typography
+                            variant="caption"
+                            sx={{
+                                fontSize: '0.55rem',
+                                fontWeight: 700,
+                                color: '#e67300',
+                                backgroundColor: '#fff4e5',
+                                padding: '2px 4px',
+                                borderRadius: '4px',
+                                border: '1px solid #ffeebb',
+                                letterSpacing: '0.5px',
+                                textTransform: 'uppercase',
+                                lineHeight: 1
+                            }}
+                        >
+                            Soon
+                        </Typography>
+                    </Box>
                 </Button>
             </Header>
 

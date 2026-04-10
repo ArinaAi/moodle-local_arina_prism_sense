@@ -39,8 +39,8 @@ $string['filenotfound'] = 'PDF file not found';
 $string['invalidfiletype'] = 'File is not a valid PDF';
 
 // Capabilities
-$string['local/arina_prism_sense:approvecontent'] = 'Approve AI-generated content';
-$string['local/arina_prism_sense:generatecontent'] = 'Generate AI content';
+$string['arina_prism_sense:approvecontent'] = 'Approve AI-generated content';
+$string['arina_prism_sense:generatecontent'] = 'Generate AI content';
 
 // ── Settings page ─────────────────────────────────────────────────────────────
 $string['settings:pagetitle'] = 'PRISM Sense';

@@ -33,16 +33,38 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title: _title }) =>
 
     const playbackSpeeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
-    // Session pre-check when videoUrl changes: apiFetch detects an expired
-    // session and redirects before the <video> element tries to stream.
-    // (The browser's media pipeline bypasses our fetch wrapper entirely.)
+    const [resolvedVideoUrl, setResolvedVideoUrl] = useState<string>('');
+
+    // Fetch the actual streaming URL (SAS) to avoid 302 redirects
+    // that break cross-origin Range requests (seeking)
     useEffect(() => {
-        if (!videoUrl) { return; }
-        apiFetch(videoUrl, { method: 'GET', credentials: 'include', headers: { Range: 'bytes=0-0' } })
+        if (!videoUrl) {
+            setResolvedVideoUrl('');
+            return;
+        }
+
+        let isMounted = true;
+
+        const fetchUrl = videoUrl + (videoUrl.includes('?') ? '&' : '?') + 'json=1';
+
+        apiFetch(fetchUrl, { method: 'GET', credentials: 'include' })
+            .then(res => res.json())
+            .then(data => {
+                if (isMounted && data.status === 'success' && data.url) {
+                    setResolvedVideoUrl(data.url);
+                } else if (isMounted) {
+                    setResolvedVideoUrl(videoUrl);
+                }
+            })
             .catch((err) => {
                 if (err instanceof SessionExpiredError) { return; }
-                // Non-session error — let the <video> element handle it naturally.
+                if (isMounted) {
+                    // Fallback to original
+                    setResolvedVideoUrl(videoUrl);
+                }
             });
+
+        return () => { isMounted = false; };
     }, [videoUrl]);
 
     // Reset speed when video changes
@@ -53,7 +75,7 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title: _title }) =>
         if (videoRef.current) {
             videoRef.current.playbackRate = 1;
         }
-    }, [videoUrl]);
+    }, [resolvedVideoUrl]);
 
     useEffect(() => {
         const video = videoRef.current;
@@ -520,7 +542,7 @@ const VideoViewer: React.FC<VideoViewerProps> = ({ videoUrl, title: _title }) =>
 
             <video
                 ref={videoRef}
-                src={videoUrl}
+                src={resolvedVideoUrl || undefined}
                 style={{
                     width: '100%',
                     height: '100%',

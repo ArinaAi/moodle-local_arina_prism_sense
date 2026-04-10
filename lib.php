@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * LectureBot plugin for Moodle.
+ * PRISM Sense plugin for Moodle.
  *
  * @package    local_arina_prism_sense
  * @copyright  2024 Arina AI <info@arina.ai>

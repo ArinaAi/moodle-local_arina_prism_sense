@@ -250,16 +250,39 @@ const TabletLayout: React.FC<LayoutProps> = ({
                 <DialogContent>
                     {detailsItem && (
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                            <Box><Typography variant="caption" color="text.secondary">Title</Typography><Typography variant="body2">{detailsItem.title}</Typography></Box>
-                            <Box><Typography variant="caption" color="text.secondary">Section</Typography><Typography variant="body2">{detailsItem.sectionname}</Typography></Box>
-                            <Box><Typography variant="caption" color="text.secondary">Type</Typography><Typography variant="body2">{detailsItem.contenttype}</Typography></Box>
-                            <Box><Typography variant="caption" color="text.secondary">Status</Typography><Typography variant="body2">{detailsItem.status}</Typography></Box>
-                            <Box><Typography variant="caption" color="text.secondary">Created</Typography><Typography variant="body2">{formatDate(detailsItem.timecreated)}</Typography></Box>
+                            <Box>
+                                <Typography variant="caption" color="text.secondary">Title</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 500 }}>{detailsItem.title || detailsItem.sectionname}</Typography>
+                            </Box>
+                            <Box>
+                                <Typography variant="caption" color="text.secondary">Content Type</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 500, textTransform: 'capitalize' }}>{detailsItem.contenttype}</Typography>
+                            </Box>
+                            <Box>
+                                <Typography variant="caption" color="text.secondary">Status</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 500, textTransform: 'capitalize' }}>{detailsItem.status}</Typography>
+                            </Box>
+                            <Box>
+                                <Typography variant="caption" color="text.secondary">Created</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 500 }}>{formatDate(detailsItem.timecreated)}</Typography>
+                            </Box>
+                            {!!detailsItem.timemodified && (
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary">Last Modified</Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 500 }}>{formatDate(detailsItem.timemodified)}</Typography>
+                                </Box>
+                            )}
                         </Box>
                     )}
                 </DialogContent>
                 <DialogActions sx={{ p: 2 }}>
-                    <Button onClick={() => setDetailsDialog({ open: false, contentId: null })}>Close</Button>
+                    <Button
+                        onClick={() => setDetailsDialog({ open: false, contentId: null })}
+                        color="primary"
+                        variant="contained"
+                    >
+                        Close
+                    </Button>
                 </DialogActions>
             </Dialog>
         </>

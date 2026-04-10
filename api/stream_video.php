@@ -99,6 +99,13 @@ try {
         throw new moodle_exception('Auth Service response did not contain a SAS URL.');
     }
 
+    $returnJson = optional_param('json', 0, PARAM_INT);
+    if ($returnJson) {
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'success', 'url' => $responseData['url']]);
+        exit;
+    }
+
     // Instantly redirect the browser to the secure Azure CDN URL
     header("Location: " . $responseData['url'], true, 302);
     exit;
