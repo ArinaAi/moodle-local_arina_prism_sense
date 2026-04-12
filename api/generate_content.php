@@ -206,13 +206,12 @@ try {
     // Note: The new API (http://0.0.0.0:8034/generate_pptx) doesn't require PDF upload
     // It generates slides based on curriculum text directly
 
-    // Get tenant ID from per-company config (falls back to .env / global config for standalone installs)
-    $tenantConfig = CompanyConfig::getTenantId();
-    $tenantId = is_numeric($tenantConfig) ? (int) $tenantConfig : 1;
-
-    // Log warning if tenant ID was a string so admin knows to fix it
-    if (!is_numeric($tenantConfig)) {
-        error_log("LectureBot: tenant_id ('$tenantConfig') is not numeric. Falling back to 1 for organization_id.");
+    // Get org_id from per-company config (falls back to global config for standalone installs).
+    // NOTE: The Python backend currently expects the key 'tenant_id' — we map org_id to it
+    // until the backend is updated to accept 'org_id'.
+    $orgId = CompanyConfig::getOrgId();
+    if (empty($orgId)) {
+        error_log('LectureBot: org_id is not configured. Please register via plugin settings.');
     }
 
     // Determine regen_count (Azure folder index)
@@ -315,7 +314,7 @@ try {
     $task_data = [
         'content_id' => $contentId,
         'curriculum_text' => $curriculumText,
-        'tenant_id' => $tenantId,
+        'tenant_id'       => $orgId,   // key kept as-is until Python backend is updated
         'course_id' => $courseid,
         'section_id' => $sectionid,
         'regen_count' => $regenCount,

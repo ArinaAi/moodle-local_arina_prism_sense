@@ -103,13 +103,13 @@ function local_arina_prism_sense_extractImagesFromPptx($pptxPath, $contentid)
     }
 
     $genData = json_decode($content->generationdata, true);
-    $tenantId = CompanyConfig::getTenantId();
+    $orgId = CompanyConfig::getOrgId();
 
     // Determine Azure paths
     $useNewStructure = isset($genData['azure_folder']);
 
     if ($useNewStructure) {
-        return local_arina_prism_sense_extractImagesFromAzure($genData, $tenantId);
+        return local_arina_prism_sense_extractImagesFromAzure($genData, $orgId);
     }
 
     return local_arina_prism_sense_extractImagesFromZip($pptxPath);
@@ -118,15 +118,15 @@ function local_arina_prism_sense_extractImagesFromPptx($pptxPath, $contentid)
 /**
  * Extract images using Azure generation data
  * @param array $genData
- * @param int $tenantId
+ * @param string $orgId
  * @return array
  */
-function local_arina_prism_sense_extractImagesFromAzure($genData, $tenantId)
+function local_arina_prism_sense_extractImagesFromAzure($genData, $orgId)
 {
     $azureFolderId = $genData['azure_folder'];
     $containerName = isset($genData['azure_container']) ?
         strtolower($genData['azure_container']) :
-        strtolower('Blob-Tutorial-Gen-' . $tenantId);
+        strtolower('Blob-Tutorial-Gen-' . $orgId);
 
     return local_arina_prism_sense_generateAzureImageUrls($azureFolderId, $containerName);
 }

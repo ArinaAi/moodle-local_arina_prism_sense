@@ -98,8 +98,8 @@ if ($validationFailed) {
     exit;
 }
 
-// Bootstrap per-company config (resolves tenantid, api_key, org_wallet_owner_id for IOMAD).
-// Must be called before prepareContext() so getTenantId() returns the correct value.
+// Bootstrap per-company config (resolves org_id, api_key, org_wallet_owner_id for IOMAD).
+// Must be called before prepareContext() so getOrgId() returns the correct value.
 \local_arina_prism_sense\CompanyConfig::bootstrap($USER->id);
 
 // Get course sections and context using Utils

@@ -80,7 +80,7 @@ function local_arina_prism_sense_init_azure_config()
     // 2. Define Constants
     local_arina_prism_sense_define_from_env('AZURE_STORAGE_ACCOUNT_NAME');
     local_arina_prism_sense_define_from_env('AZURE_STORAGE_ACCOUNT_KEY');
-    local_arina_prism_sense_define_from_env('LECTUREBOT_TENANT_ID', 'default_tenant');
+    // LECTUREBOT_TENANT_ID is deprecated — org_id now comes from CompanyConfig (Arina auth service).
     
     // PostgreSQL Database Constants
     local_arina_prism_sense_define_from_env('PG_HOST');
@@ -94,9 +94,9 @@ function local_arina_prism_sense_init_azure_config()
         if ($val !== false) {
             define('AZURE_BLOB_CONTAINER_NAME', $val);
         } else {
-            $tenantId = LECTUREBOT_TENANT_ID;
-            $safeTenantId = strtolower(preg_replace('/[^a-zA-Z0-9-]/', '', $tenantId));
-            define('AZURE_BLOB_CONTAINER_NAME', 'blob-tutorial-gen-' . $safeTenantId);
+            // org_id is now resolved by CompanyConfig::getOrgId() at runtime.
+            // This static fallback only applies to the legacy AZURE_BLOB_CONTAINER_NAME constant.
+            define('AZURE_BLOB_CONTAINER_NAME', 'blob-tutorial-gen-default');
         }
     }
 

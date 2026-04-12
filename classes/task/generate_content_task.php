@@ -737,12 +737,12 @@ class generate_content_task extends \core\task\adhoc_task
     {
         global $DB;
 
-        $tenantId = $data->tenant_id;
-        $courseid = $data->course_id;
+        $orgId     = $data->tenant_id; // value is org_id — key preserved for task data backwards compat
+        $courseid  = $data->course_id;
         $sectionid = $data->section_id;
         $regenCount = $data->regen_count;
 
-        $containerName = strtolower('Blob-Tutorial-Gen-' . $tenantId);
+        $containerName = strtolower('Blob-Tutorial-Gen-' . $orgId);
         $folderName = "Tutorial_{$courseid}_{$sectionid}_{$regenCount}";
 
         $isVideo = ($contentType === 'video' || $avatarVideoNeeded === 'yes');
@@ -773,15 +773,15 @@ class generate_content_task extends \core\task\adhoc_task
      */
     private function getApiUrl($data, $contentType, $avatarVideoNeeded, $userUuid = null)
     {
-        $tenantId = $data->tenant_id;
-        $courseid = $data->course_id;
-        $sectionid = $data->section_id;
-        $regenCount = $data->regen_count;
-        $videoLength = $data->video_length;
+        $orgId           = $data->tenant_id; // value is org_id — key preserved for task data
+        $courseid        = $data->course_id;
+        $sectionid       = $data->section_id;
+        $regenCount      = $data->regen_count;
+        $videoLength     = $data->video_length;
         $contentStrategy = $data->content_strategy;
 
-        $language = isset($data->language) ? $data->language : 'english';
-        $voiceGender = isset($data->voice_gender) ? $data->voice_gender : 'female';
+        $language       = isset($data->language)        ? $data->language        : 'english';
+        $voiceGender    = isset($data->voice_gender)    ? $data->voice_gender    : 'female';
         $avatarStrategy = isset($data->avatar_strategy) ? $data->avatar_strategy : 'title_only';
         $curriculumText = $data->curriculum_text;
 
@@ -790,7 +790,7 @@ class generate_content_task extends \core\task\adhoc_task
             $baseUrl = API_GENERATE_VIDEO;
             $videoUrl = $baseUrl .
                 '?course_id=' . $courseid .
-                '&organization_id=' . $tenantId .
+                '&organization_id=' . $orgId .
                 '&chapter_id=' . $sectionid .
                 '&regen_count=' . $regenCount .
                 '&language=' . urlencode($language) .
@@ -808,7 +808,7 @@ class generate_content_task extends \core\task\adhoc_task
             // Fallback to existing PPTX endpoint logic
             $pptxUrl = API_GENERATE_PPTX .
                 '?curriculum_text=' . urlencode(trim($curriculumText)) .
-                '&organization_id=' . urlencode($tenantId) .
+                '&organization_id=' . urlencode($orgId) .
                 '&course_id=' . $courseid .
                 '&chapter_id=' . $sectionid .
                 '&regen_count=' . $regenCount .
@@ -986,13 +986,13 @@ class generate_content_task extends \core\task\adhoc_task
     {
         global $CFG, $DB;
 
-        $tenantId = $data->tenant_id;
+        $orgId = $data->tenant_id; // value is org_id — key preserved for task data
         $courseid = $data->course_id;
         $sectionid = $data->section_id;
         $regenCount = $data->regen_count;
         $contentId = $data->content_id;
 
-        $containerName = strtolower('Blob-Tutorial-Gen-' . $tenantId);
+        $containerName = strtolower('Blob-Tutorial-Gen-' . $orgId);
         $folderName = "Tutorial_{$courseid}_{$sectionid}_{$regenCount}";
 
         $isVideo = ($contentType === 'video' || $avatarVideoNeeded === 'yes');

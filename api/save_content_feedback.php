@@ -100,8 +100,7 @@ try {
     // 2. Build JSON payload for the Arina Content-Regen Feedback API
     // ----------------------------------------------------------------
     $payload = [
-        'tenant_id' => (string) get_config('local_arina_prism_sense', 'tenantid') ?:
-            CompanyConfig::getTenantId() ?: '0',
+        'tenant_id' => CompanyConfig::getOrgId() ?: '0',   // key kept as-is until Python backend is updated
         'user_id' => (string) $USER->id,
         'contentid' => (string) $contentid,
         'feedback_type' => $feedbackType,

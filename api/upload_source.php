@@ -229,9 +229,8 @@ try {
 
     if (defined('ENABLE_BACKEND_PDF_UPLOAD') && ENABLE_BACKEND_PDF_UPLOAD) {
         try {
-            // Get tenant ID, regen count and API key.
-            $tenantConfig = CompanyConfig::getTenantId();
-            $tenantId = is_numeric($tenantConfig) ? (int) $tenantConfig : 1;
+            // Get org ID, regen count and API key.
+            $orgId = CompanyConfig::getOrgId();
             $regenCount = local_arina_prism_sense_get_azure_regen_count($courseid, $sectionid);
             // Fetch API key once — used both in start_batch_upload and per-file upload.
             $apiKey = CompanyConfig::getApiKey();
@@ -264,7 +263,7 @@ try {
                 // No existing batch → call start_batch_upload once for this section.
                 $expectedUploads = count($storedFiles);
                 $startBatchParams = [
-                    'organization_id' => $tenantId,
+                    'organization_id' => $orgId,
                     'course_id'       => $courseid,
                     'chapter_id'      => $sectionid,
                     'regen_count'     => $regenCount,
@@ -348,7 +347,7 @@ try {
                     $queryParams = [
                         'batch_id' => $batchId,
                         'course_id' => $courseid,
-                        'organization_id' => $tenantId,
+                        'organization_id' => $orgId,
                         'chapter_id' => $sectionid,
                         'regen_count' => $regenCount,
                         'author' => $author,

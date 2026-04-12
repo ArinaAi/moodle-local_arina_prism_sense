@@ -47,7 +47,7 @@ $moodlecontext = json_encode([
     'wwwroot'          => $CFG->wwwroot,
     'sesskey'          => sesskey(),
     'userid'           => $USER->id,
-    'tenantid'         => CompanyConfig::getTenantId() ?? 1,
+    'orgid'            => CompanyConfig::getOrgId() ?? null,
     'username'         => fullname($USER),
     'useremail'        => $USER->email,
     'isCompanyManager' => !is_siteadmin() && CompanyConfig::getCompanyId() !== null,

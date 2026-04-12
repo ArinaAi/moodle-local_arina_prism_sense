@@ -55,10 +55,10 @@ try {
     }
 
     $azureFolderId = $generationData['azure_folder'];
-    $tenantId = CompanyConfig::getTenantId();
+    $orgId = CompanyConfig::getOrgId();
     $containerName = isset($generationData['azure_container'])
         ? strtolower($generationData['azure_container'])
-        : strtolower('Blob-Tutorial-Gen-' . $tenantId);
+        : strtolower('Blob-Tutorial-Gen-' . $orgId);
 
     // Fetch TOC from Azure
     $tocData = local_arina_prism_sense_fetchTocFromAzure($azureFolderId, $containerName);

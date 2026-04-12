@@ -56,10 +56,10 @@ try {
     }
     
     $apiKey = CompanyConfig::getApiKey();
-    $tenantId = CompanyConfig::getTenantId();
+    $orgId = CompanyConfig::getOrgId();
     
     if (!$containerName) {
-         $containerName = strtolower('Blob-Tutorial-Gen-' . $tenantId);
+         $containerName = strtolower('Blob-Tutorial-Gen-' . $orgId);
     }
     
     // Release session lock early — video streaming is long-running and

@@ -48,6 +48,12 @@ $string['settings:apikey'] = 'Arina API Key (Global / Fallback)';
 $string['settings:apikey_desc'] = 'Global API key. Used on standalone Moodle installs (without IOMAD). ' .
     'For IOMAD multi-tenant setups, configure per-company API keys via the ' .
     '<a href="{$a}">Company Settings</a> page instead.';
+$string['settings:orgid'] = 'Arina Org ID (Global / Fallback)';
+$string['settings:orgid_desc'] = 'Global organization identity. Used on standalone Moodle installs (without IOMAD).';
+$string['settings:register_heading'] = 'Arina.ai Registration';
+$string['settings:register_desc'] = 'Don\'t have an Org ID or API Key? ' .
+    'Enter a new password below and click "Register" to create an Arina.ai ' .
+    'account via the Auth Service and automatically configure your Moodle plugin.';
 $string['settings:iomad_heading'] = 'IOMAD Multi-Tenant Configuration';
 $string['settings:iomad_link'] = '⚙ Configure Per-Company API Keys';
 

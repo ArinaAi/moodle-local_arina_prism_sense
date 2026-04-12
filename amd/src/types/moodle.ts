@@ -6,7 +6,7 @@ export interface MoodleSection {
 
 export interface MoodleContext {
   userid: number;
-  tenantid: string | null;
+  orgid: string | null;
   courseid: number;
   coursename: string;
   sesskey: string;

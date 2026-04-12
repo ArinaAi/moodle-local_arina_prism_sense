@@ -34,6 +34,16 @@ if ($hassiteconfig) {
         get_string('settings:pagetitle', 'local_arina_prism_sense')
     );
 
+    // Global Org ID — used as fallback for non-IOMAD installs.
+    // In IOMAD: paste the same org_id into mdl_company.code when creating a company.
+    $settings->add(new admin_setting_configtext(
+        'local_arina_prism_sense/org_id',
+        get_string('settings:orgid', 'local_arina_prism_sense'),
+        get_string('settings:orgid_desc', 'local_arina_prism_sense'),
+        '',
+        PARAM_TEXT
+    ));
+
     // Global API Key — used as fallback for non-IOMAD installs.
     // IOMAD installations: use the Company Settings page below instead.
     $settings->add(new admin_setting_configtext(
@@ -42,6 +52,23 @@ if ($hassiteconfig) {
         get_string('settings:apikey_desc', 'local_arina_prism_sense', $companySettingsUrl),
         '',
         PARAM_TEXT
+    ));
+
+    // ── Registration Section ───────────────────────────────────────────────────
+    // A dedicated page handles the 2-step auth service flow (register + generate-api-key).
+    $registerUrl = $CFG->wwwroot . '/local/arina_prism_sense/register.php';
+
+    $registerHtml = html_writer::tag('p', get_string('settings:register_desc', 'local_arina_prism_sense'));
+    $registerHtml .= html_writer::tag(
+        'a',
+        '⚙ Register / Generate API Key on Arina.ai',
+        ['href' => $registerUrl, 'class' => 'btn btn-primary btn-sm']
+    );
+
+    $settings->add(new admin_setting_heading(
+        'local_arina_prism_sense/register_heading',
+        get_string('settings:register_heading', 'local_arina_prism_sense'),
+        $registerHtml
     ));
 
     // Link to per-company settings (only shown when IOMAD is installed).
@@ -55,4 +82,15 @@ if ($hassiteconfig) {
     }
 
     $ADMIN->add('localplugins', $settings);
+
+    // Register the registration page so admin_externalpage_setup() resolves correctly.
+    $ADMIN->add(
+        'localplugins',
+        new admin_externalpage(
+            'local_arina_prism_sense_register',
+            get_string('settings:register_heading', 'local_arina_prism_sense'),
+            $CFG->wwwroot . '/local/arina_prism_sense/register.php',
+            'moodle/site:config'
+        )
+    );
 }

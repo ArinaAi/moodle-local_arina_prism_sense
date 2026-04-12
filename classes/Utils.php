@@ -53,17 +53,17 @@ class Utils
     {
         global $USER;
         $sections = self::getCourseSections($course->id);
-        $tenantId = CompanyConfig::getTenantId();
+        $orgId = CompanyConfig::getOrgId();
         $canApprove = has_capability('local/arina_prism_sense:approvecontent', \context_course::instance($course->id));
         return json_encode([
-            'userid' => $USER->id,
-            'tenantid' => $tenantId,
-            'courseid' => $course->id,
+            'userid'     => $USER->id,
+            'orgid'      => $orgId,
+            'courseid'   => $course->id,
             'coursename' => $course->fullname,
-            'sesskey' => sesskey(),
-            'wwwroot' => $wwwroot,
-            'sections' => $sections,
-            'canApprove' => $canApprove
+            'sesskey'    => sesskey(),
+            'wwwroot'    => $wwwroot,
+            'sections'   => $sections,
+            'canApprove' => $canApprove,
         ]);
     }
 

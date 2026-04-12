@@ -52,8 +52,8 @@ if (!empty($generationData['pdf_path']) && file_exists($generationData['pdf_path
 try {
     // BFF Connection Details
     $apiKey = CompanyConfig::getApiKey();
-    $tenantId = CompanyConfig::getTenantId();
-    $containerName = strtolower('Blob-Tutorial-Gen-' . $tenantId);
+    $orgId = CompanyConfig::getOrgId();
+    $containerName = strtolower('Blob-Tutorial-Gen-' . $orgId);
 
     if (empty($apiKey)) {
         throw new moodle_exception('API key is not configured in settings.');
