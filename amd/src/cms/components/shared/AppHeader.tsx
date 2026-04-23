@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Box, Typography, useTheme, useMediaQuery, IconButton, Tooltip } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NAV_TITLES } from '../../config/mockData';
@@ -26,7 +26,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
     const prevBalance = useRef<number | null>(null);
     const lastFetchAt = useRef<number>(0);
 
-    const fetchBalance = async () => {
+    const fetchBalance = useCallback(async () => {
         try {
             const baseUrl = moodleContext.wwwroot || '';
             const res = await apiFetch(`${baseUrl}/local/arina_prism_sense/api/cms/get_balance.php`, { credentials: 'include' });
@@ -46,18 +46,18 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
         } finally {
             lastFetchAt.current = Date.now();
         }
-    };
+    }, [moodleContext.wwwroot]);
 
     useEffect(() => {
         void fetchBalance();
-    }, []);
+    }, [fetchBalance]);
 
     // Listen for balance refresh events (from CreditAllocationModal, PurchaseCreditsModal)
     useEffect(() => {
         const handler = () => { void fetchBalance(); };
         globalThis.addEventListener(BALANCE_REFRESH_EVENT, handler);
         return () => globalThis.removeEventListener(BALANCE_REFRESH_EVENT, handler);
-    }, []);
+    }, [fetchBalance]);
 
     // Refresh on tab visibility regain if >30s stale
     useEffect(() => {
@@ -68,7 +68,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
         };
         document.addEventListener('visibilitychange', handler);
         return () => document.removeEventListener('visibilitychange', handler);
-    }, []);
+    }, [fetchBalance]);
 
     const getTitleVariant = () => {
         if (isMobile) { return 'subtitle1'; }
@@ -174,8 +174,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
                     <Tooltip title="Retake Tour" arrow PopperProps={{ sx: { zIndex: 100000 } }}>
                         <IconButton
                             onClick={() => {
-                                if (typeof window !== 'undefined' && (window as any).startLecturebotTour) {
-                                    (window as any).startLecturebotTour();
+                                const win = window as Window & { startLecturebotTour?: () => void };
+                                if (typeof window !== 'undefined' && win.startLecturebotTour) {
+                                    win.startLecturebotTour();
                                 }
                             }}
                             size="small"
@@ -203,7 +204,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
                             />
                         </IconButton>
                     </Tooltip>
-                    <Box component="img" src={`${moodleContext.wwwroot}/local/arina_prism_sense/pix/arina-logo.png?v=1`} alt="Arina AI" sx={{ height: { xs: 32, sm: 40, md: 48 }, width: 'auto', objectFit: 'contain', ml: { xs: 0, sm: 1 } }} onError={(e: any) => { e.currentTarget.style.display = 'none'; }} />
+                    <Box component="img" src={`${moodleContext.wwwroot}/local/arina_prism_sense/pix/arina-logo.png?v=1`} alt="Arina AI" sx={{ height: { xs: 32, sm: 40, md: 48 }, width: 'auto', objectFit: 'contain', ml: { xs: 0, sm: 1 } }} onError={(e: React.SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
                 </Box>
             </Box>
 

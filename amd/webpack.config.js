@@ -1,4 +1,5 @@
 const path = require('path');
+const TerserPlugin = require('terser-webpack-plugin');
 
 const appConfig = {
   entry: {
@@ -23,7 +24,7 @@ const appConfig = {
     rules: [
       {
         test: /\.tsx?$/,
-        use: 'ts-loader',
+        use: { loader: 'ts-loader', options: { transpileOnly: true } },
         exclude: /node_modules/
       },
       {
@@ -47,6 +48,9 @@ const appConfig = {
   // Disable default cache groups to prevent Webpack from generating random numbered chunks 
   // (which break in Moodle due to dynamic publicPath issues across different installations).
   optimization: {
+    minimizer: [
+      new TerserPlugin({ parallel: 2 }),
+    ],
     splitChunks: {
       cacheGroups: {
         default: false,
@@ -81,7 +85,7 @@ const shepherdConfig = {
     rules: [
       {
         test: /\.tsx?$/,
-        use: 'ts-loader',
+        use: { loader: 'ts-loader', options: { transpileOnly: true } },
         exclude: /node_modules/
       },
       {

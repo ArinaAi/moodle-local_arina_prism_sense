@@ -134,7 +134,7 @@ export const App: React.FC = () => {
   }, []);
 
   const handleOpenVideoLectureModal = useCallback(() => {
-    console.log('🔘 Opening Video Lecture Modal');
+    console.warn('🔘 Opening Video Lecture Modal');
     dispatch({ type: 'SHOW_VIDEO_LECTURE_MODAL', payload: true });
   }, []);
 

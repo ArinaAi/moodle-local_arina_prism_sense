@@ -213,15 +213,18 @@ try {
     \core\session\manager::write_close();
 
     // Get user's personal wallet UUID for credit tracking.
-    // Admins and sub-users both use the same arina_prism_sense_wallet_sub_user_id preference.
-    // If the user has no personal wallet yet (no allocation received), $userUuid stays null
-    // and the user_id param is simply omitted from the backend API call.
+    // getSubUserProfileCached() uses a browser cookie (24 h) as first-level cache.
+    // On a cache miss it calls ensureSubUserRegistered(), which registers the user
+    // and provisions their SUB_USER wallet if either is missing.
     $userUuid = null;
     try {
-        $userUuid = get_user_preferences('arina_prism_sense_wallet_sub_user_id', null, $USER->id);
+        require_once __DIR__ . '/cms/CreditServiceClient.php';
+        $creditClient = new \local_arina_prism_sense\cms\CreditServiceClient();
+        $userProfile  = $creditClient->getSubUserProfileCached((int) $USER->id);
+        $userUuid     = $userProfile['user_id'] ?? null;
     } catch (\Exception $e) {
-        // Continue anyway, backend will return appropriate error if UUID is required
-        error_log("LectureBot: Failed to get user UUID: " . $e->getMessage());
+        // Non-fatal: credit tracking will be skipped for this upload.
+        error_log('LectureBot: Failed to resolve user UUID for credit tracking: ' . $e->getMessage());
     }
 
     // ===== UPLOAD PDFs TO BACKEND API (if enabled) =====

@@ -175,16 +175,16 @@ export const useContentActions = (
                 throw new Error('Server returned invalid JSON. Check PHP error logs.');
             }
 
-            console.log('📦 Parsed result:', result);
+            console.warn('📦 Parsed result:', result);
 
             if (result.status === 'success' && result.content_id) {
-                console.log('✅ Generation successful, content_id:', result.content_id);
+                console.warn('✅ Generation successful, content_id:', result.content_id);
                 dispatch({ type: 'SET_GENERATING_SLIDES', payload: false });
 
                 // Reload content state silently to replace temp item with real data
-                console.log('🔄 Calling loadContentState (silent)...');
+                console.warn('🔄 Calling loadContentState (silent)...');
                 await loadContentState(false);
-                console.log('✅ loadContentState completed');
+                console.warn('✅ loadContentState completed');
             } else {
                 throw new Error(result.error || 'Invalid response from server');
             }
@@ -234,7 +234,7 @@ export const useContentActions = (
         const generationData = slideItem.generationdata ? JSON.parse(slideItem.generationdata) : {};
         const regenCount = generationData.regen_count || 0;
 
-        console.log(`🎥 Video generation for section ${sectionId}, regen_count: ${regenCount}`);
+        console.warn(`🎥 Video generation for section ${sectionId}, regen_count: ${regenCount}`);
 
         // Close modal
         dispatch({ type: 'SHOW_VIDEO_LECTURE_MODAL', payload: false });
@@ -311,9 +311,9 @@ export const useContentActions = (
             }
 
             // Reload content state silently to replace temp item with real data
-            console.log('🔄 Calling loadContentState (silent) after video generation request...');
+            console.warn('🔄 Calling loadContentState (silent) after video generation request...');
             await loadContentState(false);
-            console.log('✅ loadContentState completed for video generation');
+            console.warn('✅ loadContentState completed for video generation');
 
         } catch (error: any) {
             console.error('Video generation failed:', error);

@@ -25,7 +25,7 @@ if (file_exists($envFile)) {
             list($name, $value) = explode('=', $line, 2);
             $name = trim($name);
             $value = trim($value);
-            if (!empty($name) && !isset($_ENV[$name])) {
+            if (!empty($name)) {
                 putenv("$name=$value");
                 $_ENV[$name] = $value;
             }
@@ -55,7 +55,7 @@ define('API_TRIGGER_GENERATION', BOT_BASE_URL . '/trigger_generation');
 define('API_BATCH_UPLOADS_BASE', BOT_BASE_URL . '/batches');
 
 // ── Agent / message bus ───────────────────────────────────────────────────────
-define('API_CHECK_STATUS_BATCH', API_BASE_URL . '/service/arina-message-bus-status-service/status/batch');
+define('API_CHECK_STATUS_BATCH', API_BASE_URL . '/service/arina_message_bus_status_service/status/batch');
 
 // ── Asset download gateway ────────────────────────────────────────────────────
 define('API_DOWNLOAD_ASSET', API_BASE_URL . '/service/arina-url-gateway-service/api/v1/assets/download');
@@ -67,6 +67,9 @@ define('CONTENT_REGEN_FEEDBACK_URL', FEEDBACK_BASE_URL . '/content-regeneration/
 
 // ── Credit service ────────────────────────────────────────────────────────────
 define('CREDIT_SERVICE_URL', API_BASE_URL . '/service/arina-credit-service');
+
+// ── IOMAD / Org-management service ───────────────────────────────────────────
+define('IOMAD_SERVICE_URL', API_BASE_URL . '/service/arina_iomad_service');
 
 // ── Auth service ──────────────────────────────────────────────────────────────
 define('AUTH_SERVICE_URL', API_BASE_URL . '/service/arina_auth_service/validate');

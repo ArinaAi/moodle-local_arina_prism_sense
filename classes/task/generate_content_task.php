@@ -1231,30 +1231,71 @@ class generate_content_task extends \core\task\adhoc_task
      * @param object $data Task custom data
      * @return string|null User's personal wallet owner UUID, or null if not available
      */
-    private function getUserUuidForCredit($data)
+    private function getUserUuidForCredit($data): ?string
     {
         if (!isset($data->user_id)) {
             mtrace("No user_id in task data");
             return null;
         }
 
-        mtrace("Looking up personal wallet UUID for user_id: " . $data->user_id);
+        $moodleUserId = (int) $data->user_id;
+        mtrace("Looking up personal wallet UUID for user_id: {$moodleUserId}");
 
-        $result = null;
-        try {
-            $userUuid = get_user_preferences('arina_prism_sense_wallet_sub_user_id', null, $data->user_id);
-
-            if (!empty($userUuid)) {
-                mtrace("Found personal wallet UUID: " . $userUuid);
-                $result = $userUuid;
-            } else {
-                mtrace("No personal wallet UUID found for user {$data->user_id} — credit tracking skipped");
-            }
-        } catch (\Exception $e) {
-            mtrace("Warning: Could not retrieve user UUID: " . $e->getMessage());
+        $cached = $this->getCachedUserUuid($moodleUserId);
+        if ($cached !== null) {
+            return $cached;
         }
 
-        return $result;
+        return $this->resolveUserUuidFromApi($moodleUserId);
     }
 
+    /**
+     * Return the wallet UUID from Moodle user-preference cache (fast path), or null.
+     *
+     * @param int $moodleUserId
+     * @return string|null
+     */
+    private function getCachedUserUuid(int $moodleUserId): ?string
+    {
+        try {
+            $userUuid = get_user_preferences('arina_prism_sense_wallet_sub_user_id', null, $moodleUserId);
+            if (!empty($userUuid)) {
+                mtrace("Found personal wallet UUID (cached): {$userUuid}");
+                return $userUuid;
+            }
+        } catch (\Exception $e) {
+            mtrace("Warning: Could not read user preference: " . $e->getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Resolve the wallet UUID via the Arina profile endpoint (slow path).
+     * Persists the resolved UUID to Moodle user preferences for future cron runs.
+     *
+     * @param int $moodleUserId
+     * @return string|null
+     */
+    private function resolveUserUuidFromApi(int $moodleUserId): ?string
+    {
+        // ensureSubUserRegistered() registers the user and provisions a wallet if needed.
+        mtrace("No cached UUID for user {$moodleUserId} — resolving via Arina profile endpoint.");
+        try {
+            $client   = new \local_arina_prism_sense\cms\CreditServiceClient();
+            $profile  = $client->ensureSubUserRegistered($moodleUserId);
+            $userUuid = $profile['user_id'] ?? null;
+
+            if (!empty($userUuid)) {
+                // Cache the resolved UUID so future cron runs skip the API call.
+                set_user_preference('arina_prism_sense_wallet_sub_user_id', $userUuid, $moodleUserId);
+                mtrace("Resolved and cached personal wallet UUID: {$userUuid}");
+                return $userUuid;
+            }
+
+            mtrace("Profile resolved but user_id is empty for user {$moodleUserId} — credit tracking skipped.");
+        } catch (\Exception $e) {
+            mtrace("Warning: Could not resolve user UUID from Arina: " . $e->getMessage());
+        }
+        return null;
+    }
 }

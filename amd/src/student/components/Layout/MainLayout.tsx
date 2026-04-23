@@ -8,6 +8,7 @@ import ChatBot from '../ChatBot/ChatBot';
 import { useContent } from '../../context/ContentContext';
 import Header from '../../../components/Layout/Header';
 import type { MoodleContext } from '../../../types/moodle';
+import type { ContentItem } from '../../mockData';
 
 interface MainLayoutProps {
     moodleContext: MoodleContext;
@@ -87,7 +88,7 @@ const getPanelAnimStyles = (isChatOpen: boolean) => ({
 });
 
 // Mobile content renderer based on state
-const renderMobileContent = (isChatOpen: boolean, selectedContent: any, moodleContext: MoodleContext) => {
+const renderMobileContent = (isChatOpen: boolean, selectedContent: ContentItem | null, moodleContext: MoodleContext) => {
     if (isChatOpen) {
         return (
             <Paper

@@ -51,7 +51,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         case 'SHOW_CURRICULUM_MODAL':
             return { ...state, showCurriculumModal: action.payload };
         case 'SHOW_VIDEO_LECTURE_MODAL':
-            console.log('🔴 Reducer: SHOW_VIDEO_LECTURE_MODAL ->', action.payload);
+            console.warn('🔴 Reducer: SHOW_VIDEO_LECTURE_MODAL ->', action.payload);
             return { ...state, showVideoLectureModal: action.payload };
         case 'SHOW_FEEDBACK_MODAL':
             return { ...state, showFeedbackModal: action.payload };

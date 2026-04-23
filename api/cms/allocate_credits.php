@@ -50,8 +50,16 @@ try {
     $orgUuid = $client->getOrInitializeOrgWallet();
     $orgWalletId = $client->resolveWalletId($orgUuid);
 
-    // Target Wallet: JIT creation if needed, returns wallet ID directly
-    $targetWalletId = $client->getOrInitializeSubUserWallet($targetUserId);
+    // Resolve the org admin's Arina user_id — this is the owner_id stored on the
+    // org wallet by the IOMAD registration service, required as performed_by_user_id.
+    // (On the IOMAD-provisioned setup, $orgUuid from config is NOT the wallet owner_id.)
+    $adminProfile      = $client->getSubUserProfile((int) $USER->id);
+    $performedByUserId = $adminProfile['user_id'] ?? $orgUuid;
+
+    // Register sub-user in Arina (idempotent) and resolve wallet_id.
+    // 200 = newly created (wallet_id in response); 409 = already exists (falls back to profile API).
+    $subUserProfile = $client->ensureSubUserRegistered($targetUserId);
+    $targetWalletId = $subUserProfile['wallet_id'];
 
     // Determine direction and authorization
     if ($action === 'distribute') {
@@ -70,7 +78,8 @@ try {
         }
 
         // Perform allocation: org -> sub-user
-        $response = $client->allocateCredits($orgWalletId, [$targetWalletId], $amount, $orgUuid);
+        // performed_by_user_id must be the org wallet owner UUID (the source wallet's owner).
+        $response = $client->allocateCredits($orgWalletId, [$targetWalletId], $amount, $performedByUserId);
     } elseif ($action === 'recall') {
         // For recall, check if staff has sufficient balance before calling the API
         $staffBalanceRes = $client->getWalletBalance($targetWalletId);

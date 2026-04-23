@@ -28,7 +28,7 @@ export const getSlideCount = (item: ContentItem): number => {
     if (!item.result || !item.result.results) {
         return 0;
     }
-    return item.result.results.reduce((total: number, subtopic: any) => {
+    return item.result.results.reduce((total: number, subtopic: { slideCount?: number }) => {
         return total + (subtopic.slideCount || 0);
     }, 0);
 };

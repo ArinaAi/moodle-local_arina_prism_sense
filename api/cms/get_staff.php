@@ -34,7 +34,8 @@ try {
         && !empty($hierarchyRes['data']['child_wallets'])
     ) {
         foreach ($hierarchyRes['data']['child_wallets'] as $child) {
-            $walletId       = $child['wallet_id'] ?? null;
+            $walletId        = $child['wallet_id'] ?? null;
+            $moodleUserId    = isset($child['moodle_user_id']) ? (int) $child['moodle_user_id'] : null;
             $reservedCredits = 0;
 
             if ($walletId) {
@@ -44,11 +45,14 @@ try {
                 }
             }
 
-            $subWallets[$child['owner_id']] = [
-                'wallet_id'       => $walletId,
-                'balance'         => isset($child['balance']) ? (float) $child['balance'] : 0,
-                'reserved_credits' => $reservedCredits,
-            ];
+            if ($moodleUserId !== null) {
+                // Key by moodle_user_id so $buildRow can match without user preferences.
+                $subWallets[$moodleUserId] = [
+                    'wallet_id'        => $walletId,
+                    'balance'          => isset($child['balance']) ? (float) $child['balance'] : 0,
+                    'reserved_credits' => $reservedCredits,
+                ];
+            }
         }
     }
 
@@ -110,23 +114,21 @@ try {
 
     // ── 4. Helper: build a single staff row ───────────────────────────────────
     $buildRow = function ($user, $isAdmin) use ($subWallets) {
-        $uuid            = get_user_preferences('arina_prism_sense_wallet_sub_user_id', null, $user->id);
         $balance         = 0;
         $reservedCredits = 0;
         $status          = 'pending';
         $walletId        = null;
 
-        if ($uuid && isset($subWallets[$uuid])) {
+        if (isset($subWallets[(int) $user->id])) {
             $status          = 'active';
-            $balance         = $subWallets[$uuid]['balance'];
-            $walletId        = $subWallets[$uuid]['wallet_id'];
-            $reservedCredits = $subWallets[$uuid]['reserved_credits'];
+            $balance         = $subWallets[(int) $user->id]['balance'];
+            $walletId        = $subWallets[(int) $user->id]['wallet_id'];
+            $reservedCredits = $subWallets[(int) $user->id]['reserved_credits'];
         }
 
         $defaultDepartment = $isAdmin ? 'Administrator' : 'Faculty';
         return [
             'id'               => $user->id,
-            'uuid'             => $uuid,
             'wallet_id'        => $walletId,
             'name'             => fullname($user),
             'email'            => $user->email,

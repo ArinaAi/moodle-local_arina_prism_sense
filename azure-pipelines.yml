@@ -35,7 +35,7 @@ stages:
 
           - script: |
               cd arina-moodle/local
-              git clone https://$(AZURE_PAT)@dev.azure.com/ARINA-AI/NextGenChatBot/_git/arina-moodle-plugin lecturebot
+              git clone https://$(AZURE_PAT)@dev.azure.com/ARINA-AI/NextGenChatBot/_git/arina-moodle-plugin arina_prism_sense
             displayName: "Setup Plugin in Local Directory"
 
           - script: |
@@ -48,7 +48,7 @@ stages:
               echo "$(ACR_PASSWORD)" | docker login $(ACR_LOGIN_SERVER) -u $(ACR_USERNAME) --password-stdin
 
               # Copy required files from plugin directory to arina-moodle root
-              cp arina-moodle/local/lecturebot/{Dockerfile,docker-compose.yml,config.docker.php,moodle.ini} arina-moodle/
+              cp arina-moodle/local/arina_prism_sense/{Dockerfile,docker-compose.yml,config.docker.php,moodle.ini} arina-moodle/
 
               # Build and push Docker image from arina-moodle directory
               cd arina-moodle

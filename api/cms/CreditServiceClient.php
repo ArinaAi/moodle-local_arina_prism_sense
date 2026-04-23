@@ -95,44 +95,302 @@ class CreditServiceClient
         return $uuid;
     }
     
-    // Check if Sub-user Wallet exists in Moodle user preferences and create JIT if missing
-    // Returns the actual WALLET ID (not owner UUID)
-    // Note: owner_id = UUID stored in preferences, wallet_id = actual wallet identifier in Credit Service
-    public function getOrInitializeSubUserWallet($userId)
+    /**
+     * Register a Moodle user in Arina (idempotent). On first registration (HTTP 200)
+     * the response body already contains wallet_id and user_id — returned directly.
+     * On 409 (user already exists), falls back to getSubUserProfile() to resolve IDs.
+     *
+     * @param int $moodleUserId
+     * @return array Profile array: { user_id, username, org_id, wallet_id, moodle_user_id }
+     * @throws CreditServiceException
+     */
+    /**
+     * Ensure a Moodle user exists in Arina AND has a provisioned credit wallet.
+     *
+     * Flow:
+     *   1. GET /organisation/user/profile
+     *      → 200 with wallet_id  : return immediately (1 API call)
+     *      → 200 with null wallet_id : wallet provisioning was skipped; fall through to register
+     *      → 404                 : user not found; fall through to register
+     *   2. POST /organisation/user/register
+     *      → 200 with wallet_id  : return registration payload directly
+     *      → anything else       : throw CreditServiceException
+     *
+     * @param int $moodleUserId
+     * @return array Profile: { user_id, username, org_id, wallet_id, moodle_user_id }
+     * @throws CreditServiceException
+     */
+    public function ensureSubUserRegistered(int $moodleUserId): array
     {
-        $uuid = get_user_preferences('arina_prism_sense_wallet_sub_user_id', null, $userId);
-        if (empty($uuid)) {
-            $uuid = $this->generateV4UUID();
-            set_user_preference('arina_prism_sense_wallet_sub_user_id', $uuid, $userId);
-            
-            // Get parent org wallet ID (not owner UUID)
-            $parentOrgOwnerUuid = $this->getOrInitializeOrgWallet();
-            $parentWalletId = $this->resolveWalletId($parentOrgOwnerUuid);
-            
-            // Create in Credit Service as SUB_USER with parent link
-            $this->createWallet($uuid, 'SUB_USER', $parentWalletId, (string)$userId);
+        $orgId = \local_arina_prism_sense\CompanyConfig::getOrgId();
+        if (empty($orgId)) {
+            throw new CreditServiceException(
+                'Plugin is not registered with Arina. Complete registration first.'
+            );
         }
-        // Resolve owner UUID -> wallet ID
-        return $this->resolveWalletId($uuid);
+
+        // Step 1: Try to resolve an existing profile.
+        $existingProfile = null;
+        try {
+            $existingProfile = $this->getSubUserProfile($moodleUserId);
+        } catch (CreditServiceException $e) {
+            // Only fall through to registration when the user genuinely doesn't exist.
+            // Any other error (502, auth failure, etc.) must propagate immediately.
+            if (strpos($e->getMessage(), 'not found in Arina') === false) {
+                throw $e;
+            }
+        }
+
+        // Profile found AND wallet already provisioned — nothing left to do.
+        if ($existingProfile !== null && !empty($existingProfile['wallet_id'])) {
+            return $existingProfile;
+        }
+
+        // Step 2: Register (creates user + wallet) or re-registers to provision a missing wallet.
+        global $DB;
+        $moodleUser = $DB->get_record('user', ['id' => $moodleUserId], '*', MUST_EXIST);
+
+        $payload = [
+            'org_id'         => $orgId,
+            'username'       => $moodleUser->username,
+            'email'          => $moodleUser->email,
+            'firstname'      => $moodleUser->firstname,
+            'lastname'       => $moodleUser->lastname,
+            'moodle_user_id' => $moodleUserId,
+        ];
+
+        $url = rtrim(IOMAD_SERVICE_URL, '/') . '/organisation/user/register';
+        $ch  = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => json_encode($payload),
+            CURLOPT_HTTPHEADER     => [
+                'Content-Type: application/json',
+                'X-Api-Key: ' . $this->apiKey,
+            ],
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+        ]);
+        $raw      = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        $data = json_decode($raw, true) ?? [];
+
+        if ($httpCode === 200 && !empty($data['wallet_id']) && !empty($data['user_id'])) {
+            return $data;
+        }
+
+        $detail = $data['detail'] ?? $data['message'] ?? "HTTP $httpCode";
+        throw new CreditServiceException("Sub-user registration failed: $detail");
     }
 
     /**
-     * Get user's owner UUID (not wallet_id) for content generation APIs.
-     * Returns the UUID stored in user preferences.
+     * Fetch the Arina profile for a Moodle user via the profile endpoint.
+     * Returns: { user_id, username, org_id, wallet_id, moodle_user_id }
+     *
+     * @param int $moodleUserId
+     * @return array
+     * @throws CreditServiceException
+     */
+    public function getSubUserProfile(int $moodleUserId): array
+    {
+        $orgId = \local_arina_prism_sense\CompanyConfig::getOrgId();
+        $query = http_build_query(['org_id' => $orgId, 'moodle_user_id' => $moodleUserId], '', '&');
+        $url   = rtrim(IOMAD_SERVICE_URL, '/') . '/organisation/user/profile?' . $query;
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER     => [
+                'Accept: application/json',
+                'X-Api-Key: ' . $this->apiKey,
+            ],
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+        ]);
+        $raw      = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        $data = json_decode($raw, true) ?? [];
+
+        // Return the profile on any 200, even when wallet_id is null.
+        // Callers that need a wallet (getSubUserProfileCached / ensureSubUserRegistered)
+        // will trigger registration to provision the missing wallet.
+        if ($httpCode === 200 && !empty($data['user_id'])) {
+            return $data;
+        }
+
+        if ($httpCode === 404) {
+            throw new CreditServiceException(
+                "User (Moodle ID: $moodleUserId) not found in Arina."
+            );
+        }
+
+        $detail = $data['detail'] ?? "HTTP $httpCode";
+        throw new CreditServiceException("Could not resolve sub-user profile: $detail");
+    }
+
+    /**
+     * Get the Arina user_id for a Moodle user (used by content generation APIs).
+     * Uses the cached profile lookup so the remote API is only called once per
+     * browser session (cookie hit) or cron run (preference hit).
+     *
      * @param int $userId Moodle user ID
-     * @return string The owner UUID
-     * @throws \Exception if UUID not found
+     * @return string The Arina user_id (UUID)
+     * @throws CreditServiceException
      */
     public function getUserOwnerUuid($userId)
     {
-        $uuid = get_user_preferences('arina_prism_sense_wallet_sub_user_id', null, $userId);
-        if (empty($uuid)) {
+        $profile = $this->getSubUserProfileCached((int) $userId);
+        if (empty($profile['user_id'])) {
             throw new CreditServiceException(
-                "User {$userId} does not have a wallet UUID. ".
-                "Admin must allocate credits to this user first via CMS dashboard."
+                "Could not resolve Arina user_id for Moodle user {$userId}."
             );
         }
-        return $uuid;
+        return $profile['user_id'];
+    }
+
+    // -----------------------------------------------------------------------
+    // Cookie-backed profile cache
+    // -----------------------------------------------------------------------
+
+    /**
+     * Returns true when running in an HTTP request context (as opposed to CLI/cron).
+     * Guards all cookie operations so scheduled tasks are never affected.
+     */
+    private function isWebContext(): bool
+    {
+        return !defined('CLI_SCRIPT') && php_sapi_name() !== 'cli';
+    }
+
+    /**
+     * Build a per-user, per-org cookie key that is opaque to the browser client.
+     * Including org_id prevents cross-tenant collisions on shared Moodle instances.
+     */
+    private function profileCookieKey(int $moodleUserId): string
+    {
+        $orgId = \local_arina_prism_sense\CompanyConfig::getOrgId() ?? 'default';
+        return 'arina_prof_' . hash('sha256', $moodleUserId . '_' . $orgId);
+    }
+
+    /**
+     * Attempt to read a cached Arina profile from a browser cookie.
+     * Returns the decoded profile array, or null when the cookie is absent,
+     * corrupt, or fails UUID format validation.
+     *
+     * @param int $moodleUserId
+     * @return array|null { user_id, wallet_id } or null
+     */
+    private function getProfileFromCookie(int $moodleUserId): ?array
+    {
+        $key = $this->profileCookieKey($moodleUserId);
+        if (empty($_COOKIE[$key])) {
+            return null;
+        }
+
+        $raw     = base64_decode($_COOKIE[$key], true);
+        $profile = ($raw !== false) ? json_decode($raw, true) : null;
+
+        if (!is_array($profile) || !$this->isValidCachedProfile($profile)) {
+            return null;
+        }
+
+        return $profile;
+    }
+
+    /**
+     * Validate that a decoded cookie profile has non-empty user_id and wallet_id
+     * both conforming to UUID v4 format (guards against tampered cookie values).
+     *
+     * @param array $profile Decoded profile array
+     * @return bool
+     */
+    private function isValidCachedProfile(array $profile): bool
+    {
+        if (empty($profile['user_id']) || empty($profile['wallet_id'])) {
+            return false;
+        }
+
+        // Basic UUID format check to reject tampered/garbage values.
+        $uuidPattern = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i';
+        return (bool) preg_match($uuidPattern, $profile['user_id'])
+            && (bool) preg_match($uuidPattern, $profile['wallet_id']);
+    }
+
+    /**
+     * Store an Arina profile in a browser cookie for 24 hours.
+     * Only the user_id and wallet_id are persisted (minimum required payload).
+     *
+     * Cookie attributes:
+     *   HttpOnly  — prevents JS/XSS access to wallet identifiers
+     *   SameSite=Strict — blocks CSRF-based cookie leakage
+     *   Secure    — HTTPS-only when the current request is over TLS
+     *   Path=/    — scoped to the whole Moodle instance
+     *
+     * @param int   $moodleUserId
+     * @param array $profile Must contain user_id and wallet_id.
+     */
+    private function setProfileCookie(int $moodleUserId, array $profile): void
+    {
+        $key     = $this->profileCookieKey($moodleUserId);
+        $payload = base64_encode(json_encode([
+            'user_id'   => $profile['user_id'],
+            'wallet_id' => $profile['wallet_id'],
+        ]));
+
+        $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                 || (isset($_SERVER['SERVER_PORT']) && (int) $_SERVER['SERVER_PORT'] === 443);
+
+        setcookie($key, $payload, [
+            'expires'  => time() + 86400,   // 24 hours
+            'path'     => '/',
+            'secure'   => $isSecure,
+            'httponly' => true,
+            'samesite' => 'Strict',
+        ]);
+    }
+
+    /**
+     * Resolve the Arina profile for a Moodle user, using a browser cookie as a
+     * short-lived cache. Registers the user (and provisions a wallet) if they
+     * don't exist in Arina yet, or if their profile has a null wallet_id.
+     *
+     * Resolution order (web context):
+     *   1. Cookie hit (valid user_id + wallet_id)  → return immediately (0 API calls)
+     *   2. ensureSubUserRegistered()               → profile lookup → register if needed
+     *   3. Write cookie when wallet_id is present  → future requests are served from cache
+     *
+     * In cron/CLI context the cookie layer is skipped entirely and the API is called
+     * directly (same behaviour as before this change).
+     *
+     * @param int $moodleUserId
+     * @return array Profile: { user_id, username, org_id, wallet_id, moodle_user_id }
+     * @throws CreditServiceException
+     */
+    public function getSubUserProfileCached(int $moodleUserId): array
+    {
+        // --- 1. Cookie cache (web only) ---
+        if ($this->isWebContext()) {
+            $cached = $this->getProfileFromCookie($moodleUserId);
+            if ($cached !== null) {
+                return $cached;
+            }
+        }
+
+        // --- 2. API fetch (registers + provisions wallet when not yet done) ---
+        $profile = $this->ensureSubUserRegistered($moodleUserId);
+
+        // --- 3. Cache result (web only, only when wallet is present) ---
+        if ($this->isWebContext() && !empty($profile['wallet_id'])) {
+            $this->setProfileCookie($moodleUserId, $profile);
+        }
+
+        return $profile;
     }
 
     /**
@@ -211,7 +469,7 @@ class CreditServiceClient
         $query = http_build_query([
             'limit' => $limit,
             'skip' => $skip
-        ]);
+        ], '', '&');
         return $this->makeRequest('GET', "/wallets/{$walletId}/transactions?{$query}");
     }
 
@@ -230,7 +488,7 @@ class CreditServiceClient
         $query = http_build_query([
             'limit' => $limit,
             'skip'  => $skip
-        ]);
+        ], '', '&');
         return $this->makeRequest('GET', "/wallets/{$orgWalletId}/child-transactions?{$query}");
     }
 

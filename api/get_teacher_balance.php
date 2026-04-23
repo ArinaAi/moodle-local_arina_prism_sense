@@ -17,36 +17,39 @@ require_once($CFG->libdir . '/moodlelib.php');
 require_once(__DIR__ . '/cms/CreditServiceClient.php');
 
 require_login();
+\local_arina_prism_sense\CompanyConfig::bootstrap($USER->id);
 
 header('Content-Type: application/json');
 
 try {
-    // 1. Get this user's personal wallet UUID (same key for admins and sub-users)
-    $uuid = null;
     $client = new \local_arina_prism_sense\cms\CreditServiceClient();
 
-    // All users — admins and sub-users alike — use their personal arina_prism_sense_wallet_sub_user_id.
-    // An admin's personal wallet is created JIT on first allocation from the org wallet,
-    // so it may not exist yet (uuid will be empty → return has_wallet: false below).
-    $uuid = get_user_preferences('arina_prism_sense_wallet_sub_user_id', null, $USER->id);
+    // Resolve wallet_id via the cached profile endpoint.
+    // Uses a browser cookie as a 24-hour cache. On a miss, calls
+    // ensureSubUserRegistered() which will register + provision a wallet if needed.
+    try {
+        $profile  = $client->getSubUserProfileCached((int) $USER->id);
+        $walletId = $profile['wallet_id'] ?? null;
+    } catch (\local_arina_prism_sense\cms\CreditServiceException $e) {
+        // User not yet registered in Arina — no wallet exists yet.
+        $walletId = null;
+    }
 
-    if (empty($uuid)) {
-        // No wallet has been created for this user yet
+    if (empty($walletId)) {
         echo json_encode([
             'success' => true,
             'data' => [
                 'available_balance' => 0,
-                'current_balance' => 0,
-                'reserved_credits' => 0,
-                'has_wallet' => false,
+                'current_balance'   => 0,
+                'reserved_credits'  => 0,
+                'has_wallet'        => false,
             ]
         ]);
         exit;
     }
 
-    // 2. Fetch balance from credit service using the owner UUID
-    $client = new \local_arina_prism_sense\cms\CreditServiceClient();
-    $response = $client->getBalance($uuid);
+    // Fetch balance using the resolved wallet_id directly.
+    $response = $client->getWalletBalance($walletId);
 
     if ($response['status'] >= 200 && $response['status'] < 300) {
         $balanceData = $response['data'];

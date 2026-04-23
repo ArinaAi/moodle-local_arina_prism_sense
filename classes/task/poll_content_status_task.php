@@ -543,7 +543,23 @@ class poll_content_status_task extends \core\task\scheduled_task
             return;
         }
 
+        // --- 1. Fast path: preference cache ---
         $uuid = get_user_preferences('arina_prism_sense_wallet_sub_user_id', null, $userid);
+
+        // --- 2. Slow path: resolve via Arina (registers + provisions wallet if needed) ---
+        if (empty($uuid)) {
+            try {
+                $resolveClient = new \local_arina_prism_sense\cms\CreditServiceClient();
+                $profile       = $resolveClient->ensureSubUserRegistered($userid);
+                $uuid          = $profile['user_id'] ?? null;
+                if (!empty($uuid)) {
+                    set_user_preference('arina_prism_sense_wallet_sub_user_id', $uuid, $userid);
+                }
+            } catch (\Throwable $e) {
+                mtrace("    checkUserCredits: could not resolve UUID for user {$userid}: " . $e->getMessage());
+            }
+        }
+
         if (!$uuid) {
             return;
         }

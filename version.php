@@ -24,10 +24,10 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version = 2026032501;
+$plugin->version = 2026041301;
 $plugin->requires = 2024100700;
 $plugin->component = 'local_arina_prism_sense';
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.5';
+$plugin->release = '1.6';
 $plugin->dependencies = [];
-$plugin->minphp = '8.0';
+$plugin->minphp = '8.1';

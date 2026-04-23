@@ -41,15 +41,15 @@ COPY moodle.ini /usr/local/etc/php/conf.d/moodle.ini
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy entire Moodle installation (including the plugin in local/lecturebot)
+# Copy entire Moodle installation (including the plugin in local/arina_prism_sense)
 COPY --chown=www-data:www-data . /var/www/html/
 
-# Build frontend assets for the lecturebot plugin
+# Build frontend assets for the arina_prism_sense plugin
 # NODE_OPTIONS: prevent OOM (exit code 137) during webpack compilation
 # --production=false: ensure devDependencies (webpack, ts-loader) are installed
 ENV NODE_OPTIONS="--max-old-space-size=4096"
-RUN if [ -d "/var/www/html/local/lecturebot/amd" ] && [ -f "/var/www/html/local/lecturebot/amd/package.json" ]; then \
-    cd /var/www/html/local/lecturebot/amd && \
+RUN if [ -d "/var/www/html/local/arina_prism_sense/amd" ] && [ -f "/var/www/html/local/arina_prism_sense/amd/package.json" ]; then \
+    cd /var/www/html/local/arina_prism_sense/amd && \
     npm ci && \
     npm run build && \
     rm -rf node_modules; \
