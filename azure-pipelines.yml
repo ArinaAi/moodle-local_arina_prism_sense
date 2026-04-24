@@ -146,7 +146,7 @@ stages:
 
                         # Start new containers with build number
                         echo "Starting new containers with build number: $BUILD_NO"
-                        BUILD_NO="$BUILD_NO" MOODLE_DATABASE_TYPE="$(MOODLE_DATABASE_TYPE)" MOODLE_DATABASE_HOST="$(MOODLE_DATABASE_HOST)" MOODLE_DATABASE_NAME="$(MOODLE_DATABASE_NAME)" MOODLE_DATABASE_USER="$(MOODLE_DATABASE_USER)" MOODLE_DATABASE_PASSWORD="$(MOODLE_DATABASE_PASSWORD)" MYSQL_ROOT_PASSWORD="$(MYSQL_ROOT_PASSWORD)" MOODLE_WWWROOT="$(MOODLE_WWWROOT)" AZURE_STORAGE_ACCOUNT_NAME="$(AZURE_STORAGE_ACCOUNT_NAME)" AZURE_STORAGE_ACCOUNT_KEY="$(AZURE_STORAGE_ACCOUNT_KEY)" LECTUREBOT_TENANT_ID="$(LECTUREBOT_TENANT_ID)" LECTUREBOT_API_BASE_URL="$(LECTUREBOT_API_BASE_URL)" docker compose up -d
+                        BUILD_NO="$BUILD_NO" MOODLE_DATABASE_TYPE="$(MOODLE_DATABASE_TYPE)" MOODLE_DATABASE_HOST="$(MOODLE_DATABASE_HOST)" MOODLE_DATABASE_NAME="$(MOODLE_DATABASE_NAME)" MOODLE_DATABASE_USER="$(MOODLE_DATABASE_USER)" MOODLE_DATABASE_PASSWORD="$(MOODLE_DATABASE_PASSWORD)" MYSQL_ROOT_PASSWORD="$(MYSQL_ROOT_PASSWORD)" MOODLE_WWWROOT="$(MOODLE_WWWROOT)" ARINA_PRISM_SENSE_API_BASE_URL="$(ARINA_PRISM_SENSE_API_BASE_URL)" docker compose up -d
 
 
                         # Wait for containers to start
@@ -183,11 +183,8 @@ stages:
                           --set-string env.MOODLE_DATABASE_TYPE=$MOODLE_DATABASE_TYPE \
                           --set-string env.MOODLE_DATABASE_USER=$MOODLE_DATABASE_USER \
                           --set-string env.MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD \
-                          --set-string env.AZURE_STORAGE_ACCOUNT_NAME=$AZURE_STORAGE_ACCOUNT_NAME \
-                          --set-string env.AZURE_STORAGE_ACCOUNT_KEY=$AZURE_STORAGE_ACCOUNT_KEY \
-                          --set-string env.LECTUREBOT_TENANT_ID=$LECTUREBOT_TENANT_ID \
                           --set-string env.MOODLE_WWWROOT=$K8s_MOODLE_WWWROOT \
-                          --set-string env.LECTUREBOT_API_BASE_URL=$LECTUREBOT_API_BASE_URL
+                          --set-string env.ARINA_PRISM_SENSE_API_BASE_URL=$ARINA_PRISM_SENSE_API_BASE_URL
 
                         kubectl create secret docker-registry acr-secret \
                           --docker-server=${ACR_LOGIN_SERVER} \
@@ -299,11 +296,8 @@ stages:
                     --set-string env.MOODLE_DATABASE_TYPE=$MOODLE_DATABASE_TYPE \
                     --set-string env.MOODLE_DATABASE_USER=$MOODLE_DATABASE_USER \
                     --set-string env.MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD \
-                    --set-string env.AZURE_STORAGE_ACCOUNT_NAME=$AZURE_STORAGE_ACCOUNT_NAME \
-                    --set-string env.AZURE_STORAGE_ACCOUNT_KEY=$AZURE_STORAGE_ACCOUNT_KEY \
-                    --set-string env.LECTUREBOT_TENANT_ID=$LECTUREBOT_TENANT_ID \
                     --set-string env.MOODLE_WWWROOT=$MOODLE_WWWROOT \
-                    --set-string env.LECTUREBOT_API_BASE_URL=$LECTUREBOT_API_BASE_URL
+                    --set-string env.ARINA_PRISM_SENSE_API_BASE_URL=$ARINA_PRISM_SENSE_API_BASE_URL
 
                   kubectl create secret docker-registry acr-secret \
                     --docker-server=${ACR_LOGIN_SERVER} \
@@ -420,11 +414,8 @@ stages:
                           --set-string env.MOODLE_DATABASE_TYPE=$MOODLE_DATABASE_TYPE \
                           --set-string env.MOODLE_DATABASE_USER=$MOODLE_DATABASE_USER \
                           --set-string env.MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD \
-                          --set-string env.AZURE_STORAGE_ACCOUNT_NAME=$AZURE_STORAGE_ACCOUNT_NAME \
-                          --set-string env.AZURE_STORAGE_ACCOUNT_KEY=$AZURE_STORAGE_ACCOUNT_KEY \
-                          --set-string env.LECTUREBOT_TENANT_ID=$LECTUREBOT_TENANT_ID \
                           --set-string env.MOODLE_WWWROOT=$MOODLE_WWWROOT \
-                          --set-string env.LECTUREBOT_API_BASE_URL=$LECTUREBOT_API_BASE_URL
+                          --set-string env.ARINA_PRISM_SENSE_API_BASE_URL=$ARINA_PRISM_SENSE_API_BASE_URL
 
                         kubectl create secret docker-registry acr-secret \
                           --docker-server=${ACR_LOGIN_SERVER} \
