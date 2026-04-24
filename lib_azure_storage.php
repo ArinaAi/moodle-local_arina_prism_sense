@@ -31,7 +31,7 @@ function local_arina_prism_sense_upload_slides_to_azure($slideFiles, $previewId,
             // Read file content
             $content = file_get_contents($slideFile);
             if ($content === false) {
-                error_log('LectureBot: Failed to read slide file: ' . $slideFile);
+                error_log('ArinaPrismSense: Failed to read slide file: ' . $slideFile);
                 continue;
             }
 
@@ -47,16 +47,16 @@ function local_arina_prism_sense_upload_slides_to_azure($slideFiles, $previewId,
 
             if ($result) {
                 $uploadedCount++;
-                error_log('LectureBot: Uploaded slide to Azure: ' . $blobName);
+                error_log('ArinaPrismSense: Uploaded slide to Azure: ' . $blobName);
             } else {
-                error_log('LectureBot: Failed to upload slide to Azure: ' . $blobName);
+                error_log('ArinaPrismSense: Failed to upload slide to Azure: ' . $blobName);
             }
         }
 
-        error_log('LectureBot: Uploaded ' . $uploadedCount . ' of ' . count($slideFiles) . ' slides to Azure');
+        error_log('ArinaPrismSense: Uploaded ' . $uploadedCount . ' of ' . count($slideFiles) . ' slides to Azure');
         return $uploadedCount > 0;
     } catch (Exception $e) {
-        error_log('LectureBot: Error uploading slides to Azure: ' . $e->getMessage());
+        error_log('ArinaPrismSense: Error uploading slides to Azure: ' . $e->getMessage());
         return false;
     }
 }
@@ -96,10 +96,10 @@ function local_arina_prism_sense_download_slides_from_azure($previewId, $contain
             }
         }
 
-        error_log('LectureBot: Found ' . count($images) . ' slides in Azure for preview ID: ' . $previewId);
+        error_log('ArinaPrismSense: Found ' . count($images) . ' slides in Azure for preview ID: ' . $previewId);
         return $images;
     } catch (Exception $e) {
-        error_log('LectureBot: Error downloading slides from Azure: ' . $e->getMessage());
+        error_log('ArinaPrismSense: Error downloading slides from Azure: ' . $e->getMessage());
         return [];
     }
 }
@@ -171,11 +171,11 @@ function local_arina_prism_sense_upload_to_azure_blob(
         if ($httpCode >= 200 && $httpCode < 300) {
             return true;
         } else {
-            error_log('LectureBot: Azure upload failed with HTTP ' . $httpCode . ': ' . substr($response, 0, 500));
+            error_log('ArinaPrismSense: Azure upload failed with HTTP ' . $httpCode . ': ' . substr($response, 0, 500));
             return false;
         }
     } catch (Exception $e) {
-        error_log('LectureBot: Error in upload_to_azure_blob: ' . $e->getMessage());
+        error_log('ArinaPrismSense: Error in upload_to_azure_blob: ' . $e->getMessage());
         return false;
     }
 }
@@ -225,7 +225,7 @@ function local_arina_prism_sense_get_slide_versions()
         // This would require implementing the Azure Blob List Blobs API
         // Which lists all blobs with a prefix like: slides/content_{contentid}_
 
-        error_log('LectureBot: get_slide_versions not yet fully implemented - requires Azure Blob List API');
+        error_log('ArinaPrismSense: get_slide_versions not yet fully implemented - requires Azure Blob List API');
 
         // Return structure would be:
         // [
@@ -235,7 +235,7 @@ function local_arina_prism_sense_get_slide_versions()
 
         return [];
     } catch (Exception $e) {
-        error_log('LectureBot: Error getting slide versions: ' . $e->getMessage());
+        error_log('ArinaPrismSense: Error getting slide versions: ' . $e->getMessage());
         return [];
     }
 }
@@ -349,7 +349,7 @@ function local_arina_prism_sense_generate_blob_sas_token($accountName, $containe
 function local_arina_prism_sense_execute_azure_blob_list_call($accountName, $accountKey, $containerName, $prefix)
 {
     if (!defined('AZURE_STORAGE_ACCOUNT_NAME') || !defined('AZURE_STORAGE_ACCOUNT_KEY')) {
-        error_log("LectureBot: Azure credentials not defined.");
+        error_log("ArinaPrismSense: Azure credentials not defined.");
         return null;
     }
 
@@ -388,7 +388,7 @@ function local_arina_prism_sense_execute_azure_blob_list_call($accountName, $acc
     curl_close($ch);
 
     if ($httpCode !== 200) {
-        error_log("LectureBot Azure List failed: $httpCode. Response: " . substr($response, 0, 100));
+        error_log("ArinaPrismSense Azure List failed: $httpCode. Response: " . substr($response, 0, 100));
         return null;
     }
 
@@ -404,7 +404,7 @@ function local_arina_prism_sense_parse_azure_blob_list_response($response)
     try {
         $xml = new SimpleXMLElement($response);
         if (!isset($xml->Blobs->BlobPrefix)) {
-            error_log("LectureBot: No BlobPrefix found in XML");
+            error_log("ArinaPrismSense: No BlobPrefix found in XML");
             return 0;
         }
 
@@ -418,7 +418,7 @@ function local_arina_prism_sense_parse_azure_blob_list_response($response)
             }
         }
     } catch (Exception $e) {
-        error_log("LectureBot XML Parse Error: " . $e->getMessage());
+        error_log("ArinaPrismSense XML Parse Error: " . $e->getMessage());
         return 0;
     }
 
@@ -456,7 +456,7 @@ function local_arina_prism_sense_check_folder_has_generated_content($accountName
                 }
             }
         } catch (Exception $e) {
-            error_log("LectureBot XML Parse Error in check content: " . $e->getMessage());
+            error_log("ArinaPrismSense XML Parse Error in check content: " . $e->getMessage());
         }
     }
 
@@ -513,7 +513,7 @@ function local_arina_prism_sense_get_azure_regen_count($courseid, $sectionid)
             }
         }
     } else {
-        error_log("LectureBot: Azure credentials not defined, falling back to 0");
+        error_log("ArinaPrismSense: Azure credentials not defined, falling back to 0");
     }
 
     return $regenCount;

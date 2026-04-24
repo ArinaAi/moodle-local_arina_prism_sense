@@ -80,7 +80,7 @@ function local_arina_prism_sense_init_azure_config()
     // 2. Define Constants
     local_arina_prism_sense_define_from_env('AZURE_STORAGE_ACCOUNT_NAME');
     local_arina_prism_sense_define_from_env('AZURE_STORAGE_ACCOUNT_KEY');
-    // LECTUREBOT_TENANT_ID is deprecated — org_id now comes from CompanyConfig (Arina auth service).
+    // ARINA_PRISM_SENSE_TENANT_ID is deprecated — org_id now comes from CompanyConfig (Arina auth service).
     
     // PostgreSQL Database Constants
     local_arina_prism_sense_define_from_env('PG_HOST');
@@ -102,7 +102,7 @@ function local_arina_prism_sense_init_azure_config()
 
     // Optional: Log warning
     if (!defined('AZURE_STORAGE_ACCOUNT_NAME') || !defined('AZURE_STORAGE_ACCOUNT_KEY')) {
-        error_log('LectureBot: Azure credentials missing. ' .
+        error_log('ArinaPrismSense: Azure credentials missing. ' .
             'Please set AZURE_STORAGE_ACCOUNT_NAME/KEY in environment or .env file.');
     }
 }

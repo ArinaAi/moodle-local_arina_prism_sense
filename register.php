@@ -43,15 +43,15 @@ global $SITE, $USER, $CFG;
 $_arina_missing_labels = [
     'organisation.name'      => 'Site full name',
     'organisation.shortname' => 'Site short name',
-    'organisation.city'      => 'City (your Moodle profile)',
-    'organisation.country'   => 'Country (your Moodle profile)',
+    'organisation.city'      => 'City (Site administration → Location settings)',
+    'organisation.country'   => 'Country (Site administration → Location settings)',
 ];
 
 $_arina_site_fields = [
     'organisation.name'      => trim($SITE->fullname ?? ''),
     'organisation.shortname' => trim($SITE->shortname ?? ''),
-    'organisation.city'      => trim($USER->city ?? ''),
-    'organisation.country'   => trim($USER->country ?? ''),
+    'organisation.city'      => trim(get_config('moodle', 'city') ?: ($USER->city ?? '')),
+    'organisation.country'   => trim(get_config('moodle', 'country') ?: ($USER->country ?? '')),
 ];
 
 $_arina_missing_fields = [];
@@ -406,8 +406,8 @@ function arinaHandleStartRegistration(array $missingFields): void
         'organisation' => [
             'name'       => $SITE->fullname,
             'shortname'  => $SITE->shortname,
-            'city'       => $USER->city,
-            'country'    => $USER->country,
+            'city'       => get_config('moodle', 'city') ?: ($USER->city ?? ''),
+            'country'    => get_config('moodle', 'country') ?: ($USER->country ?? ''),
             'moodle_url' => $CFG->wwwroot,
         ],
         'manager' => [

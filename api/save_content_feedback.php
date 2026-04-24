@@ -179,7 +179,7 @@ try {
     }
 
 } catch (Exception $e) {
-    error_log('LectureBot Content Feedback Error: ' . $e->getMessage());
+    error_log('ArinaPrismSense Content Feedback Error: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode([
         'success' => false,

@@ -2,7 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import StudentApp from './StudentApp';
 
-// Export init function to window.LectureBot
+// Export init function to window.ArinaPrismSense
 export const initStudent = (): void => {
     const container = document.getElementById('arina_prism_sense-student-root');
     if (container) {

@@ -94,7 +94,7 @@ try {
     // On any transport or HTTP error, block deletion — we cannot confirm the status.
     if ($curlError || $httpCode !== 200 || !$response) {
         error_log(
-            'LectureBot check_source_status: backend call failed for batch ' .
+            'ArinaPrismSense check_source_status: backend call failed for batch ' .
             $batchId .
             ' (HTTP ' . $httpCode . '): ' . $curlError
         );
@@ -106,7 +106,7 @@ try {
 
     if (!is_array($data)) {
         // Malformed JSON — block deletion, cannot confirm status.
-        error_log('LectureBot check_source_status: invalid JSON for batch ' . $batchId);
+        error_log('ArinaPrismSense check_source_status: invalid JSON for batch ' . $batchId);
         echo json_encode(['processed' => false, 'processing_status' => 'processing', 'network_error' => true]);
         exit;
     }
@@ -134,7 +134,7 @@ try {
         $DB->set_field('local_arina_prism_sense_sources', 'processing_status', $newStatus, ['id' => $sourceid]);
 
         error_log(
-            'LectureBot check_source_status: batch ' . $batchId .
+            'ArinaPrismSense check_source_status: batch ' . $batchId .
             ' resolved to processing_status=' . $newStatus
         );
 
@@ -142,13 +142,13 @@ try {
     } else {
         // Still processing.
         error_log(
-            'LectureBot check_source_status: batch ' . $batchId . ' still processing'
+            'ArinaPrismSense check_source_status: batch ' . $batchId . ' still processing'
         );
         echo json_encode(['processed' => false, 'processing_status' => 'processing']);
     }
 
 } catch (Exception $e) {
     // Block deletion on unexpected exceptions — status is unknown.
-    error_log('LectureBot check_source_status exception: ' . $e->getMessage());
+    error_log('ArinaPrismSense check_source_status exception: ' . $e->getMessage());
     echo json_encode(['processed' => false, 'processing_status' => 'processing', 'network_error' => true]);
 }

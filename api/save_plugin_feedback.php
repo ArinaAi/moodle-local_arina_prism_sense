@@ -131,7 +131,7 @@ try {
     //    The only correct approach is to construct the multipart body
     //    manually so we can add one part per category.
     // ----------------------------------------------------------------
-    $boundary = '----LectureBotBoundary' . bin2hex(random_bytes(8));
+    $boundary = '----ArinaPrismSenseBoundary' . bin2hex(random_bytes(8));
     $eol      = "\r\n";
     $body     = '';
 

@@ -31,7 +31,7 @@ class CreditServiceClient
         // so standalone / non-IOMAD installs continue to work unchanged.
         $this->apiKey = \local_arina_prism_sense\CompanyConfig::getApiKey()
             ?? get_config('local_arina_prism_sense', 'api_key')
-            ?: getenv('LECTUREBOT_API_KEY');
+            ?: getenv('ARINA_PRISM_SENSE_API_KEY');
         $this->baseUrl = CREDIT_SERVICE_URL;
     }
 

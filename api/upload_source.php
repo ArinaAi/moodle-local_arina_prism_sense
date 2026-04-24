@@ -22,7 +22,7 @@ require_once __DIR__ . '/cms/CreditServiceClient.php';
 
 header('Content-Type: application/json');
 
-error_log('LectureBot: upload_source.php initialized');
+error_log('ArinaPrismSense: upload_source.php initialized');
 
 try {
     // Get parameters
@@ -30,10 +30,10 @@ try {
     $sectionid = required_param('sectionid', PARAM_INT);
 
     // Require login and capability
-    error_log("LectureBot: Checking login for course $courseid");
+    error_log("ArinaPrismSense: Checking login for course $courseid");
     require_login($courseid);
     CompanyConfig::bootstrap($USER->id);
-    error_log("LectureBot: Login successful");
+    error_log("ArinaPrismSense: Login successful");
     $context = context_course::instance($courseid);
     require_capability(CAPABILITY_GENERATE_CONTENT, $context);
     require_sesskey();
@@ -181,7 +181,9 @@ try {
         $author = isset($authors[$index]) ? clean_param($authors[$index], PARAM_TEXT) : '';
         $isPhotograph = isset($isPhotographs[$index]) ? $isPhotographs[$index] : 'false';
 
-        error_log("LectureBot Upload: File $index - Title: '$title', Author: '$author', Is Scanned: '$isPhotograph'");
+        error_log(
+            "ArinaPrismSense Upload: File $index - Title: '$title', Author: '$author', Is Scanned: '$isPhotograph'"
+        );
 
         // Prepare database record
         $record = new stdClass();
@@ -224,7 +226,7 @@ try {
         $userUuid     = $userProfile['user_id'] ?? null;
     } catch (\Exception $e) {
         // Non-fatal: credit tracking will be skipped for this upload.
-        error_log('LectureBot: Failed to resolve user UUID for credit tracking: ' . $e->getMessage());
+        error_log('ArinaPrismSense: Failed to resolve user UUID for credit tracking: ' . $e->getMessage());
     }
 
     // ===== UPLOAD PDFs TO BACKEND API (if enabled) =====
@@ -261,7 +263,7 @@ try {
 
             if ($existingBatchRecord && !empty($existingBatchRecord->batch_id)) {
                 $batchId = $existingBatchRecord->batch_id;
-                error_log("LectureBot: Reusing existing batch_id for section $sectionid: $batchId");
+                error_log("ArinaPrismSense: Reusing existing batch_id for section $sectionid: $batchId");
             } else {
                 // No existing batch → call start_batch_upload once for this section.
                 $expectedUploads = count($storedFiles);
@@ -274,7 +276,7 @@ try {
                 ];
 
                 $startBatchUrl = API_START_BATCH_UPLOAD . '?' . http_build_query($startBatchParams, '', '&');
-                error_log("LectureBot: Starting new batch upload for $expectedUploads files: " . $startBatchUrl);
+                error_log("ArinaPrismSense: Starting new batch upload for $expectedUploads files: " . $startBatchUrl);
 
                 // Initialize cURL for start_batch_upload
                 $chBatch = curl_init($startBatchUrl);
@@ -300,11 +302,11 @@ try {
                 curl_close($chBatch);
 
                 if ($batchHttpCode === 401) {
-                    error_log('LectureBot: Start batch failed (HTTP 401): API key missing or incorrect');
+                    error_log('ArinaPrismSense: Start batch failed (HTTP 401): API key missing or incorrect');
                     throw new \moodle_exception('API key is missing or incorrect. Please check your settings.');
                 } elseif ($batchHttpCode !== 200) {
                     error_log(
-                        'LectureBot: Start batch failed (HTTP ' .
+                        'ArinaPrismSense: Start batch failed (HTTP ' .
                         $batchHttpCode .
                         '): ' .
                         $batchResponse
@@ -319,12 +321,12 @@ try {
 
                 $batchData = json_decode($batchResponse, true);
                 if (!$batchData || !isset($batchData['batch_id'])) {
-                    error_log('LectureBot: Invalid batch response: ' . $batchResponse);
+                    error_log('ArinaPrismSense: Invalid batch response: ' . $batchResponse);
                     throw new moodle_exception('Invalid response from start_batch_upload');
                 }
 
                 $batchId = $batchData['batch_id'];
-                error_log("LectureBot: New batch started successfully. Batch ID: $batchId");
+                error_log("ArinaPrismSense: New batch started successfully. Batch ID: $batchId");
             }
 
 
@@ -363,7 +365,7 @@ try {
                     }
 
                     $uploadApiUrl = API_UPLOAD_PDF . '?' . http_build_query($queryParams, '', '&');
-                    error_log("LectureBot: Uploading PDF $index to backend: " . $storedfile->get_filename());
+                    error_log("ArinaPrismSense: Uploading PDF $index to backend: " . $storedfile->get_filename());
 
                     // Create a temporary file with the PDF content
                     $tempFilePath = $CFG->tempdir .
@@ -402,7 +404,9 @@ try {
                     curl_close($ch);
                     @unlink($tempFilePath);
 
-                    error_log("LectureBot: Backend API response for file $index (HTTP $httpCode): " . $backendResponse);
+                    error_log(
+                        "ArinaPrismSense: Backend API response for file $index (HTTP $httpCode): " . $backendResponse
+                    );
 
                     // Check success
                     if ($httpCode === 200 || $httpCode === 201) {
@@ -420,7 +424,7 @@ try {
                         $uploadResult['success'] = true;
                         $uploadResult['db_id'] = $dbId;
                         error_log(
-                            "LectureBot: Successfully uploaded
+                            "ArinaPrismSense: Successfully uploaded
                              file $index to backend and saved to DB (ID: $dbId, Batch: $batchId, Upload: $uploadId)"
                         );
                     } elseif ($httpCode === 401) {
@@ -438,7 +442,7 @@ try {
                     }
                 } catch (Exception $fileError) {
                     // This file failed - log error and clean up its Moodle file
-                    error_log("LectureBot: Failed to upload file $index: " . $fileError->getMessage());
+                    error_log("ArinaPrismSense: Failed to upload file $index: " . $fileError->getMessage());
                     $uploadResult['error'] = $fileError->getMessage();
                     $storedfile->delete();
                 }
@@ -447,7 +451,7 @@ try {
             }
         } catch (Exception $backendError) {
             // Batch creation failed - Clean up all Moodle files and records
-            error_log('LectureBot: Batch creation error: ' . $backendError->getMessage());
+            error_log('ArinaPrismSense: Batch creation error: ' . $backendError->getMessage());
 
             foreach ($storedFiles as $fileData) {
                 $fileData['file']->delete();
@@ -465,7 +469,7 @@ try {
         }
     } else {
         // Backend upload disabled - insert all records to DB with 'uploaded' status
-        error_log('LectureBot: Backend PDF upload is disabled');
+        error_log('ArinaPrismSense: Backend PDF upload is disabled');
         foreach ($storedFiles as $fileData) {
             $fileData['record']->processing_status = 'uploaded';
             $dbId = $DB->insert_record('local_arina_prism_sense_sources', $fileData['record']);

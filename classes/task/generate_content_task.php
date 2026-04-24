@@ -1012,7 +1012,14 @@ class generate_content_task extends \core\task\adhoc_task
             mkdir($CFG->tempdir . '/arina_prism_sense', 0755, true);
         }
 
-        $success = \local_arina_prism_sense\Utils::downloadFileFromAzure($blobName, $filepath, $containerName);
+        $apiKey = \local_arina_prism_sense\CompanyConfig::getApiKey()
+            ?? get_config('local_arina_prism_sense', 'api_key');
+        $success = \local_arina_prism_sense\Utils::downloadFileViaAuthService(
+            $blobName,
+            $filepath,
+            $containerName,
+            $apiKey
+        );
 
         if (!$success || !file_exists($filepath) || filesize($filepath) === 0) {
             throw new \local_arina_prism_sense\exception\azure_download_exception(

@@ -5,29 +5,29 @@ import { App } from './components/Core/App';
 import './types/window';
 
 // Simple global initialization
-const initLectureBot = (): void => {
+const initArinaPrismSense = (): void => {
   const container = document.getElementById('arina_prism_sense-react-root');
   if (container) {
     const root = createRoot(container);
     root.render(React.createElement(App));
   } else {
-    console.error('LectureBot root element not found');
+    console.error('ArinaPrismSense root element not found');
   }
 };
 
 // Export to window in multiple ways to ensure it's available
-window.LectureBot = {
-  init: initLectureBot,
+window.ArinaPrismSense = {
+  init: initArinaPrismSense,
 };
 
-window.initLectureBot = initLectureBot;
+window.initArinaPrismSense = initArinaPrismSense;
 
 window.local_arina_prism_sense = {
-  init: initLectureBot,
+  init: initArinaPrismSense,
 };
 
 // Also add a global function
-window.initLectureBotGlobal = initLectureBot;
+window.initArinaPrismSenseGlobal = initArinaPrismSense;
 
-export { initLectureBot };
-export const init = initLectureBot;
+export { initArinaPrismSense };
+export const init = initArinaPrismSense;

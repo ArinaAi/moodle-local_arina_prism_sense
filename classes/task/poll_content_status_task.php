@@ -304,7 +304,14 @@ class poll_content_status_task extends \core\task\scheduled_task
             mtrace("    Extracted blob name from URL: {$blobName}");
         }
 
-        $success = \local_arina_prism_sense\Utils::downloadFileFromAzure($blobName, $filepath, $containerName);
+        $apiKey = \local_arina_prism_sense\CompanyConfig::getApiKey()
+            ?? get_config('local_arina_prism_sense', 'api_key');
+        $success = \local_arina_prism_sense\Utils::downloadFileViaAuthService(
+            $blobName,
+            $filepath,
+            $containerName,
+            $apiKey
+        );
 
         if (!$success || !file_exists($filepath) || filesize($filepath) === 0) {
             throw new \local_arina_prism_sense\exception\azure_download_exception(

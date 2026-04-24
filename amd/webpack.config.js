@@ -11,7 +11,7 @@ const appConfig = {
     path: path.resolve(__dirname, 'build'),
     filename: '[name].min.js',
     library: {
-      name: 'LectureBot',
+      name: 'ArinaPrismSense',
       type: 'window'
     },
     publicPath: '/local/arina_prism_sense/amd/build/'

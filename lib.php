@@ -47,7 +47,7 @@ function local_arina_prism_sense_get_button_js($wwwroot)
     // Minified logic to inject button
     return <<<JS
         (function() {
-            function initLectureBotAdmin() {
+            function initArinaPrismSenseAdmin() {
                 // Remove existing button if any
                 const existingBtn = document.querySelector(".arina_prism_sense-course-button");
                 if (existingBtn) {existingBtn.remove()};
@@ -60,7 +60,7 @@ function local_arina_prism_sense_get_button_js($wwwroot)
                                     document.querySelector("header");
 
                 if (targetElement) {
-                    console.log("LectureBot: Found admin target", targetElement);
+                    console.log("ArinaPrismSense: Found admin target", targetElement);
                     const button = document.createElement("button");
                     button.type = "button";
                     button.className = "btn btn-primary arina_prism_sense-course-button";
@@ -87,14 +87,14 @@ function local_arina_prism_sense_get_button_js($wwwroot)
                         targetElement.appendChild(button);
                     }
                 } else {
-                     console.log("LectureBot: No admin target element found");
+                     console.log("ArinaPrismSense: No admin target element found");
                 }
             }
 
             if (document.readyState === "loading") {
-                document.addEventListener("DOMContentLoaded", initLectureBotAdmin);
+                document.addEventListener("DOMContentLoaded", initArinaPrismSenseAdmin);
             } else {
-                initLectureBotAdmin();
+                initArinaPrismSenseAdmin();
             }
         })();
 JS;
@@ -115,7 +115,7 @@ function local_arina_prism_sense_get_student_button_js($wwwroot)
 
     return <<<JS
         (function() {
-            function initLectureBotStudent() {
+            function initArinaPrismSenseStudent() {
                 // Remove existing button if any
                 const existingBtn = document.querySelector(".arina_prism_sense-student-button");
                 if (existingBtn) existingBtn.remove();
@@ -128,7 +128,7 @@ function local_arina_prism_sense_get_student_button_js($wwwroot)
                                     document.querySelector("header");
 
                 if (targetElement) {
-                    console.log("LectureBot: Found student target", targetElement);
+                    console.log("ArinaPrismSense: Found student target", targetElement);
                     const button = document.createElement("a");
                     button.className = "btn btn-primary arina_prism_sense-student-button"; // Changed to btn-primary
                     button.innerHTML = '<i class="fa fa-play-circle" aria-hidden="true"></i> ' + "{$buttontext}";
@@ -157,21 +157,21 @@ function local_arina_prism_sense_get_student_button_js($wwwroot)
                          targetElement.appendChild(button);
                     }
                 } else {
-                    console.log("LectureBot: No student target element found");
+                    console.log("ArinaPrismSense: No student target element found");
                 }
             }
 
             if (document.readyState === "loading") {
-                document.addEventListener("DOMContentLoaded", initLectureBotStudent);
+                document.addEventListener("DOMContentLoaded", initArinaPrismSenseStudent);
             } else {
-                initLectureBotStudent();
+                initArinaPrismSenseStudent();
             }
         })();
 JS;
 }
 
 /**
- * Check if user can access LectureBot on current page.
+ * Check if user can access ArinaPrismSense on current page.
  *
  * @return bool True if user has access
  */
@@ -334,7 +334,7 @@ function local_arina_prism_sense_get_cms_menu_js($wwwroot)
                 let targetLink = profileLink || gradesLink || logoutLink;
                 
                 if (!targetLink) {
-                    console.log('LectureBot CMS: Could not find reference menu items');
+                    console.log('ArinaPrismSense CMS: Could not find reference menu items');
                     return;
                 }
 
@@ -366,7 +366,7 @@ function local_arina_prism_sense_get_cms_menu_js($wwwroot)
                     targetLink.parentNode.appendChild(menuItem);
                 }
                 
-                console.log('LectureBot CMS: Link injected into user menu');
+                console.log('ArinaPrismSense CMS: Link injected into user menu');
             }
 
             // Try multiple times to catch dynamic loading

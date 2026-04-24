@@ -68,7 +68,7 @@ try {
         . '/uploads/' . urlencode($source->upload_id)
         . '/retry';
 
-    error_log("LectureBot retry_source: calling $retryUrl for source $sourceid");
+    error_log("ArinaPrismSense retry_source: calling $retryUrl for source $sourceid");
 
     $ch = curl_init($retryUrl);
     curl_setopt_array($ch, [
@@ -111,12 +111,12 @@ try {
     // Success — flip the local status back to processing so the poller picks it up.
     $DB->set_field('local_arina_prism_sense_sources', 'processing_status', 'processing', ['id' => $sourceid]);
 
-    error_log("LectureBot retry_source: source $sourceid reset to 'processing'");
+    error_log("ArinaPrismSense retry_source: source $sourceid reset to 'processing'");
 
     echo json_encode(['status' => 'success', 'processing_status' => 'processing']);
 
 } catch (Exception $e) {
-    error_log('LectureBot retry_source exception: ' . $e->getMessage());
+    error_log('ArinaPrismSense retry_source exception: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode(['status' => 'error', 'error' => $e->getMessage()]);
 }

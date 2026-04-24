@@ -49,9 +49,9 @@ class EmailNotifier
     private const TOKEN_MANAGE_ALERTS   = "{{ manage_alerts_url | default('#') }}";
 
     // Shared error_log message fragments.
-    private const LOG_INVALID_EMAIL   = 'LectureBot EmailNotifier: invalid email \'';
+    private const LOG_INVALID_EMAIL   = 'ArinaPrismSense EmailNotifier: invalid email \'';
     private const LOG_FOR_USER        = '\' for user ';
-    private const LOG_CANNOT_RESOLVE  = 'LectureBot EmailNotifier: cannot resolve user for content ';
+    private const LOG_CANNOT_RESOLVE  = 'ArinaPrismSense EmailNotifier: cannot resolve user for content ';
     private const LOG_CURRENT_BALANCE = 'Current balance: ';
 
     // -------------------------------------------------------------------------
@@ -555,13 +555,13 @@ class EmailNotifier
         $path = __DIR__ . '/../email_templates/' . $templateName;
 
         if (!file_exists($path)) {
-            error_log("LectureBot EmailNotifier: template not found: {$path}");
+            error_log("ArinaPrismSense EmailNotifier: template not found: {$path}");
             return null;
         }
 
         $html = file_get_contents($path);
         if ($html === false) {
-            error_log("LectureBot EmailNotifier: failed to read template: {$path}");
+            error_log("ArinaPrismSense EmailNotifier: failed to read template: {$path}");
             return null;
         }
 
@@ -609,13 +609,13 @@ class EmailNotifier
             $result  = email_to_user($user, $noreply, $subject, $plaintext, $html);
 
             if ($result) {
-                error_log("LectureBot EmailNotifier: email sent to {$user->email} — {$subject}");
+                error_log("ArinaPrismSense EmailNotifier: email sent to {$user->email} — {$subject}");
             } else {
-                error_log('LectureBot EmailNotifier: email_to_user returned false for '
+                error_log('ArinaPrismSense EmailNotifier: email_to_user returned false for '
                     . $user->email . ' — ' . $subject);
             }
         } catch (\Throwable $e) {
-            error_log("LectureBot EmailNotifier: exception sending to {$user->email}: " . $e->getMessage());
+            error_log("ArinaPrismSense EmailNotifier: exception sending to {$user->email}: " . $e->getMessage());
         }
     }
 

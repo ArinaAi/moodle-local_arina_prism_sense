@@ -519,7 +519,7 @@ export const init = (): void => {
     const root = createRoot(container);
     root.render(<App />);
   } else {
-    console.error('LectureBot root element not found');
+    console.error('ArinaPrismSense root element not found');
     const fallbackContainer = document.createElement('div');
     fallbackContainer.id = 'arina_prism_sense-react-root';
     document.body.appendChild(fallbackContainer);

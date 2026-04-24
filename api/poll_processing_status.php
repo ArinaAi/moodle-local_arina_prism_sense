@@ -113,7 +113,7 @@ try {
         if ($curlError || $httpCode !== 200 || !$response) {
             // Network/HTTP error — keep all sources in this batch as 'processing'.
             error_log(
-                'LectureBot poll_processing_status: backend call failed for batch ' .
+                'ArinaPrismSense poll_processing_status: backend call failed for batch ' .
                 $batchId . ' (HTTP ' . $httpCode . '): ' . $curlError
             );
             foreach ($batchSources as $source) {
@@ -216,16 +216,16 @@ try {
                         \local_arina_prism_sense\EmailNotifier::sendSourceFailure($source, $uploaderUser);
                     }
                 } catch (\Throwable $emailEx) {
-                    error_log('LectureBot poll_processing_status: email notification failed (non-fatal): ' .
+                    error_log('ArinaPrismSense poll_processing_status: email notification failed (non-fatal): ' .
                     $emailEx->getMessage());
                 }
             } else {
-                error_log('LectureBot poll_processing_status: could not resolve uploader for source ' .
+                error_log('ArinaPrismSense poll_processing_status: could not resolve uploader for source ' .
                 $sourceId . ', skipping email.');
             }
 
             error_log(
-                'LectureBot poll_processing_status: source ' . $sourceId .
+                'ArinaPrismSense poll_processing_status: source ' . $sourceId .
                 ' (batch ' . $batchId . ', upload ' . ($source->upload_id ?? 'n/a') . ')' .
                 ' file status "' . $fileStatus . '" → resolved to "' . $newStatus . '"'
             );
@@ -235,7 +235,7 @@ try {
     echo json_encode(['success' => true, 'statuses' => $statuses]);
 
 } catch (Exception $e) {
-    error_log('LectureBot poll_processing_status exception: ' . $e->getMessage());
+    error_log('ArinaPrismSense poll_processing_status exception: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }

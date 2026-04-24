@@ -15,8 +15,7 @@ require_once(__DIR__ . '/../../../config.php');
 
 use local_arina_prism_sense\CompanyConfig;
 
-require_once(__DIR__ . '/../configurator_azure.php');
-require_once(__DIR__ . '/../lib_azure_storage.php');
+require_once(__DIR__ . '/../config_api.php');
 
 // Suppress all output before JSON
 ob_start();
@@ -56,12 +55,13 @@ try {
 
     $azureFolderId = $generationData['azure_folder'];
     $orgId = CompanyConfig::getOrgId();
+    $apiKey = CompanyConfig::getApiKey() ?? get_config('local_arina_prism_sense', 'api_key');
     $containerName = isset($generationData['azure_container'])
         ? strtolower($generationData['azure_container'])
         : strtolower('Blob-Tutorial-Gen-' . $orgId);
 
-    // Fetch TOC from Azure
-    $tocData = local_arina_prism_sense_fetchTocFromAzure($azureFolderId, $containerName);
+    // Fetch TOC via Auth Service
+    $tocData = localArinaPrismSenseFetchTocFromAzure($azureFolderId, $containerName, $apiKey);
 
     echo json_encode([
         'status' => 'success',
@@ -69,7 +69,7 @@ try {
     ]);
 
 } catch (Exception $e) {
-    error_log('LectureBot get_toc error: ' . $e->getMessage());
+    error_log('ArinaPrismSense get_toc error: ' . $e->getMessage());
     echo json_encode([
         'status' => 'error',
         'error' => $e->getMessage(),
@@ -78,36 +78,76 @@ try {
 }
 
 /**
- * Fetch TOC JSON from Azure blob storage
+ * Fetch TOC JSON via the Auth Service (SAS URL gateway).
+ * No Azure credentials required.
+ *
  * @param string $azureFolderId Azure folder identifier
  * @param string $containerName Azure container name
- * @return array|null TOC data or null if not found
+ * @param string $apiKey        Arina API key
+ * @return array TOC data
  */
-function local_arina_prism_sense_fetchTocFromAzure($azureFolderId, $containerName)
+function localArinaPrismSenseFetchTocFromAzure($azureFolderId, $containerName, $apiKey)
 {
-    $accountName = AZURE_STORAGE_ACCOUNT_NAME;
-    $accountKey = AZURE_STORAGE_ACCOUNT_KEY;
-
-    // Build the blob path for toc.json
     $blobName = $azureFolderId . '/toc.json';
+    $authUrl = AUTH_SERVICE_URL
+        . '?container=' . urlencode($containerName)
+        . '&blob_path=' . urlencode($blobName);
 
-    // Generate SAS token for access
-    $sasToken = local_arina_prism_sense_generate_blob_sas_token($accountName, $containerName, $blobName, $accountKey);
-    $blobUrl = local_arina_prism_sense_get_azure_blob_url($accountName, $containerName, $blobName) . $sasToken;
+    $ch = curl_init($authUrl);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 15,
+        CURLOPT_CONNECTTIMEOUT => 10,
+        CURLOPT_HTTPHEADER     => ["X-API-Key: {$apiKey}"],
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
+    ]);
 
-    // Fetch the TOC file
-    $ch = curl_init($blobUrl);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $response  = curl_exec($ch);
+    $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $curlError = curl_error($ch);
     curl_close($ch);
 
+    if ($httpCode !== 200 || empty($response)) {
+        error_log("ArinaPrismSense: Auth service failed for TOC SAS URL. HTTP: $httpCode, Error: $curlError");
+        throw new moodle_exception(
+            'tocfetchfailed',
+            'local_arina_prism_sense',
+            '',
+            null,
+            'Failed to fetch TOC SAS URL from Auth Service'
+        );
+    }
+
+    $sasData = json_decode($response, true);
+    if (!isset($sasData['url'])) {
+        error_log('ArinaPrismSense: Auth service TOC response missing url field');
+        throw new moodle_exception(
+            'tocfetchfailed',
+            'local_arina_prism_sense',
+            '',
+            null,
+            'Auth Service response did not contain a SAS URL'
+        );
+    }
+
+    // Fetch the TOC JSON from the SAS URL
+    $ch = curl_init($sasData['url']);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 30,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
+    ]);
+
+    $tocResponse = curl_exec($ch);
+    $httpCode    = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError   = curl_error($ch);
+    curl_close($ch);
+
     if ($httpCode !== 200) {
-        error_log("LectureBot: Failed to fetch TOC from Azure. HTTP: $httpCode, Error: $curlError");
+        error_log("ArinaPrismSense: Failed to fetch TOC from SAS URL. HTTP: $httpCode, Error: $curlError");
         throw new moodle_exception(
             'tocfetchfailed',
             'local_arina_prism_sense',
@@ -117,9 +157,9 @@ function local_arina_prism_sense_fetchTocFromAzure($azureFolderId, $containerNam
         );
     }
 
-    $tocData = json_decode($response, true);
+    $tocData = json_decode($tocResponse, true);
     if (json_last_error() !== JSON_ERROR_NONE) {
-        error_log('LectureBot: Invalid JSON in TOC file: ' . json_last_error_msg());
+        error_log('ArinaPrismSense: Invalid JSON in TOC file: ' . json_last_error_msg());
         throw new moodle_exception(
             'invalidtocformat',
             'local_arina_prism_sense',

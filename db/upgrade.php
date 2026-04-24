@@ -146,7 +146,7 @@ function local_arina_prism_sense_upgrade_2025121300($dbman)
         $dbman->create_table($table);
     }
 
-    // Lecturebot savepoint reached.
+    // ArinaPrismSense savepoint reached.
     upgrade_plugin_savepoint(true, 2025121300, 'local', 'arina_prism_sense');
 }
 
@@ -177,7 +177,7 @@ function local_arina_prism_sense_upgrade_2025121601($dbman)
     $key = new xmldb_key('approvedby', XMLDB_KEY_FOREIGN, ['approvedby'], 'user', ['id']);
     $dbman->add_key($table, $key);
 
-    // Lecturebot savepoint reached.
+    // ArinaPrismSense savepoint reached.
     upgrade_plugin_savepoint(true, 2025121601, 'local', 'arina_prism_sense');
 }
 
@@ -192,7 +192,7 @@ function local_arina_prism_sense_upgrade_2025121900($dbman)
         $dbman->drop_field($table, $field);
     }
 
-    // Lecturebot savepoint reached.
+    // ArinaPrismSense savepoint reached.
     upgrade_plugin_savepoint(true, 2025121900, 'local', 'arina_prism_sense');
 }
 
@@ -215,7 +215,7 @@ function local_arina_prism_sense_upgrade_2025122201($dbman)
         $dbman->add_field($table, $fieldAuthor);
     }
 
-    // Lecturebot savepoint reached.
+    // ArinaPrismSense savepoint reached.
     upgrade_plugin_savepoint(true, 2025122201, 'local', 'arina_prism_sense');
 }
 
@@ -246,7 +246,7 @@ function local_arina_prism_sense_upgrade_2026010500($dbman)
         $dbman->create_table($table);
     }
 
-    // Lecturebot savepoint reached.
+    // ArinaPrismSense savepoint reached.
     upgrade_plugin_savepoint(true, 2026010500, 'local', 'arina_prism_sense');
 }
 
@@ -271,7 +271,7 @@ function local_arina_prism_sense_upgrade_2026010700($dbman)
         $dbman->add_field($table, $fieldAuthor);
     }
 
-    // Lecturebot savepoint reached.
+    // ArinaPrismSense savepoint reached.
     upgrade_plugin_savepoint(true, 2026010700, 'local', 'arina_prism_sense');
 }
 
@@ -289,7 +289,7 @@ function local_arina_prism_sense_upgrade_2026011400($dbman)
         $dbman->add_field($table, $field);
     }
 
-    // Lecturebot savepoint reached.
+    // ArinaPrismSense savepoint reached.
     upgrade_plugin_savepoint(true, 2026011400, 'local', 'arina_prism_sense');
 }
 

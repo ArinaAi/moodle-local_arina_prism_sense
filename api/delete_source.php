@@ -51,7 +51,7 @@ try {
             $deleteUploadUrl = API_BATCH_UPLOADS_BASE
                 . '/' . urlencode($source->batch_id)
                 . '/uploads/' . urlencode($source->upload_id);
-            error_log('LectureBot delete_source: calling DELETE ' . $deleteUploadUrl);
+            error_log('ArinaPrismSense delete_source: calling DELETE ' . $deleteUploadUrl);
 
             // Get API Key from settings.
             $apiKey = CompanyConfig::getApiKey();
@@ -75,20 +75,20 @@ try {
 
             if ($curlError) {
                 // Log but don't block local deletion.
-                error_log('LectureBot delete_source: batch DELETE curl error: ' . $curlError);
+                error_log('ArinaPrismSense delete_source: batch DELETE curl error: ' . $curlError);
             } elseif ($httpCode !== 200 && $httpCode !== 204) {
-                error_log('LectureBot delete_source: batch DELETE returned HTTP ' . $httpCode . ': ' . $response);
+                error_log('ArinaPrismSense delete_source: batch DELETE returned HTTP ' . $httpCode . ': ' . $response);
             } else {
-                error_log('LectureBot delete_source: backend delete successful for upload ' . $source->upload_id);
+                error_log('ArinaPrismSense delete_source: backend delete successful for upload ' . $source->upload_id);
             }
         } catch (Exception $deleteEx) {
             // Log but don't block local deletion.
-            error_log('LectureBot delete_source: backend DELETE exception: ' . $deleteEx->getMessage());
+            error_log('ArinaPrismSense delete_source: backend DELETE exception: ' . $deleteEx->getMessage());
         }
     } else {
         // No backend reference stored (e.g. backend upload was disabled or an old record).
         // Nothing to delete on the backend side.
-        error_log('LectureBot delete_source: no batch_id/upload_id for source ' .
+        error_log('ArinaPrismSense delete_source: no batch_id/upload_id for source ' .
         $sourceid . ', skipping backend call');
     }
 

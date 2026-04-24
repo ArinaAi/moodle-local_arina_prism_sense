@@ -34,7 +34,7 @@ $apiKey = CompanyConfig::getApiKey();
 if (empty($apiKey)) {
     ob_end_clean();
     http_response_code(500);
-    error_log('LectureBot proxy_asset: API key is not configured.');
+    error_log('ArinaPrismSense proxy_asset: API key is not configured.');
     exit;
 }
 
@@ -66,13 +66,13 @@ curl_close($ch);
 ob_end_clean();
 
 if ($curlErrNo) {
-    error_log('LectureBot proxy_asset cURL error: ' . $curlErrMsg . ' | URL: ' . $bffUrl);
+    error_log('ArinaPrismSense proxy_asset cURL error: ' . $curlErrMsg . ' | URL: ' . $bffUrl);
     http_response_code(502);
     exit;
 }
 
 if ($httpCode !== 200) {
-    error_log('LectureBot proxy_asset: BFF returned HTTP ' . $httpCode . ' | URL: ' . $bffUrl);
+    error_log('ArinaPrismSense proxy_asset: BFF returned HTTP ' . $httpCode . ' | URL: ' . $bffUrl);
     http_response_code($httpCode);
     exit;
 }

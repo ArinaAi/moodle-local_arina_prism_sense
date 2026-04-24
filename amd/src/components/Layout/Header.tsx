@@ -159,9 +159,9 @@ const Header: React.FC<HeaderProps> = ({ moodleContext, children, onBack, onOpen
                 <Tooltip title="Retake Tour" arrow PopperProps={{ sx: { zIndex: 100000 } }}>
                     <IconButton
                         onClick={() => {
-                            const win = window as Window & { startLecturebotTour?: () => void };
-                            if (typeof window !== 'undefined' && win.startLecturebotTour) {
-                                win.startLecturebotTour();
+                            const win = window as Window & { startArinaPrismSenseTour?: () => void };
+                            if (typeof window !== 'undefined' && win.startArinaPrismSenseTour) {
+                                win.startArinaPrismSenseTour();
                             }
                         }}
                         size="small"

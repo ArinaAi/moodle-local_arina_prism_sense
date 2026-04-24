@@ -43,7 +43,7 @@ echo $OUTPUT->header();
 \local_arina_prism_sense\Utils::renderReactApp(
     $context_json,
     $builtjsurl,
-    'LectureBot.initStudent',
+    'ArinaPrismSense.initStudent',
     'arina_prism_sense-student-root'
 );
 

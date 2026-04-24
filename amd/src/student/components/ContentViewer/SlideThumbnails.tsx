@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Box, useTheme, useMediaQuery } from '@mui/material';
 import { SlideImage } from './useContentSlides';
 
@@ -6,41 +6,155 @@ interface SlideThumbnailsProps {
     slides: SlideImage[];
     currentSlide: number;
     onSlideClick: (index: number) => void;
+    onSasExpired?: () => void;
 }
 
-const SlideThumbnails: React.FC<SlideThumbnailsProps> = ({ slides, currentSlide, onSlideClick }) => {
+// --- LazyThumb ---
+
+interface LazyThumbProps {
+    slide: SlideImage;
+    index: number;
+    isActive: boolean;
+    onClick: () => void;
+    scrollContainer: HTMLElement | null; // nullable — null on first render
+    onSasExpired?: () => void;
+    thumbnailWidth: string;
+    thumbnailHeight: string;
+}
+
+const LazyThumb: React.FC<LazyThumbProps> = ({
+    slide, index, isActive, onClick, scrollContainer, onSasExpired, thumbnailWidth, thumbnailHeight
+}) => {
+    // First 5 thumbnails load immediately; rest are lazy
+    const [visible, setVisible] = useState(index < 5);
+    const thumbRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (visible || !scrollContainer) { return; } // skip if already visible or container not ready
+        const el = thumbRef.current;
+        if (!el) { return; }
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setVisible(true);
+                    observer.disconnect();
+                }
+            },
+            {
+                root: scrollContainer, // the scroll strip, not the viewport
+                threshold: 0,
+                rootMargin: '0px 200px', // preload 200 px before entering view
+            }
+        );
+        observer.observe(el);
+        return () => observer.disconnect();
+        // Note: `visible` is intentionally never reset when `slide.data` changes.
+        // On SAS refresh the parent replaces the slides array with new URLs; React
+        // reuses this component instance (key is stable), `visible` stays true, and
+        // the img re-renders with the new URL automatically. No reset needed.
+    }, [visible, scrollContainer]);
+
+    const isUrl = slide.data.startsWith('http://') || slide.data.startsWith('https://');
+    const isDataUrl = slide.data.startsWith('data:');
+    const imgSrc = (isUrl || isDataUrl) ? slide.data : `data:image/png;base64,${slide.data}`;
+
+    return (
+        <Box
+            ref={thumbRef}
+            data-active={isActive ? 'true' : undefined}
+            onClick={onClick}
+            sx={{
+                minWidth: thumbnailWidth,
+                width: thumbnailWidth,
+                height: thumbnailHeight,
+                position: 'relative',
+                cursor: 'pointer',
+                borderRadius: '4px',
+                overflow: 'hidden',
+                bgcolor: 'white',
+                border: isActive ? '2px solid #2563eb' : '2px solid rgba(0,0,0,0.12)',
+                boxShadow: isActive
+                    ? '0 4px 12px rgba(37, 99, 235, 0.3)'
+                    : '0 2px 4px rgba(0,0,0,0.1)',
+                transition: 'all 0.2s ease',
+                flexShrink: 0,
+                '&:hover': {
+                    transform: 'scale(1.05)',
+                    boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+                    borderColor: isActive ? '#2563eb' : 'rgba(0,0,0,0.3)',
+                },
+            }}
+        >
+            {visible && (
+                <Box
+                    component="img"
+                    src={imgSrc}
+                    alt={`Slide ${index + 1}`}
+                    sx={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                    onError={(e) => {
+                        (e.target as HTMLImageElement).style.opacity = '0.3';
+                        onSasExpired?.();
+                    }}
+                />
+            )}
+            {/* Slide number badge */}
+            <Box
+                sx={{
+                    position: 'absolute',
+                    bottom: 2,
+                    right: 2,
+                    bgcolor: isActive ? '#2563eb' : 'rgba(0,0,0,0.6)',
+                    color: 'white',
+                    fontSize: '0.6rem',
+                    fontWeight: 600,
+                    px: 0.5,
+                    py: 0.25,
+                    borderRadius: '3px',
+                    lineHeight: 1,
+                    transition: 'background-color 0.2s ease',
+                }}
+            >
+                {index + 1}
+            </Box>
+        </Box>
+    );
+};
+
+// --- SlideThumbnails ---
+
+const SlideThumbnails: React.FC<SlideThumbnailsProps> = ({ slides, currentSlide, onSlideClick, onSasExpired }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+    // scrollContainer drives both auto-scroll (via containerRef) and IntersectionObserver
+    // (passed as a prop to LazyThumb). A single setState callback sets both at once.
     const containerRef = useRef<HTMLDivElement>(null);
-    const activeThumbRef = useRef<HTMLDivElement>(null);
+    const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
 
-    // Auto-scroll to active thumbnail
+    const setContainerRef = useCallback((el: HTMLDivElement | null) => {
+        (containerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+        setScrollContainer(el);
+    }, []);
+
+    // Auto-scroll to keep the active thumbnail visible
     useEffect(() => {
-        if (activeThumbRef.current && containerRef.current) {
-            const container = containerRef.current;
-            const activeThumb = activeThumbRef.current;
-            const containerWidth = container.offsetWidth;
-            const thumbLeft = activeThumb.offsetLeft;
-            const thumbWidth = activeThumb.offsetWidth;
-            const scrollLeft = container.scrollLeft;
+        const container = containerRef.current;
+        if (!container) { return; }
+        const activeThumb = container.querySelector('[data-active="true"]') as HTMLElement | null;
+        if (!activeThumb) { return; }
 
-            // Calculate if thumbnail is outside visible area
-            const thumbRight = thumbLeft + thumbWidth;
-            const visibleRight = scrollLeft + containerWidth;
+        const containerWidth = container.offsetWidth;
+        const thumbLeft = activeThumb.offsetLeft;
+        const thumbWidth = activeThumb.offsetWidth;
+        const scrollLeft = container.scrollLeft;
+        const thumbRight = thumbLeft + thumbWidth;
+        const visibleRight = scrollLeft + containerWidth;
 
-            if (thumbLeft < scrollLeft) {
-                // Scroll left
-                container.scrollTo({
-                    left: thumbLeft - 16,
-                    behavior: 'smooth'
-                });
-            } else if (thumbRight > visibleRight) {
-                // Scroll right
-                container.scrollTo({
-                    left: thumbRight - containerWidth + 16,
-                    behavior: 'smooth'
-                });
-            }
+        if (thumbLeft < scrollLeft) {
+            container.scrollTo({ left: thumbLeft - 16, behavior: 'smooth' });
+        } else if (thumbRight > visibleRight) {
+            container.scrollTo({ left: thumbRight - containerWidth + 16, behavior: 'smooth' });
         }
     }, [currentSlide]);
 
@@ -57,7 +171,7 @@ const SlideThumbnails: React.FC<SlideThumbnailsProps> = ({ slides, currentSlide,
 
     return (
         <Box
-            ref={containerRef}
+            ref={setContainerRef}
             sx={{
                 display: 'flex',
                 gap: `${spacing}px`,
@@ -86,80 +200,19 @@ const SlideThumbnails: React.FC<SlideThumbnailsProps> = ({ slides, currentSlide,
                 },
             }}
         >
-            {slides.map((slide, index) => {
-                // Handle all cases:
-                // 1. Azure URLs (http:// or https://) - use directly
-                // 2. Data URLs (data:image/...) - use directly  
-                // 3. Raw base64 string - add data URL prefix
-                const isUrl = slide.data.startsWith('http://') || slide.data.startsWith('https://');
-                const isDataUrl = slide.data.startsWith('data:');
-                const imgSrc = (isUrl || isDataUrl) ? slide.data : `data:image/png;base64,${slide.data}`;
-                
-                return (
-                    <Box
-                        key={`thumbnail-slide-${slide.slideNumber}`}
-                        ref={index === currentSlide ? activeThumbRef : null}
-                        onClick={() => onSlideClick(index)}
-                        sx={{
-                            minWidth: thumbnailWidthValue,
-                            width: thumbnailWidthValue,
-                            height: thumbnailHeightValue,
-                            position: 'relative',
-                            cursor: 'pointer',
-                            borderRadius: '4px',
-                            overflow: 'hidden',
-                            bgcolor: 'white',
-                            border: index === currentSlide ? '2px solid #2563eb' : '2px solid rgba(0,0,0,0.12)',
-                            boxShadow: index === currentSlide
-                                ? '0 4px 12px rgba(37, 99, 235, 0.3)'
-                                : '0 2px 4px rgba(0,0,0,0.1)',
-                            transition: 'all 0.2s ease',
-                            flexShrink: 0,
-                            '&:hover': {
-                                transform: 'scale(1.05)',
-                                boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
-                                borderColor: index === currentSlide ? '#2563eb' : 'rgba(0,0,0,0.3)',
-                            },
-                        }}
-                    >
-                        <Box
-                            component="img"
-                            src={imgSrc}
-                            alt={`Slide ${index + 1}`}
-                            sx={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'contain',
-                                display: 'block',
-                            }}
-                            onError={(e) => {
-                                console.error('Failed to load thumbnail:', index + 1, slide);
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                            }}
-                        />
-                        {/* Slide number badge */}
-                        <Box
-                            sx={{
-                                position: 'absolute',
-                                bottom: 2,
-                                right: 2,
-                                bgcolor: index === currentSlide ? '#2563eb' : 'rgba(0,0,0,0.6)',
-                                color: 'white',
-                                fontSize: '0.6rem',
-                                fontWeight: 600,
-                                px: 0.5,
-                                py: 0.25,
-                                borderRadius: '3px',
-                                lineHeight: 1,
-                                transition: 'background-color 0.2s ease',
-                            }}
-                        >
-                            {index + 1}
-                        </Box>
-                    </Box>
-                );
-            })}
+            {slides.map((slide, index) => (
+                <LazyThumb
+                    key={`thumbnail-slide-${slide.slideNumber}`}
+                    slide={slide}
+                    index={index}
+                    isActive={index === currentSlide}
+                    onClick={() => onSlideClick(index)}
+                    scrollContainer={scrollContainer}
+                    onSasExpired={onSasExpired}
+                    thumbnailWidth={thumbnailWidthValue}
+                    thumbnailHeight={thumbnailHeightValue}
+                />
+            ))}
         </Box>
     );
 };

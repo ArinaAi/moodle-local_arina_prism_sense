@@ -53,15 +53,15 @@ if (empty($apiKey)) {
     if ($curlError) {
         $validationFailed = true;
         $errorMessage = 'Unable to validate API key. Please check your network connection and try again.';
-        error_log("LectureBot API key validation cURL error: {$curlError}");
+        error_log("ArinaPrismSense API key validation cURL error: {$curlError}");
     } elseif ($httpCode === 401) {
         $validationFailed = true;
         $errorMessage = 'API key is invalid or incorrect. Please check your plugin settings.';
-        error_log("LectureBot API key validation failed: HTTP 401 (Invalid API key)");
+        error_log("ArinaPrismSense API key validation failed: HTTP 401 (Invalid API key)");
     } elseif ($httpCode !== 200) {
         $validationFailed = true;
         $errorMessage = "API key validation failed with HTTP {$httpCode}. Please contact your administrator.";
-        error_log("LectureBot API key validation failed: HTTP {$httpCode}");
+        error_log("ArinaPrismSense API key validation failed: HTTP {$httpCode}");
     }
 }
 
@@ -121,7 +121,7 @@ echo $OUTPUT->header();
 \local_arina_prism_sense\Utils::renderReactApp(
     $context_json,
     $builtjsurl,
-    'LectureBot.init',
+    'ArinaPrismSense.init',
     'arina_prism_sense-react-root'
 );
 ?>

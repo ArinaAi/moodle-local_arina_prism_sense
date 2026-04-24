@@ -18,10 +18,12 @@ namespace local_arina_prism_sense;
 
 defined('MOODLE_INTERNAL') || die();
 
+require_once(__DIR__ . '/../config_api.php'); // NOSONAR — required for AUTH_SERVICE_URL constant
+
 class Utils
 {
     /**
-     * Get course sections for the LectureBot modal.
+     * Get course sections for the ArinaPrismSense modal.
      *
      * @param int $courseid Course ID
      * @return array Array of section information
@@ -43,7 +45,7 @@ class Utils
     }
 
     /**
-     * Prepare Moodle context data for the LectureBot React app.
+     * Prepare Moodle context data for the ArinaPrismSense React app.
      *
      * @param object $course Course object
      * @param string $wwwroot Moodle wwwroot
@@ -68,7 +70,7 @@ class Utils
     }
 
     /**
-     * Get the versioned URL for the LectureBot JavaScript bundle.
+     * Get the versioned URL for the ArinaPrismSense JavaScript bundle.
      *
      * @param string $wwwroot Moodle wwwroot
      * @param string $plugindir Plugin directory path
@@ -105,13 +107,13 @@ class Utils
      *
      * @param string $contextJson JSON encoded Moodle context
      * @param string $jsUrl URL to the bundled JavaScript file
-     * @param string $initFunction Name of the initialization function to call (e.g. 'LectureBot.init')
+     * @param string $initFunction Name of the initialization function to call (e.g. 'ArinaPrismSense.init')
      * @param string $rootId ID of the DOM element to mount the app
      */
     public static function renderReactApp(
         $contextJson,
         $jsUrl,
-        $initFunction = 'LectureBot.init',
+        $initFunction = 'ArinaPrismSense.init',
         $rootId = 'arina_prism_sense-react-root'
     ) {
         // Safe defaults for styles
@@ -287,7 +289,61 @@ class Utils
     }
 
     /**
+     * Download a file from Azure via the Auth Service (SAS URL gateway).
+     * No Azure credentials required — the Auth Service handles SAS generation.
+     *
+     * @param string $blobName      Blob path within the container
+     * @param string $outputPath    Local file path to write to
+     * @param string $containerName Azure container name
+     * @param string $apiKey        Arina API key
+     * @return bool True on success, false on failure
+     */
+    public static function downloadFileViaAuthService(
+        string $blobName,
+        string $outputPath,
+        string $containerName,
+        string $apiKey
+    ): bool {
+        $authUrl = AUTH_SERVICE_URL
+            . '?container=' . urlencode($containerName)
+            . '&blob_path=' . urlencode($blobName);
+
+        mtrace("  - [AuthService] Fetching SAS URL for: {$blobName}");
+
+        $ch = curl_init($authUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 15,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_HTTPHEADER     => ["X-API-Key: {$apiKey}"],
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+        ]);
+
+        $response  = curl_exec($ch);
+        $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($httpCode !== 200 || empty($response)) {
+            mtrace("  - [AuthService] Failed to fetch SAS URL. HTTP {$httpCode}. Error: {$curlError}");
+            return false;
+        }
+
+        $responseData = json_decode($response, true);
+        if (!isset($responseData['url'])) {
+            mtrace('  - [AuthService] Response did not contain a SAS URL.');
+            return false;
+        }
+
+        mtrace('  - [AuthService] SAS URL obtained, downloading file...');
+        return self::performDownload($responseData['url'], $outputPath);
+    }
+
+    /**
      * Download File from Azure Blob Storage directly to path
+     *
+     * @deprecated Use downloadFileViaAuthService() instead — no Azure credentials required.
      */
     public static function downloadFileFromAzure($blobName, $outputPath, $containerName)
     {
@@ -443,7 +499,7 @@ class Utils
     /**
      * Emits the PRISM Sense guided-tour script block.
      *
-     * The script is ALWAYS emitted so that window.startLecturebotTour() is
+     * The script is ALWAYS emitted so that window.startArinaPrismSenseTour() is
      * always defined on the page (the "Retake Tour" button needs it).
      * The autoStart flag controls whether the tour kicks off automatically:
      *  - false  → user has already seen the tour; manual retrigger only.
@@ -462,7 +518,7 @@ class Utils
     {
         // autoStart is false when the user has already seen the tour.
         // prism-tour.js checks cfg.autoStart and skips the poll loop when false,
-        // but window.startLecturebotTour() is always registered for manual retrigger.
+        // but window.startArinaPrismSenseTour() is always registered for manual retrigger.
         $alreadySeen = (bool) get_user_preferences($prefKey, 0);
         $autoStart   = $alreadySeen ? 'false' : 'true';
 

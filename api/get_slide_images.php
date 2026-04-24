@@ -64,7 +64,7 @@ try {
     ]);
 
 } catch (Exception $e) {
-    error_log('LectureBot get_slide_images error: ' . $e->getMessage());
+    error_log('ArinaPrismSense get_slide_images error: ' . $e->getMessage());
     
     $errorMessage = $e->getMessage();
     if (strpos($errorMessage, 'API key is missing or incorrect') !== false) {
@@ -215,17 +215,17 @@ function local_arina_prism_sense_generateAzureImageUrls($azureFolderId, $contain
     curl_close($ch);
 
     if ($httpCode === 401) {
-        error_log("LectureBot get_slide_images: Auth Service returned HTTP 401(API key is missing or incorrect)");
+        error_log("ArinaPrismSense get_slide_images: Auth Service returned HTTP 401(API key is missing or incorrect)");
         throw new \local_arina_prism_sense\exception\api_http_exception('API key is missing or incorrect.
         Please check your settings.');
     } elseif ($httpCode !== 200 || empty($response)) {
-        error_log("LectureBot get_slide_images: Auth Service returned HTTP {$httpCode} Error: {$curlErr}");
+        error_log("ArinaPrismSense get_slide_images: Auth Service returned HTTP {$httpCode} Error: {$curlErr}");
         return $images;
     }
 
     $responseData = json_decode($response, true);
     if (!isset($responseData['files']) || !is_array($responseData['files'])) {
-        error_log("LectureBot get_slide_images: Auth Service response missing 'files' array");
+        error_log("ArinaPrismSense get_slide_images: Auth Service response missing 'files' array");
         return $images;
     }
 
@@ -280,7 +280,7 @@ function local_arina_prism_sense_extractImagesFromZip($pptxPath)
             }
         }
     } catch (Exception $e) {
-        error_log('LectureBot: Error extracting images from PPTX: ' . $e->getMessage());
+        error_log('ArinaPrismSense: Error extracting images from PPTX: ' . $e->getMessage());
     }
 
     return $images;

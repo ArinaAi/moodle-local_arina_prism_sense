@@ -158,7 +158,7 @@ try {
                 }
             } catch (\Throwable $e) {
                 // Log and silently continue so the JSON response doesn't break
-                error_log("LectureBot: Error checking org credits threshold: " . $e->getMessage());
+                error_log("ArinaPrismSense: Error checking org credits threshold: " . $e->getMessage());
             }
         }
         // --- End Threshold Check ---

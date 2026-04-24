@@ -21,6 +21,7 @@ interface ContentDisplayAreaProps {
     onNext?: () => void;
     onPrev?: () => void;
     onSlideClick?: (index: number) => void;
+    refreshSlides?: () => void;
 }
 
 // Helper functions moved to module level to reduce cognitive complexity
@@ -110,12 +111,15 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
     currentSlide = 0,
     onNext,
     onPrev,
-    onSlideClick
+    onSlideClick,
+    refreshSlides,
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [zoomLevel, setZoomLevel] = useState(1);
     const [showThumbnails, setShowThumbnails] = useState(false);
+
+    const isRefreshingRef = useRef(false);
 
     // Touch handling state
     const touchStartX = useRef<number>(0);
@@ -286,6 +290,15 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
         }
     };
 
+    // Guard against all 25 thumbnail onError events firing in the same tick.
+    // A boolean ref is set synchronously, so calls #2–#25 see it immediately.
+    const handleSasExpired = useCallback(() => {
+        if (isRefreshingRef.current) { return; }
+        isRefreshingRef.current = true;
+        refreshSlides?.();
+        setTimeout(() => { isRefreshingRef.current = false; }, 10_000);
+    }, [refreshSlides]);
+
     const handleZoomIn = () => {
         // Cycle zoom levels: 1 -> 1.25 -> 1.5 -> 2 -> 1
         setZoomLevel(prev => {
@@ -378,7 +391,6 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
                 {/* Slide Image Card */}
                 {!isLoading && !error && currentSlideData && (
                     <Box
-                        key={currentSlideData.slideNumber}
                         sx={{
                             position: 'relative',
                             flex: '0 1 auto', // Can shrink but doesn't grow beyond content
@@ -399,13 +411,14 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
                         }}>
                         <img
                             src={currentSlideData.data}
-                            alt={`Slide ${currentSlideData.slideNumber} `}
+                            alt={`Slide ${currentSlideData.slideNumber}`}
+                            onError={() => handleSasExpired()}
                             style={{
                                 display: 'block',
                                 width: 'auto',
                                 height: 'auto',
                                 maxWidth: '100%',
-                                maxHeight: isFullscreen ? '85vh' : 'clamp(100px, 40vh, 600px)', // Full height in fullscreen
+                                maxHeight: isFullscreen ? '85vh' : 'clamp(100px, 40vh, 600px)',
                                 objectFit: 'contain',
                             }}
                         />
@@ -561,6 +574,7 @@ const ContentDisplayArea: React.FC<ContentDisplayAreaProps> = ({
                                     onSlideClick={(index) => {
                                         onSlideClick(index);
                                     }}
+                                    onSasExpired={handleSasExpired}
                                 />
                             </Box>
                         )}

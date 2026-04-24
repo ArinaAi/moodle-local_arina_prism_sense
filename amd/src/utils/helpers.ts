@@ -1,4 +1,4 @@
-// Utility helper functions for LectureBot
+// Utility helper functions for ArinaPrismSense
 
 export const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) {

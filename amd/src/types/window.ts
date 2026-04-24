@@ -1,5 +1,5 @@
 /**
- * Global window extensions for LectureBot
+ * Global window extensions for ArinaPrismSense
  */
 export { };
 
@@ -28,13 +28,13 @@ declare global {
       username: string;
       useremail: string;
     };
-    LectureBot?: {
+    ArinaPrismSense?: {
       init: () => void;
     };
-    initLectureBot?: () => void;
+    initArinaPrismSense?: () => void;
     local_arina_prism_sense?: {
       init: () => void;
     };
-    initLectureBotGlobal?: () => void;
+    initArinaPrismSenseGlobal?: () => void;
   }
 }

@@ -59,8 +59,14 @@ if ($hassiteconfig) {
         $_ams = [];
         if (empty(trim($SITE->fullname  ?? ''))) { $_ams[] = 'Site full name'; }
         if (empty(trim($SITE->shortname ?? ''))) { $_ams[] = 'Site short name'; }
-        if (empty(trim($USER->city      ?? ''))) { $_ams[] = 'City (your Moodle profile)'; }
-        if (empty(trim($USER->country   ?? ''))) { $_ams[] = 'Country (your Moodle profile)'; }
+        $_siteCity    = trim(get_config('moodle', 'city') ?: ($USER->city ?? ''));
+        $_siteCountry = trim(get_config('moodle', 'country') ?: ($USER->country ?? ''));
+        if (empty($_siteCity)) {
+            $_ams[] = 'City (Site administration → Location settings)';
+        }
+        if (empty($_siteCountry)) {
+            $_ams[] = 'Country (Site administration → Location settings)';
+        }
 
         $_adminEmail = htmlspecialchars($USER->email    ?? '', ENT_QUOTES);
         $_orgName    = htmlspecialchars($SITE->fullname ?? '', ENT_QUOTES);

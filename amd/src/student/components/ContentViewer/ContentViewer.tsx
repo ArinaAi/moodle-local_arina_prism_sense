@@ -13,7 +13,7 @@ const ContentViewer: React.FC = () => {
     const { selectedContent, setSelectedContent, markAsComplete } = useContent();
     const isVideo = selectedContent?.type === 'video';
 
-    const { slides, currentSlide, isLoading, error, handleNext, handlePrev, goToSlide } = useContentSlides(selectedContent, isVideo);
+    const { slides, currentSlide, isLoading, error, handleNext, handlePrev, goToSlide, refreshSlides } = useContentSlides(selectedContent, isVideo);
 
     if (!selectedContent) {
         return <EmptyContentState />;
@@ -78,6 +78,7 @@ const ContentViewer: React.FC = () => {
                         onNext={handleNext}
                         onPrev={handlePrev}
                         onSlideClick={goToSlide}
+                        refreshSlides={refreshSlides}
                     />
 
                     <SlideNavigationFooter

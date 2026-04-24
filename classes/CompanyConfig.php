@@ -342,7 +342,7 @@ class CompanyConfig
      *
      * org_id is stored via settings page or auto-populated by register.php after
      * the admin clicks "Register on Arina.ai". The legacy .env constant
-     * LECTUREBOT_TENANT_ID is no longer used.
+     * ARINA_PRISM_SENSE_TENANT_ID is no longer used.
      */
     private static function globalFallback(): \stdClass
     {

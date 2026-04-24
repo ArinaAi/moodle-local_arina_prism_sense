@@ -63,7 +63,7 @@ try {
     $input = json_decode($raw_input, true);
 
     if (!$input || !is_array($input)) {
-        error_log('LectureBot: Invalid request - input is empty or not an array');
+        error_log('ArinaPrismSense: Invalid request - input is empty or not an array');
         http_response_code(400);
         echo json_encode([
             'status' => 'error',
@@ -141,7 +141,7 @@ try {
             $genData = json_decode($sourceContent->generationdata, true);
             if (isset($genData['curriculum_text'])) {
                 $curriculumText = $genData['curriculum_text'];
-                error_log("LectureBot: Using curriculum text from content ID: $idToUse");
+                error_log("ArinaPrismSense: Using curriculum text from content ID: $idToUse");
             }
         }
     }
@@ -165,14 +165,14 @@ try {
                 $label = $DB->get_record('label', ['id' => $cm->instance]);
                 if ($label && !empty($label->intro)) {
                     $curriculumText = trim(strip_tags($label->intro));
-                    error_log("LectureBot: Found 'Curriculum' label (id:{$cm->id}) in section $sectionid");
+                    error_log("ArinaPrismSense: Found 'Curriculum' label (id:{$cm->id}) in section $sectionid");
                     break;
                 }
             } elseif ($cm->modname == 'page') {
                 $page = $DB->get_record('page', ['id' => $cm->instance]);
                 if ($page && !empty($page->content)) {
                     $curriculumText = trim(strip_tags($page->content));
-                    error_log("LectureBot: Found 'Curriculum' page (id:{$cm->id}) in section $sectionid");
+                    error_log("ArinaPrismSense: Found 'Curriculum' page (id:{$cm->id}) in section $sectionid");
                     break;
                 }
             }
@@ -188,7 +188,7 @@ try {
         );
     }
 
-    error_log('LectureBot: Curriculum text length: ' . strlen($curriculumText) . ' characters');
+    error_log('ArinaPrismSense: Curriculum text length: ' . strlen($curriculumText) . ' characters');
 
     // Get section name for title (use simple string to avoid formatting issues)
     $sectionName = !empty($sectioninfo->name) ? strip_tags($sectioninfo->name) : "Section {$sectioninfo->section}";
@@ -211,7 +211,7 @@ try {
     // until the backend is updated to accept 'org_id'.
     $orgId = CompanyConfig::getOrgId();
     if (empty($orgId)) {
-        error_log('LectureBot: org_id is not configured. Please register via plugin settings.');
+        error_log('ArinaPrismSense: org_id is not configured. Please register via plugin settings.');
     }
 
     // Determine regen_count (Azure folder index)
@@ -226,7 +226,7 @@ try {
     if (isset($input['regen_count']) && is_numeric($input['regen_count'])) {
         // Regeneration / video path — use exactly what the frontend sent.
         $regenCount = (int) $input['regen_count'];
-        error_log("LectureBot: Using explicit regen_count $regenCount from request");
+        error_log("ArinaPrismSense: Using explicit regen_count $regenCount from request");
     }
 
     // Check for explicit content_type from input
@@ -271,7 +271,10 @@ try {
                 [$courseid, $sectionid]
             );
             $regenCount = ($maxCount !== null && $maxCount !== false) ? (int)$maxCount + 1 : 0;
-            error_log("LectureBot: Assigned fresh regen_count $regenCount from DB (prev max=" . var_export($maxCount, true) . ")");
+            $prevMaxExport = var_export($maxCount, true);
+            error_log(
+                "ArinaPrismSense: Assigned fresh regen_count $regenCount from DB (prev max=" . $prevMaxExport . ")"
+            );
         }
 
         // Create database entry with status='generating'
@@ -336,7 +339,7 @@ try {
 
         // DEVELOPER MODE: EXECUTE SYNCHRONOUSLY
         // Bypassing Adhoc Queue to avoid Cron dependencies in local dev
-        error_log("LectureBot: [DEV] Executing mock task synchronously for content $contentId");
+        error_log("ArinaPrismSense: [DEV] Executing mock task synchronously for content $contentId");
         $task->execute();
 
     } else {
@@ -345,10 +348,10 @@ try {
 
         // PRODUCTION: Queue the task
         \core\task\manager::queue_adhoc_task($task);
-        error_log("LectureBot: Queued generation task for content $contentId");
+        error_log("ArinaPrismSense: Queued generation task for content $contentId");
     }
 
-    error_log("LectureBot: Queued generation task for content $contentId");
+    error_log("ArinaPrismSense: Queued generation task for content $contentId");
 
     // Return success immediately
     echo json_encode([
@@ -359,7 +362,7 @@ try {
     ]);
 
 } catch (Exception $e) {
-    error_log('LectureBot: Exception caught: ' . $e->getMessage());
+    error_log('ArinaPrismSense: Exception caught: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode([
         'status' => 'error',

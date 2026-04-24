@@ -20,6 +20,7 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import { ContentItem, Section } from '../../mockData';
 import { useContent } from '../../context/ContentContext';
 import { accordionStyles } from '../../../styles/accordionStyles';
+import { prefetchSlides } from '../ContentViewer/useContentSlides';
 
 const ContentNavigator: React.FC = () => {
     const { selectedContent, setSelectedContent, sections, isLoading, error } = useContent();
@@ -268,6 +269,11 @@ const SectionAccordion: React.FC<SectionAccordionProps> = ({
                             <ListItem
                                 key={item.id}
                                 onClick={() => onItemClick(item)}
+                                onMouseEnter={() => {
+                                    if (item.type !== 'video') {
+                                        prefetchSlides(item.id);
+                                    }
+                                }}
                                 sx={{
                                     display: 'flex',
                                     alignItems: 'center',

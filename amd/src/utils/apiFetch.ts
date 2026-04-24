@@ -1,7 +1,7 @@
 /**
  * apiFetch — a thin wrapper around the native fetch() API.
  *
- * Adds session-expiry detection for all LectureBot API calls.
+ * Adds session-expiry detection for all ArinaPrismSense API calls.
  * When Moodle detects an expired / invalid session it does one of:
  *   1. Redirects the request to the login page (fetch follows it, returns HTML).
  *   2. Returns HTTP 401 / 403.

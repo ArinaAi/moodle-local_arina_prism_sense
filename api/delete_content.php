@@ -37,8 +37,8 @@ try {
         'deleted_by' => $USER->id,
     ];
 
-    error_log('LectureBot: Deleting content ' . $contentid);
-    error_log('LectureBot: Azure restoration info: ' . json_encode($azureInfo));
+    error_log('ArinaPrismSense: Deleting content ' . $contentid);
+    error_log('ArinaPrismSense: Azure restoration info: ' . json_encode($azureInfo));
 
     // Delete from database only (Azure files remain for restore)
     $deleted = $DB->delete_records('local_arina_prism_sense_content', ['id' => $contentid]);
@@ -57,7 +57,7 @@ try {
     }
 
 } catch (Exception $e) {
-    error_log('LectureBot delete_content error: ' . $e->getMessage());
+    error_log('ArinaPrismSense delete_content error: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode([
         'status' => 'error',

@@ -1,5 +1,5 @@
 /**
- * 60fps-safe animation constants for the LectureBot plugin.
+ * 60fps-safe animation constants for the ArinaPrismSense plugin.
  * 
  * PERFORMANCE RULE: Only use `transform` and `opacity` in keyframes.
  * These are GPU-accelerated and will never cause layout thrashing.

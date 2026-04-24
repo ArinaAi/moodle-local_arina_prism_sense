@@ -73,7 +73,7 @@ try {
                     $metrics['doc_processing'] += $amount;
                 } elseif (!empty($actionKey)) {
                     // Log unknown action keys for debugging
-                    error_log("Lecturebot: Unknown action_key encountered: {$actionKey}");
+                    error_log("ArinaPrismSense: Unknown action_key encountered: {$actionKey}");
                 }
             }
         }
