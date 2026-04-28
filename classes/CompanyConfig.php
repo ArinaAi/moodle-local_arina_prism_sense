@@ -102,10 +102,16 @@ class CompanyConfig
 
         // Merge: company row takes priority; fall back to globals for missing values.
         $fallback = self::globalFallback();
+        
+        $orgWalletOwnerId = $row->org_wallet_owner_id ?: $fallback->org_wallet_owner_id;
+        
+        // org_wallet_owner_id and org_id are strictly the same now. Ignore stale mdl_company.code.
+        $orgId = $orgWalletOwnerId;
+
         self::$resolved = (object) [
-            'org_id'              => $row->org_id ?: $fallback->org_id,
+            'org_id'              => $orgId,
             'api_key'             => $row->api_key ?: $fallback->api_key,
-            'org_wallet_owner_id' => $row->org_wallet_owner_id ?: $fallback->org_wallet_owner_id,
+            'org_wallet_owner_id' => $orgWalletOwnerId,
         ];
     }
 
@@ -347,10 +353,15 @@ class CompanyConfig
      */
     private static function globalFallback(): \stdClass
     {
+        $orgWalletOwnerId = get_config('local_arina_prism_sense', 'org_wallet_owner_id') ?: null;
+        
+        // org_wallet_owner_id and org_id are strictly the same now. Ignore stale config org_id.
+        $orgId = $orgWalletOwnerId;
+
         return (object) [
-            'org_id'              => get_config('local_arina_prism_sense', 'org_id') ?: null,
+            'org_id'              => $orgId,
             'api_key'             => get_config('local_arina_prism_sense', 'api_key') ?: null,
-            'org_wallet_owner_id' => get_config('local_arina_prism_sense', 'org_wallet_owner_id') ?: null,
+            'org_wallet_owner_id' => $orgWalletOwnerId,
         ];
     }
 }

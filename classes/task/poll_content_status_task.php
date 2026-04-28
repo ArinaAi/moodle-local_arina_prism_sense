@@ -36,6 +36,8 @@ require_once(__DIR__ . '/../EmailNotifier.php');
  */
 class poll_content_status_task extends \core\task\scheduled_task // phpcs:ignore Squiz.Classes.ValidClassName.NotCamelCaps
 {
+    const TIME_FORMAT = 'Y-m-d H:i:s';
+
     /**
      * Get a descriptive name for this task
      *
@@ -56,7 +58,8 @@ class poll_content_status_task extends \core\task\scheduled_task // phpcs:ignore
     {
         global $DB;
 
-        mtrace("Starting poll_content_status_task...");
+        $ts = date(self::TIME_FORMAT);
+        mtrace("[{$ts}] Starting poll_content_status_task...");
 
         // Find all content items that are still generating and have a request_id
         $pendingContent = $DB->get_records_select(
@@ -88,18 +91,21 @@ class poll_content_status_task extends \core\task\scheduled_task // phpcs:ignore
         // In a single-tenant deployment all items share the same tenant, so one
         // bootstrap is sufficient for the batch API call.
         $firstContent = reset($requestIdToContent);
-        if (!empty($firstContent->userid)) {
-            \local_arina_prism_sense\CompanyConfig::bootstrap((int) $firstContent->userid);
+        if (!empty($firstContent->createdby)) {
+            \local_arina_prism_sense\CompanyConfig::bootstrap((int) $firstContent->createdby);
         }
         $apiKey = \local_arina_prism_sense\CompanyConfig::getApiKey()
             ?? get_config('local_arina_prism_sense', 'api_key');
 
         // Single batch call to backend — replaces N individual calls
-        mtrace("Calling batch status endpoint with " . count($requestIds) . " request_id(s)...");
+        $ts = date(self::TIME_FORMAT);
+        mtrace("[{$ts}] Calling batch status endpoint with " . count($requestIds) .
+            " request_id(s)...");
         $batchResponse = $this->checkBatchBackendStatus($requestIds, $apiKey);
 
         if ($batchResponse === null) {
-            mtrace("Batch status call failed or returned no response. Will retry on next run.");
+            mtrace("[{$ts}] Batch status call failed or returned no response. " .
+                "Will retry on next run.");
             return;
         }
 
@@ -115,9 +121,9 @@ class poll_content_status_task extends \core\task\scheduled_task // phpcs:ignore
             $statusResponse = $batchResponse[$requestId];
 
             // Re-bootstrap for each item's originating user (no-op if same tenant).
-            if (!empty($content->userid)) {
+            if (!empty($content->createdby)) {
                 \local_arina_prism_sense\CompanyConfig::reset();
-                \local_arina_prism_sense\CompanyConfig::bootstrap((int) $content->userid);
+                \local_arina_prism_sense\CompanyConfig::bootstrap((int) $content->createdby);
             }
 
             try {
@@ -128,7 +134,8 @@ class poll_content_status_task extends \core\task\scheduled_task // phpcs:ignore
             }
         }
 
-        mtrace("poll_content_status_task completed.");
+        $ts = date(self::TIME_FORMAT);
+        mtrace("[{$ts}] poll_content_status_task completed.");
     }
 
     /**
@@ -215,7 +222,9 @@ class poll_content_status_task extends \core\task\scheduled_task // phpcs:ignore
         $requestId = $content->request_id;
         $status = $statusResponse['status'] ?? 'unknown';
 
-        mtrace("  - Content {$content->id} (request_id: {$requestId}): status = {$status}");
+        $ts = date(self::TIME_FORMAT);
+        mtrace("  - [{$ts}] Content {$content->id} (request_id: {$requestId}): " .
+            "status = {$status}");
 
         switch ($status) {
             // Final completion statuses — trigger file download
@@ -264,7 +273,8 @@ class poll_content_status_task extends \core\task\scheduled_task // phpcs:ignore
     {
         global $DB, $CFG;
 
-        mtrace("    Content generation completed! Downloading from Azure...");
+        $ts = date(self::TIME_FORMAT);
+        mtrace("    [{$ts}] Content generation completed! Downloading from Azure...");
 
         $generationData = json_decode($content->generationdata, true) ?: [];
         $isVideo = $generationData['is_video'] ?? false;
@@ -340,7 +350,8 @@ class poll_content_status_task extends \core\task\scheduled_task // phpcs:ignore
 
         // Extract raw error text for logging only.
         $rawError = $statusResponse['error'] ?? $statusResponse['message'] ?? 'Unknown error from backend';
-        mtrace("    Content generation failed (raw): {$rawError}");
+        $ts = date(self::TIME_FORMAT);
+        mtrace("    [{$ts}] Content generation failed (raw): {$rawError}");
 
         // Classify raw error → sentinel code.
         $sentinel = $this->classifyError((string) $rawError);
@@ -432,7 +443,8 @@ class poll_content_status_task extends \core\task\scheduled_task // phpcs:ignore
         $content->generationdata = json_encode(array_merge($genData, $genDataUpdate));
         $content->timemodified = time();
         $DB->update_record('local_arina_prism_sense_content', $content);
-        mtrace("    Content {$content->id} marked as ready!");
+        $ts = date(self::TIME_FORMAT);
+        mtrace("    [{$ts}] Content {$content->id} marked as ready!");
 
         // Notify the user by email that their content is ready.
         try {

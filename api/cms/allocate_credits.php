@@ -50,16 +50,25 @@ try {
     $orgUuid = $client->getOrInitializeOrgWallet();
     $orgWalletId = $client->resolveWalletId($orgUuid);
 
-    // Resolve the org admin's Arina user_id — this is the owner_id stored on the
-    // org wallet by the IOMAD registration service, required as performed_by_user_id.
-    // (On the IOMAD-provisioned setup, $orgUuid from config is NOT the wallet owner_id.)
-    $adminProfile      = $client->getSubUserProfile((int) $USER->id);
-    $performedByUserId = $adminProfile['user_id'] ?? $orgUuid;
+    $performedByUserId = $orgUuid;
+    try {
+        $adminProfile = $client->getSubUserProfile((int) $USER->id);
+        if (!empty($adminProfile['user_id'])) {
+            $performedByUserId = $adminProfile['user_id'];
+        }
+    } catch (\local_arina_prism_sense\cms\CreditServiceException $e) {
+        // Fallback to orgUuid if admin is not found in Arina
+    }
 
-    // Register sub-user in Arina (idempotent) and resolve wallet_id.
-    // 200 = newly created (wallet_id in response); 409 = already exists (falls back to profile API).
-    $subUserProfile = $client->ensureSubUserRegistered($targetUserId);
-    $targetWalletId = $subUserProfile['wallet_id'];
+    // Try to fetch the target wallet ID using the Moodle User ID and Org UUID
+    $walletRes = $client->getSubUserWallet($targetUserId, $orgUuid);
+    if ($walletRes['status'] >= 200 && $walletRes['status'] < 300 && !empty($walletRes['data']['id'])) {
+        $targetWalletId = $walletRes['data']['id'];
+    } else {
+        // Wallet doesn't exist, register sub-user in Arina to provision the wallet
+        $subUserProfile = $client->ensureSubUserRegistered($targetUserId);
+        $targetWalletId = $subUserProfile['wallet_id'];
+    }
 
     // Determine direction and authorization
     if ($action === 'distribute') {
