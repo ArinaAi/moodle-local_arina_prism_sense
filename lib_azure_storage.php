@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Azure Blob Storage Helper Functions for Slide Images
  *
@@ -88,7 +89,7 @@ function local_arina_prism_sense_download_slides_from_azure($previewId, $contain
                 $images[] = [
                     'filename' => $filename,
                     'data' => $azureUrl, // Return URL instead of base64
-                    'slideNumber' => ++$slideNumber
+                    'slideNumber' => ++$slideNumber,
                 ];
             } else {
                 // No more slides found
@@ -154,7 +155,7 @@ function local_arina_prism_sense_upload_to_azure_blob(
             "x-ms-date: {$date}",
             "x-ms-version: 2021-08-06",
             "Content-Type: {$contentType}",
-            "Content-Length: {$contentLength}"
+            "Content-Length: {$contentLength}",
         ];
 
         $ch = curl_init($blobUrl);
@@ -218,7 +219,6 @@ function local_arina_prism_sense_check_azure_blob_exists($blobUrl)
 function local_arina_prism_sense_get_slide_versions()
 {
     try {
-
         // In a production environment, you would use Azure Storage SDK to list blobs
         // For now, this is a placeholder that would need Azure Blob List API
 
@@ -336,7 +336,7 @@ function local_arina_prism_sense_generate_blob_sas_token($accountName, $containe
         'sr' => $signedService,
         'sp' => $signedPermissions,
         'spr' => $signedProtocol,
-        'sig' => $signature
+        'sig' => $signature,
     ];
 
     // MUST use '&' separator, otherwise Azure fails to parse
@@ -377,10 +377,10 @@ function local_arina_prism_sense_execute_azure_blob_list_call($accountName, $acc
         CURLOPT_HTTPHEADER => [
             "x-ms-date: $date",
             "x-ms-version: 2020-04-08",
-            "Authorization: $authHeader"
+            "Authorization: $authHeader",
         ],
         CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_TIMEOUT => 10
+        CURLOPT_TIMEOUT => 10,
     ]);
 
     $response = curl_exec($ch);
@@ -518,5 +518,3 @@ function local_arina_prism_sense_get_azure_regen_count($courseid, $sectionid)
 
     return $regenCount;
 }
-
-

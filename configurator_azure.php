@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -42,7 +43,7 @@ function local_arina_prism_sense_load_env_file($envFile)
             if (strpos(trim($line), '#') === 0) {
                 continue;
             }
-            
+
             $parts = explode('=', $line, 2);
             if (count($parts) === 2) {
                 $name = trim($parts[0]);
@@ -81,7 +82,7 @@ function local_arina_prism_sense_init_azure_config()
     local_arina_prism_sense_define_from_env('AZURE_STORAGE_ACCOUNT_NAME');
     local_arina_prism_sense_define_from_env('AZURE_STORAGE_ACCOUNT_KEY');
     // ARINA_PRISM_SENSE_TENANT_ID is deprecated — org_id now comes from CompanyConfig (Arina auth service).
-    
+
     // PostgreSQL Database Constants
     local_arina_prism_sense_define_from_env('PG_HOST');
     local_arina_prism_sense_define_from_env('PG_PORT', '5432');

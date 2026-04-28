@@ -37,7 +37,7 @@ class Utils
                 $sections[] = [
                     'id' => $section->id,
                     'name' => format_string($section->name ?: "Section {$section->section}"),
-                    'section' => $section->section
+                    'section' => $section->section,
                 ];
             }
         }
@@ -381,7 +381,7 @@ class Utils
             $headers = [
                 "x-ms-date: {$date}",
                 "x-ms-version: {$version}",
-                "Authorization: {$authHeader}"
+                "Authorization: {$authHeader}",
             ];
 
             return self::performDownload($blobUrl, $outputPath, $headers);

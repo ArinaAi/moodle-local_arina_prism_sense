@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API endpoint to retry a failed PDF upload in its batch.
  *
@@ -114,7 +115,6 @@ try {
     error_log("ArinaPrismSense retry_source: source $sourceid reset to 'processing'");
 
     echo json_encode(['status' => 'success', 'processing_status' => 'processing']);
-
 } catch (Exception $e) {
     error_log('ArinaPrismSense retry_source exception: ' . $e->getMessage());
     http_response_code(500);

@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -24,10 +25,10 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version = 2026041301;
+$plugin->version = 2026042701;
 $plugin->requires = 2024100700;
 $plugin->component = 'local_arina_prism_sense';
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.6';
+$plugin->release = '1.7';
 $plugin->dependencies = [];
 $plugin->minphp = '8.1';

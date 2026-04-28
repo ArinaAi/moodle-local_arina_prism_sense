@@ -1,4 +1,5 @@
 <?php
+
 /**
  * CMS API: Get Staff Members
  *
@@ -10,7 +11,6 @@
 define('AJAX_SCRIPT', true);
 require_once(__DIR__ . '/../../../../config.php');
 require_once($CFG->libdir . '/moodlelib.php');
-require_once(__DIR__ . '/CreditServiceClient.php');
 
 // Require login; allow Site Admins and IOMAD Company Managers.
 // requireCmsAccess() also bootstraps CompanyConfig so getCompanyId() is ready.
@@ -153,12 +153,11 @@ try {
     }
 
     echo json_encode(['success' => true, 'data' => $staffData]);
-
 } catch (\Exception $e) {
     http_response_code(500);
     echo json_encode([
         'success' => false,
         'message' => 'Internal server error',
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
     ]);
 }

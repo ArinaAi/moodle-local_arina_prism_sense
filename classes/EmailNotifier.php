@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Email notification helper for local_arina_prism_sense
  *
@@ -206,9 +207,9 @@ class EmailNotifier
         // Replace process_name in the greeting paragraph too (it's in HTML too).
         $safeFile = htmlspecialchars($filename, ENT_QUOTES, 'UTF-8');
         $html = str_replace(
-            'Great news — your <strong style="color:#0f172a; font-weight:600;">'.
+            'Great news — your <strong style="color:#0f172a; font-weight:600;">' .
                 'PDF Processing</strong> has finished successfully.',
-            'Great news — your file <strong style="color:#0f172a; font-weight:600;">'.
+            'Great news — your file <strong style="color:#0f172a; font-weight:600;">' .
                 "{$safeFile}</strong> has been processed and is ready to use.",
             $html
         );
@@ -297,8 +298,7 @@ class EmailNotifier
         float $currentBalance,
         float $thresholdAmount,
         bool $isZero = false
-    ): void
-    {
+    ): void {
         global $CFG;
 
         if (!self::isValidEmail($user->email)) {
@@ -354,8 +354,7 @@ class EmailNotifier
         float $currentBalance,
         float $thresholdAmount,
         bool $isZero = false
-    ): void
-    {
+    ): void {
         global $CFG;
 
         if (!self::isValidEmail($admin->email)) {
@@ -413,8 +412,7 @@ class EmailNotifier
         float $currentBalance,
         float $thresholdAmount,
         bool $isZero = false
-    ): void
-    {
+    ): void {
         global $CFG;
 
         if (!self::isValidEmail($admin->email)) {

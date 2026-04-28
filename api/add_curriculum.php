@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API endpoint to create a "Curriculum" label (Text & Media area) in a section
  *
@@ -74,7 +75,6 @@ try {
         'message' => 'Curriculum added successfully.',
         'cmid'    => $addedMod->coursemodule,
     ]);
-
 } catch (Exception $e) {
     http_response_code(400);
     echo json_encode([

@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -20,7 +21,7 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * Exception thrown when Azure file download fails
  */
-class azure_download_exception extends \moodle_exception
+class azure_download_exception extends \moodle_exception // phpcs:ignore Squiz.Classes.ValidClassName.NotCamelCaps
 {
     /**
      * Constructor

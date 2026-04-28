@@ -44,7 +44,7 @@ try {
     if ($content_record->status === 'published') {
         echo json_encode([
             'success' => true,
-            'message' => 'Content is already published'
+            'message' => 'Content is already published',
         ]);
         exit;
     }
@@ -68,11 +68,11 @@ try {
 
     echo json_encode([
         'success' => true,
-        'message' => 'Content published successfully'
+        'message' => 'Content published successfully',
     ]);
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([
-        'error' => 'Failed to publish content: ' . $e->getMessage()
+        'error' => 'Failed to publish content: ' . $e->getMessage(),
     ]);
 }

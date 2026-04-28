@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Arina Credit Service API Client
  *
@@ -17,10 +18,13 @@ require_once(__DIR__ . '/../../config_api.php');
  * Exception thrown when a Credit Service API request fails.
  */
 class CreditServiceException extends \Exception
-{}
-
-class CreditServiceClient
 {
+}
+
+class CreditServiceClient // phpcs:ignore PSR1.Classes.ClassDeclaration.MultipleClasses
+{
+    use ProfileCacheTrait;
+
     private $apiKey;
     private $baseUrl;
 
@@ -39,10 +43,10 @@ class CreditServiceClient
     {
         $url = rtrim($this->baseUrl, '/') . '/' . ltrim($endpoint, '/');
         $ch = curl_init($url);
-        
+
         $headers = [
             'Content-Type: application/json',
-            'Accept: application/json'
+            'Accept: application/json',
         ];
         if (!empty($this->apiKey)) {
             $headers[] = 'X-Api-key: ' . $this->apiKey;
@@ -68,10 +72,10 @@ class CreditServiceClient
         $decodedData = json_decode($response, true);
         return [
             'status' => $httpCode,
-            'data'   => $decodedData
+            'data'   => $decodedData,
         ];
     }
-    
+
     // Check if Org Wallet exists in Moodle config and create it JIT if missing.
     // Returns the OWNER UUID (not wallet_id) - stored in per-company config (IOMAD)
     // or global config_plugins (standalone). CompanyConfig handles both cases.
@@ -94,7 +98,7 @@ class CreditServiceClient
         }
         return $uuid;
     }
-    
+
     /**
      * Register a Moodle user in Arina (idempotent). On first registration (HTTP 200)
      * the response body already contains wallet_id and user_id — returned directly.
@@ -256,104 +260,8 @@ class CreditServiceClient
     }
 
     // -----------------------------------------------------------------------
-    // Cookie-backed profile cache
+    // Cookie-backed profile cache — methods in ProfileCacheTrait.php
     // -----------------------------------------------------------------------
-
-    /**
-     * Returns true when running in an HTTP request context (as opposed to CLI/cron).
-     * Guards all cookie operations so scheduled tasks are never affected.
-     */
-    private function isWebContext(): bool
-    {
-        return !defined('CLI_SCRIPT') && php_sapi_name() !== 'cli';
-    }
-
-    /**
-     * Build a per-user, per-org cookie key that is opaque to the browser client.
-     * Including org_id prevents cross-tenant collisions on shared Moodle instances.
-     */
-    private function profileCookieKey(int $moodleUserId): string
-    {
-        $orgId = \local_arina_prism_sense\CompanyConfig::getOrgId() ?? 'default';
-        return 'arina_prof_' . hash('sha256', $moodleUserId . '_' . $orgId);
-    }
-
-    /**
-     * Attempt to read a cached Arina profile from a browser cookie.
-     * Returns the decoded profile array, or null when the cookie is absent,
-     * corrupt, or fails UUID format validation.
-     *
-     * @param int $moodleUserId
-     * @return array|null { user_id, wallet_id } or null
-     */
-    private function getProfileFromCookie(int $moodleUserId): ?array
-    {
-        $key = $this->profileCookieKey($moodleUserId);
-        if (empty($_COOKIE[$key])) {
-            return null;
-        }
-
-        $raw     = base64_decode($_COOKIE[$key], true);
-        $profile = ($raw !== false) ? json_decode($raw, true) : null;
-
-        if (!is_array($profile) || !$this->isValidCachedProfile($profile)) {
-            return null;
-        }
-
-        return $profile;
-    }
-
-    /**
-     * Validate that a decoded cookie profile has non-empty user_id and wallet_id
-     * both conforming to UUID v4 format (guards against tampered cookie values).
-     *
-     * @param array $profile Decoded profile array
-     * @return bool
-     */
-    private function isValidCachedProfile(array $profile): bool
-    {
-        if (empty($profile['user_id']) || empty($profile['wallet_id'])) {
-            return false;
-        }
-
-        // Basic UUID format check to reject tampered/garbage values.
-        $uuidPattern = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i';
-        return (bool) preg_match($uuidPattern, $profile['user_id'])
-            && (bool) preg_match($uuidPattern, $profile['wallet_id']);
-    }
-
-    /**
-     * Store an Arina profile in a browser cookie for 24 hours.
-     * Only the user_id and wallet_id are persisted (minimum required payload).
-     *
-     * Cookie attributes:
-     *   HttpOnly  — prevents JS/XSS access to wallet identifiers
-     *   SameSite=Strict — blocks CSRF-based cookie leakage
-     *   Secure    — HTTPS-only when the current request is over TLS
-     *   Path=/    — scoped to the whole Moodle instance
-     *
-     * @param int   $moodleUserId
-     * @param array $profile Must contain user_id and wallet_id.
-     */
-    private function setProfileCookie(int $moodleUserId, array $profile): void
-    {
-        $key     = $this->profileCookieKey($moodleUserId);
-        $payload = base64_encode(json_encode([
-            'user_id'   => $profile['user_id'],
-            'wallet_id' => $profile['wallet_id'],
-        ]));
-
-        $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-                 || (isset($_SERVER['SERVER_PORT']) && (int) $_SERVER['SERVER_PORT'] === 443);
-
-        setcookie($key, $payload, [
-            'expires'  => time() + 86400,   // 24 hours
-            'path'     => '/',
-            'secure'   => $isSecure,
-            'httponly' => true,
-            'samesite' => 'Strict',
-        ]);
-    }
 
     /**
      * Resolve the Arina profile for a Moodle user, using a browser cookie as a
@@ -423,7 +331,7 @@ class CreditServiceClient
     {
         $payload = [
             'owner_id' => $ownerId,
-            'type' => $type
+            'type' => $type,
         ];
         if ($parentWalletId) {
             $payload['parent_wallet_id'] = $parentWalletId;
@@ -433,7 +341,7 @@ class CreditServiceClient
         }
         return $this->makeRequest('POST', '/wallets', $payload);
     }
-    
+
     public function getBalance($ownerId)
     {
         return $this->makeRequest('GET', "/wallets/owner/{$ownerId}/balance");
@@ -468,7 +376,7 @@ class CreditServiceClient
     {
         $query = http_build_query([
             'limit' => $limit,
-            'skip' => $skip
+            'skip' => $skip,
         ], '', '&');
         return $this->makeRequest('GET', "/wallets/{$walletId}/transactions?{$query}");
     }
@@ -487,7 +395,7 @@ class CreditServiceClient
     {
         $query = http_build_query([
             'limit' => $limit,
-            'skip'  => $skip
+            'skip'  => $skip,
         ], '', '&');
         return $this->makeRequest('GET', "/wallets/{$orgWalletId}/child-transactions?{$query}");
     }
@@ -497,7 +405,7 @@ class CreditServiceClient
         $payload = [
             'source_wallet_id' => $sourceWalletId,
             'target_wallet_ids' => $targetWalletIds,
-            'amount_per_wallet' => $amountPerWallet
+            'amount_per_wallet' => $amountPerWallet,
         ];
         if ($performedByUserId) {
             $payload['performed_by_user_id'] = $performedByUserId;

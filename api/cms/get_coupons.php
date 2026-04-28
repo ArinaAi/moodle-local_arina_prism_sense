@@ -1,4 +1,5 @@
 <?php
+
 /**
  * CMS API: Get Coupons
  *
@@ -10,7 +11,6 @@
 define('AJAX_SCRIPT', true);
 require_once(__DIR__ . '/../../../../config.php');
 require_once($CFG->libdir . '/moodlelib.php');
-require_once __DIR__ . '/CreditServiceAcquisitionClient.php';
 
 // Require login; allow Site Admins and IOMAD Company Managers.
 require_login();
@@ -20,12 +20,12 @@ header('Content-Type: application/json');
 
 try {
     $client = new \local_arina_prism_sense\cms\CreditServiceAcquisitionClient();
-    
+
     $res = $client->getCoupons();
-    
+
     if ($res['status'] >= 200 && $res['status'] < 300) {
         $couponsData = is_array($res['data']) ? $res['data'] : [];
-        
+
         $coupons = [];
         foreach ($couponsData as $coupon) {
             $coupons[] = [
@@ -41,17 +41,17 @@ try {
                 'valid_until' => $coupon['valid_until'] ?? null,
             ];
         }
-        
+
         echo json_encode([
             'success' => true,
-            'data' => $coupons
+            'data' => $coupons,
         ]);
     } else {
         http_response_code($res['status'] ?: 500);
         echo json_encode([
             'success' => false,
             'message' => 'Failed to fetch coupons from Credit Service',
-            'details' => $res['data']
+            'details' => $res['data'],
         ]);
     }
 } catch (\Exception $e) {
@@ -59,6 +59,6 @@ try {
     echo json_encode([
         'success' => false,
         'message' => 'Internal server error',
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
     ]);
 }

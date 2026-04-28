@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Cleanup script - deletes all content from database
  *
@@ -25,13 +26,12 @@ try {
 
     echo json_encode([
         'success' => true,
-        'message' => 'All content cleared successfully'
+        'message' => 'All content cleared successfully',
     ]);
-
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
     ]);
 }

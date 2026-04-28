@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Arina Credit Service Acquisition Client
  *
@@ -10,8 +11,6 @@
 namespace local_arina_prism_sense\cms;
 
 defined('MOODLE_INTERNAL') || die();
-
-require_once __DIR__ . '/CreditServiceClient.php';
 
 class CreditServiceAcquisitionClient extends CreditServiceClient
 {
@@ -25,7 +24,7 @@ class CreditServiceAcquisitionClient extends CreditServiceClient
     {
         $payload = [
             'user_id' => $userId,
-            'package_id' => $packageId
+            'package_id' => $packageId,
         ];
         if ($couponCode) {
             $payload['coupon_code'] = $couponCode;
@@ -38,7 +37,7 @@ class CreditServiceAcquisitionClient extends CreditServiceClient
         $payload = [
             'acquisition_id' => $acquisitionId,
             'payment_id' => $paymentId,
-            'status' => $status
+            'status' => $status,
         ];
         return $this->makeRequest('POST', "/acquisitions/confirm", $payload);
     }

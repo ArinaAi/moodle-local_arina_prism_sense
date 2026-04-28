@@ -1,4 +1,5 @@
 <?php
+
 /**
  * View PDF file from Azure (Fallback for PPTX Viewer)
  *
@@ -37,13 +38,13 @@ $generationData = json_decode($content->generationdata, true);
 if (!empty($generationData['pdf_path']) && file_exists($generationData['pdf_path'])) {
     $localPath = $generationData['pdf_path'];
     $filesize = filesize($localPath);
-    
+
     // Output headers
     header('Content-Type: application/pdf');
     header('Content-Disposition: inline; filename="' . $blobName . '"');
     header('Content-Length: ' . $filesize);
     header('Cache-Control: public, max-age=3600');
-    
+
     // Output file
     readfile($localPath);
     exit;
@@ -98,7 +99,6 @@ try {
     header('Cache-Control: public, max-age=3600');
     echo $fileContent;
     exit;
-
 } catch (Exception $e) {
     http_response_code(500);
     die('Error retrieving file: ' . $e->getMessage());

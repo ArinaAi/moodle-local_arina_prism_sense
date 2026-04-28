@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API endpoint to check if a source PDF's backend batch has finished processing.
  *
@@ -146,7 +147,6 @@ try {
         );
         echo json_encode(['processed' => false, 'processing_status' => 'processing']);
     }
-
 } catch (Exception $e) {
     // Block deletion on unexpected exceptions — status is unknown.
     error_log('ArinaPrismSense check_source_status exception: ' . $e->getMessage());

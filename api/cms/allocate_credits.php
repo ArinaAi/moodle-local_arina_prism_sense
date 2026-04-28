@@ -1,4 +1,5 @@
 <?php
+
 /**
  * CMS API: Allocate Credits
  *
@@ -10,7 +11,6 @@
 define('AJAX_SCRIPT', true);
 require_once(__DIR__ . '/../../../../config.php');
 require_once($CFG->libdir . '/moodlelib.php');
-require_once(__DIR__ . '/CreditServiceClient.php');
 
 // Require login; allow Site Admins and IOMAD Company Managers.
 require_login();
@@ -71,7 +71,7 @@ try {
                 http_response_code(400);
                 echo json_encode([
                     'success' => false,
-                    'message' => "Insufficient organization balance!"
+                    'message' => "Insufficient organization balance!",
                 ]);
                 exit;
             }
@@ -89,7 +89,7 @@ try {
                 http_response_code(400);
                 echo json_encode([
                     'success' => false,
-                    'message' => "Insufficient balance!"
+                    'message' => "Insufficient balance!",
                 ]);
                 exit;
             }
@@ -165,7 +165,7 @@ try {
 
         echo json_encode([
             'success' => true,
-            'message' => $successMessage
+            'message' => $successMessage,
         ]);
     } else {
         $backendError = '';
@@ -212,7 +212,7 @@ try {
         http_response_code($response['status']);
         echo json_encode([
             'success' => false,
-            'message' => $errorMessage
+            'message' => $errorMessage,
         ]);
     }
 } catch (\Exception $e) {
@@ -220,6 +220,6 @@ try {
     echo json_encode([
         'success' => false,
         'message' => 'Internal server error',
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
     ]);
 }

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Get all content state from database for a course
  * Returns generating, ready, and published content
@@ -52,7 +53,7 @@ try {
                     'firstname' => $approverUser->firstname,
                     'lastname' => $approverUser->lastname,
                     'fullname' => fullname($approverUser),
-                    'email' => $approverUser->email
+                    'email' => $approverUser->email,
                 ];
             }
         }
@@ -63,7 +64,6 @@ try {
             file_exists($generationData['pptx_path']) &&
             empty($generationData['result'])
         ) {
-
             require_once(__DIR__ . '/generate_content.php');
             $slideCount = countSlidesInPptx($generationData['pptx_path']);
 
@@ -72,14 +72,14 @@ try {
                 $resultsData = [
                     [
                         'topic' => $content->title,
-                        'slideCount' => $slideCount
-                    ]
+                        'slideCount' => $slideCount,
+                    ],
                 ];
 
                 // Update the generation data
                 $generationData['result'] = [
                     'status' => 'success',
-                    'results' => $resultsData
+                    'results' => $resultsData,
                 ];
                 $generationData['slide_count'] = $slideCount;
 
@@ -89,7 +89,7 @@ try {
                     (object) [
                         'id' => $content->id,
                         'generationdata' => json_encode($generationData),
-                        'timemodified' => time()
+                        'timemodified' => time(),
                     ]
                 );
             }
@@ -100,7 +100,7 @@ try {
         // Check for student tracking status
         $tracking = $DB->get_record('local_arina_prism_sense_tracking', [
             'userid' => $USER->id,
-            'contentid' => $content->id
+            'contentid' => $content->id,
         ]);
         $isCompleted = $tracking ? (bool) $tracking->status : false;
 
@@ -125,19 +125,18 @@ try {
             'approver' => $approver,
             'video_length' => $generationData['video_length'] ?? null,
             'processing_status' => $generationData['processing_status'] ?? null,
-            'isCompleted' => $isCompleted
+            'isCompleted' => $isCompleted,
         ];
     }
 
     echo json_encode([
         'success' => true,
-        'contents' => $result
+        'contents' => $result,
     ]);
-
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
     ]);
 }

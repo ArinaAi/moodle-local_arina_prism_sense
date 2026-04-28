@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -32,8 +33,8 @@ $capabilities = [
         'archetypes' => [
             'manager' => CAP_ALLOW,
             'coursecreator' => CAP_ALLOW,
-            'teacher' => CAP_ALLOW
-        ]
+            'teacher' => CAP_ALLOW,
+        ],
     ],
 
     'local/arina_prism_sense:generatecontent' => [
@@ -43,8 +44,8 @@ $capabilities = [
             'manager' => CAP_ALLOW,
             'coursecreator' => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,
-            'teacher' => CAP_ALLOW
-        ]
-    ]
+            'teacher' => CAP_ALLOW,
+        ],
+    ],
 
 ];

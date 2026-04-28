@@ -1,4 +1,5 @@
 <?php
+
 /**
  * CMS API: Get Active Pricing Packages
  *
@@ -9,7 +10,6 @@
 
 define('AJAX_SCRIPT', true);
 require_once __DIR__ . '/../../../../config.php';
-require_once __DIR__ . '/CreditServiceAcquisitionClient.php';
 
 // Require login; allow Site Admins and IOMAD Company Managers.
 require_login();
@@ -79,7 +79,7 @@ try {
         echo json_encode([
             'success' => false,
             'message' => 'Failed to fetch packages from Credit Service',
-            'details' => $res['data']
+            'details' => $res['data'],
         ]);
     }
 } catch (\Exception $e) {
@@ -87,6 +87,6 @@ try {
     echo json_encode([
         'success' => false,
         'message' => 'Internal server error',
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
     ]);
 }

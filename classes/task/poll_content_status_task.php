@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -19,7 +20,6 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once(__DIR__ . '/../../config_api.php');
 require_once(__DIR__ . '/../../configurator_azure.php');
-require_once(__DIR__ . '/../../api/cms/CreditServiceClient.php');
 require_once(__DIR__ . '/../CompanyConfig.php');
 require_once(__DIR__ . '/../ErrorClassifier.php');
 require_once(__DIR__ . '/../EmailNotifier.php');
@@ -34,14 +34,14 @@ require_once(__DIR__ . '/../EmailNotifier.php');
  * @package    local_arina_prism_sense
  * @copyright  2025 Arina AI <info@arina.ai>
  */
-class poll_content_status_task extends \core\task\scheduled_task
+class poll_content_status_task extends \core\task\scheduled_task // phpcs:ignore Squiz.Classes.ValidClassName.NotCamelCaps
 {
     /**
      * Get a descriptive name for this task
      *
      * @return string
      */
-    public function get_name()
+    public function get_name() // phpcs:ignore PSR1.Methods.CamelCapsMethodName.NotCamelCaps
     {
         return get_string('task:poll_content_status', 'local_arina_prism_sense');
     }
@@ -163,7 +163,7 @@ class poll_content_status_task extends \core\task\scheduled_task
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
                 'Accept: application/json',
-                'X-API-key: ' . $apiKey
+                'X-API-key: ' . $apiKey,
             ],
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
@@ -185,7 +185,7 @@ class poll_content_status_task extends \core\task\scheduled_task
             foreach ($requestIds as $id) {
                 $result[$id] = [
                     'status' => 'error',
-                    'error' => 'API key is missing or incorrect. Please check your settings.'
+                    'error' => 'API key is missing or incorrect. Please check your settings.',
                 ];
             }
         } elseif ($httpCode !== 200) {
@@ -362,7 +362,6 @@ class poll_content_status_task extends \core\task\scheduled_task
         } catch (\Throwable $emailEx) {
             mtrace("    Email notification failed (non-fatal): " . $emailEx->getMessage());
         }
-
     }
 
     /**
@@ -407,9 +406,9 @@ class poll_content_status_task extends \core\task\scheduled_task
                         'topic' => "Section " . $sid,
                         'videoUrl' => "{$CFG->wwwroot}/local/arina_prism_sense/api/stream_video.php?" .
                             "contentid={$content->id}&courseid={$cid}",
-                        'videoDuration' => 0
-                    ]
-                ]
+                        'videoDuration' => 0,
+                    ],
+                ],
             ];
         } else {
             $slideCount = \local_arina_prism_sense\Utils::countSlidesInPptx($fpath);
@@ -422,9 +421,9 @@ class poll_content_status_task extends \core\task\scheduled_task
                     [
                         'topic' => "Section " . $sid,
                         'slideCount' => $slideCount,
-                        'pptxFile' => $localName
-                    ]
-                ]
+                        'pptxFile' => $localName,
+                    ],
+                ],
             ];
             mtrace("    Slide count: {$slideCount}");
         }
@@ -501,7 +500,7 @@ class poll_content_status_task extends \core\task\scheduled_task
             (object) [
                 'id' => $content->id,
                 'generationdata' => json_encode($generationData),
-                'timemodified' => time()
+                'timemodified' => time(),
             ]
         );
     }

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API: Get Teacher's Credit Balance
  *
@@ -14,7 +15,6 @@
 define('AJAX_SCRIPT', true);
 require_once(__DIR__ . '/../../../config.php');
 require_once($CFG->libdir . '/moodlelib.php');
-require_once(__DIR__ . '/cms/CreditServiceClient.php');
 
 require_login();
 \local_arina_prism_sense\CompanyConfig::bootstrap($USER->id);
@@ -43,7 +43,7 @@ try {
                 'current_balance'   => 0,
                 'reserved_credits'  => 0,
                 'has_wallet'        => false,
-            ]
+            ],
         ]);
         exit;
     }
@@ -64,7 +64,7 @@ try {
                 'reserved_credits' => isset($balanceData['reserved_credits']) ?
                     (float)$balanceData['reserved_credits'] : 0,
                 'has_wallet' => true,
-            ]
+            ],
         ]);
     } else {
         // Wallet UUID exists but credit service returned an error (e.g. wallet deleted externally)
@@ -72,7 +72,7 @@ try {
         echo json_encode([
             'success' => false,
             'message' => 'Failed to fetch balance from credit service',
-            'error' => $response['data']
+            'error' => $response['data'],
         ]);
     }
 } catch (\Exception $e) {
@@ -80,6 +80,6 @@ try {
     echo json_encode([
         'success' => false,
         'message' => 'Internal server error',
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
     ]);
 }

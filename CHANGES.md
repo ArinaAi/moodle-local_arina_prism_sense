@@ -1,5 +1,5 @@
 # CHANGES
 
-## 1.6 (2026-04-13)
+## 1.7 (2026-04-27)
 
 Initial public release.

@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -20,7 +21,7 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * Exception thrown when cURL initialization fails
  */
-class curl_init_exception extends \moodle_exception
+class curl_init_exception extends \moodle_exception // phpcs:ignore Squiz.Classes.ValidClassName.NotCamelCaps
 {
     /**
      * Constructor

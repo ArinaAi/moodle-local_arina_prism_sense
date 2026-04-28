@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -57,8 +58,12 @@ if ($hassiteconfig) {
     } else {
         // Check for missing required Moodle fields
         $_ams = [];
-        if (empty(trim($SITE->fullname  ?? ''))) { $_ams[] = 'Site full name'; }
-        if (empty(trim($SITE->shortname ?? ''))) { $_ams[] = 'Site short name'; }
+        if (empty(trim($SITE->fullname  ?? ''))) {
+            $_ams[] = 'Site full name';
+        }
+        if (empty(trim($SITE->shortname ?? ''))) {
+            $_ams[] = 'Site short name';
+        }
         $_siteCity    = trim(get_config('moodle', 'city') ?: ($USER->city ?? ''));
         $_siteCountry = trim(get_config('moodle', 'country') ?: ($USER->country ?? ''));
         if (empty($_siteCity)) {

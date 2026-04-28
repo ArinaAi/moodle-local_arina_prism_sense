@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Save user feedback for content regeneration via Arina Feedback Service
  *
@@ -177,7 +178,6 @@ try {
             'error' => "Feedback service returned HTTP {$httpCode}.",
         ]);
     }
-
 } catch (Exception $e) {
     error_log('ArinaPrismSense Content Feedback Error: ' . $e->getMessage());
     http_response_code(500);

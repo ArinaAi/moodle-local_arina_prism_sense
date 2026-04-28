@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Generate content proxy - Updated for new flow with database tracking
  *
@@ -41,7 +42,7 @@ if (empty($apiKey)) {
     http_response_code(401);
     echo json_encode([
         'status' => 'error',
-        'error' => 'API key is not configured. Please add your API key in the plugin settings.'
+        'error' => 'API key is not configured. Please add your API key in the plugin settings.',
     ]);
     exit;
 }
@@ -67,7 +68,7 @@ try {
         http_response_code(400);
         echo json_encode([
             'status' => 'error',
-            'error' => 'Invalid request data - no JSON received or malformed JSON'
+            'error' => 'Invalid request data - no JSON received or malformed JSON',
         ]);
         exit;
     }
@@ -77,7 +78,7 @@ try {
         http_response_code(400);
         echo json_encode([
             'status' => 'error',
-            'error' => 'Missing required field: section_id'
+            'error' => 'Missing required field: section_id',
         ]);
         exit;
     }
@@ -196,7 +197,7 @@ try {
     // Get source PDFs for this section
     $sources = $DB->get_records('local_arina_prism_sense_sources', [
         'courseid' => $courseid,
-        'sectionid' => $sectionid
+        'sectionid' => $sectionid,
     ]);
 
     if (empty($sources)) {
@@ -298,7 +299,7 @@ try {
             'content_type' => $contentType,
             'requested_at' => time(),
             'regen_count' => $regenCount,
-            'feedback' => $feedbackDetails
+            'feedback' => $feedbackDetails,
         ]);
         $content->createdby = $USER->id;
         $content->timecreated = time();
@@ -330,7 +331,7 @@ try {
         'content_type' => $contentType,
         'feedback' => $feedbackDetails,
         'parent_content_id' => $parentContentId,
-        'user_id' => $USER->id  // Pass Moodle user ID for UUID lookup in task
+        'user_id' => $USER->id,  // Pass Moodle user ID for UUID lookup in task
     ];
 
     if (defined('DEVELOPER_MODE') && DEVELOPER_MODE) {
@@ -341,7 +342,6 @@ try {
         // Bypassing Adhoc Queue to avoid Cron dependencies in local dev
         error_log("ArinaPrismSense: [DEV] Executing mock task synchronously for content $contentId");
         $task->execute();
-
     } else {
         $task = new \local_arina_prism_sense\task\generate_content_task();
         $task->set_custom_data($task_data);
@@ -358,14 +358,13 @@ try {
         'status' => 'success',
         'content_id' => $contentId,
         'message' => 'Generation queued successfully',
-        'is_queued' => true
+        'is_queued' => true,
     ]);
-
 } catch (Exception $e) {
     error_log('ArinaPrismSense: Exception caught: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode([
         'status' => 'error',
-        'error' => 'Server error: ' . $e->getMessage()
+        'error' => 'Server error: ' . $e->getMessage(),
     ]);
 }

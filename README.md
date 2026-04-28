@@ -59,19 +59,6 @@ PRISM Sense requires an Arina AI API key to generate content. To obtain one:
 
 ---
 
-## Azure Blob Storage (optional, for PDF source storage)
-
-By default, uploaded PDF sources are stored in Moodle's file system. To enable Azure Blob Storage:
-
-1. Set the following in your `config.php` or environment:
-   ```
-   AZURE_STORAGE_CONNECTION_STRING=<your_connection_string>
-   AZURE_STORAGE_CONTAINER=<your_container_name>
-   ```
-2. For IOMAD installs, the tenant ID is read from the company code set during company creation in IOMAD.
-
----
-
 ## Features
 
 - **AI content generation** — Converts PDFs into structured Moodle lectures via the Arina API.

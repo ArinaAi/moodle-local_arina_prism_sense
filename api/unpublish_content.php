@@ -61,11 +61,11 @@ try {
 
     echo json_encode([
         'success' => true,
-        'message' => 'Content unpublished successfully'
+        'message' => 'Content unpublished successfully',
     ]);
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([
-        'error' => 'Failed to unpublish content: ' . $e->getMessage()
+        'error' => 'Failed to unpublish content: ' . $e->getMessage(),
     ]);
 }

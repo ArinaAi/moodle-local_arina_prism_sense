@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Get TOC (Table of Contents) from Azure blob storage
  *
@@ -65,15 +66,14 @@ try {
 
     echo json_encode([
         'status' => 'success',
-        'toc' => $tocData
+        'toc' => $tocData,
     ]);
-
 } catch (Exception $e) {
     error_log('ArinaPrismSense get_toc error: ' . $e->getMessage());
     echo json_encode([
         'status' => 'error',
         'error' => $e->getMessage(),
-        'toc' => null
+        'toc' => null,
     ]);
 }
 

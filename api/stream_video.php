@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API endpoint to securely stream video from Azure
  * Redirects to a temporary SAS URL
@@ -21,25 +22,25 @@ try {
     // Get parameters
     $courseid = required_param('courseid', PARAM_INT);
     $contentid = required_param('contentid', PARAM_INT);
-    
+
     // Require login
     require_login($courseid);
     CompanyConfig::bootstrap($USER->id);
     // Any enrolled user can view content
-    
+
     // Get content record
     $content = $DB->get_record('local_arina_prism_sense_content', ['id' => $contentid], '*', MUST_EXIST);
-    
+
     if ($content->courseid != $courseid) {
         throw new moodle_exception('Content does not belong to this course');
     }
-    
+
     // Parse generation data to find video
     $genData = json_decode($content->generationdata, true);
-    
+
     $blobName = null;
     $containerName = null;
-    
+
     // Check new structure (Azure Folder)
     if (isset($genData['azure_blob_name'])) {
         $blobName = $genData['azure_blob_name'];
@@ -50,18 +51,18 @@ try {
         // If it's a local file in Moodle (tempdir), we might need send_file
         // But let's assume standard Azure flow for "Video" type content
     }
-    
+
     if (!$blobName) {
         throw new moodle_exception('Video file not found in content record');
     }
-    
+
     $apiKey = CompanyConfig::getApiKey();
     $orgId = CompanyConfig::getOrgId();
-    
+
     if (!$containerName) {
          $containerName = strtolower('Blob-Tutorial-Gen-' . $orgId);
     }
-    
+
     // Release session lock early — video streaming is long-running and
     // holding the session lock blocks ALL other Moodle requests for this user.
     \core\session\manager::write_close();
@@ -109,13 +110,16 @@ try {
     // Instantly redirect the browser to the secure Azure CDN URL
     header("Location: " . $responseData['url'], true, 302);
     exit;
-    
 } catch (Exception $e) {
     http_response_code(404);
     // DEBUG INFORMATION
     $debugInfo = "Error: " . $e->getMessage();
-    if (isset($containerName)) {$debugInfo .= " | Container: " . $containerName;}
-    if (isset($blobName)) {$debugInfo .= " | Blob: " . $blobName;}
-    
+    if (isset($containerName)) {
+        $debugInfo .= " | Container: " . $containerName;
+    }
+    if (isset($blobName)) {
+        $debugInfo .= " | Blob: " . $blobName;
+    }
+
     die($debugInfo);
 }

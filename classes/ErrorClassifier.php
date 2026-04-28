@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -36,7 +37,6 @@ namespace local_arina_prism_sense;
  */
 class ErrorClassifier
 {
-
     /** @var string[] Known sentinel codes that need no further classification. */
     private const KNOWN_SENTINELS = [
         'PDF_UPLOAD_FAILED',
@@ -60,15 +60,21 @@ class ErrorClassifier
         $lower = strtolower($raw);
         $sentinel = '';
 
-        if (str_contains($lower, 'upload') || str_contains($lower, 'pdf') ||
-            str_contains($lower, 'batch') || str_contains($lower, 'not processed')) {
+        if (
+            str_contains($lower, 'upload') || str_contains($lower, 'pdf') ||
+            str_contains($lower, 'batch') || str_contains($lower, 'not processed')
+        ) {
             $sentinel = 'PDF_UPLOAD_FAILED';
-        } elseif (str_contains($lower, 'credit') || str_contains($lower, 'insufficient') ||
+        } elseif (
+            str_contains($lower, 'credit') || str_contains($lower, 'insufficient') ||
             str_contains($lower, 'balance') || str_contains($lower, 'quota') ||
-            str_contains($lower, 'wallet') || str_contains($lower, 'limit exceeded')) {
+            str_contains($lower, 'wallet') || str_contains($lower, 'limit exceeded')
+        ) {
             $sentinel = 'INSUFFICIENT_CREDITS';
-        } elseif (str_contains($lower, 'curriculum') || str_contains($lower, 'mismatch') ||
-            str_contains($lower, 'content_type') || str_contains($lower, 'strategy')) {
+        } elseif (
+            str_contains($lower, 'curriculum') || str_contains($lower, 'mismatch') ||
+            str_contains($lower, 'content_type') || str_contains($lower, 'strategy')
+        ) {
             $sentinel = 'CURRICULUM_MISMATCH';
         } elseif (str_contains($lower, 'video')) {
             $sentinel = 'VIDEO_FAILED';

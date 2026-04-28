@@ -1,4 +1,5 @@
 <?php
+
 /**
  * CMS API: Purchase Credits (Mock/Stub for Razorpay)
  *
@@ -13,7 +14,6 @@
 define('AJAX_SCRIPT', true);
 require_once(__DIR__ . '/../../../../config.php');
 require_once($CFG->libdir . '/moodlelib.php');
-require_once __DIR__ . '/CreditServiceAcquisitionClient.php';
 
 // Require login and admin cap
 require_login();
@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 try {
     $input = json_decode(file_get_contents('php://input'), true);
-    
+
     // In a real scenario, the frontend should send the exact package_id.
     $packageId = isset($input['package_id']) ? $input['package_id'] : null;
     $couponCode = isset($input['coupon_code']) ? trim($input['coupon_code']) : null;
@@ -58,7 +58,7 @@ try {
             echo json_encode([
                 'success' => false,
                 'message' => 'Failed to create organization wallet',
-                'details' => $createRes['data']
+                'details' => $createRes['data'],
             ]);
             exit;
         }
@@ -70,11 +70,11 @@ try {
         echo json_encode([
             'success' => false,
             'message' => 'Could not resolve organization wallet',
-            'details' => $walletRes['data']
+            'details' => $walletRes['data'],
         ]);
         exit;
     }
-    
+
     // If no package_id provided from frontend, we must look up a valid package
     // If no package_id is provided, return an error.
     // We no longer create mock packages on the fly for production flow.
@@ -91,7 +91,7 @@ try {
         echo json_encode([
             'success' => false,
             'message' => 'Failed to create acquisition',
-            'details' => $acqRes['data']
+            'details' => $acqRes['data'],
         ]);
         exit;
     }
@@ -102,7 +102,7 @@ try {
         echo json_encode([
             'success' => false,
             'message' => 'Acquisition created but no ID was returned',
-            'details' => $acqRes['data']
+            'details' => $acqRes['data'],
         ]);
         exit;
     }
@@ -121,15 +121,14 @@ try {
             'currency' => $currency,
             'status' => $status,
             'package_id' => $packageId,
-            'wallet_id' => $walletId
-        ]
+            'wallet_id' => $walletId,
+        ],
     ]);
-
 } catch (\Exception $e) {
     http_response_code(500);
     echo json_encode([
         'success' => false,
         'message' => 'Internal server error',
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
     ]);
 }

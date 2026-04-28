@@ -18,7 +18,6 @@
 define('AJAX_SCRIPT', true);
 require_once __DIR__ . '/../../../../config.php';
 require_once $CFG->libdir . '/moodlelib.php';
-require_once __DIR__ . '/CreditServiceClient.php';
 require_once __DIR__ . '/get_wallet_helper.php';
 
 // Require login; allow Site Admins and IOMAD Company Managers.
@@ -296,7 +295,7 @@ try {
             echo json_encode([
                 'success' => false,
                 'message' => 'Failed to fetch ledger from Credit Service',
-                'details' => $res['data']
+                'details' => $res['data'],
             ]);
             exit;
         }
@@ -327,7 +326,7 @@ try {
             echo json_encode([
                 'success' => false,
                 'message' => 'Failed to fetch ledger from Credit Service',
-                'details' => $res['data']
+                'details' => $res['data'],
             ]);
             exit;
         }
@@ -397,13 +396,13 @@ try {
 
     echo json_encode([
         'success' => true,
-        'data'    => $ledger
+        'data'    => $ledger,
     ]);
 } catch (\Exception $e) {
     http_response_code(500);
     echo json_encode([
         'success' => false,
         'message' => 'Internal server error',
-        'error'   => $e->getMessage()
+        'error'   => $e->getMessage(),
     ]);
 }

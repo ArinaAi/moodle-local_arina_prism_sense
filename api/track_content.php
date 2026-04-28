@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Track content completion status
  *
@@ -16,26 +17,26 @@ try {
     // Get parameters
     $contentid = required_param('contentid', PARAM_INT);
     $status = required_param('status', PARAM_INT); // 1 = complete, 0 = incomplete
-    
+
     // Get content record to verify courseid
     $content = $DB->get_record('local_arina_prism_sense_content', ['id' => $contentid], '*', MUST_EXIST);
     $courseid = $content->courseid;
-    
+
     // Require login
     require_login($courseid);
-    
+
     // Release session lock
     \core\session\manager::write_close();
-    
+
     $userid = $USER->id;
     $now = time();
-    
+
     // Check if record exists
     $tracking = $DB->get_record('local_arina_prism_sense_tracking', [
         'userid' => $userid,
-        'contentid' => $contentid
+        'contentid' => $contentid,
     ]);
-    
+
     if ($tracking) {
         // Update existing record
         $tracking->status = $status;
@@ -49,20 +50,19 @@ try {
             'courseid' => $courseid,
             'status' => $status,
             'timecreated' => $now,
-            'timemodified' => $now
+            'timemodified' => $now,
         ];
         $DB->insert_record('local_arina_prism_sense_tracking', $new_tracking);
     }
-    
+
     echo json_encode([
         'success' => true,
-        'status' => $status
+        'status' => $status,
     ]);
-    
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
     ]);
 }

@@ -18,7 +18,6 @@ require_once $CFG->libdir . '/filelib.php';
 require_once __DIR__ . '/../lib_azure_storage.php';
 require_once __DIR__ . '/../classes/exception/curl_execution_exception.php';
 require_once __DIR__ . '/../classes/exception/api_http_exception.php';
-require_once __DIR__ . '/cms/CreditServiceClient.php';
 
 header('Content-Type: application/json');
 
@@ -41,7 +40,7 @@ try {
     // Check existing sources for this section (max 3)
     $existingcount = $DB->count_records('local_arina_prism_sense_sources', [
         'courseid' => $courseid,
-        'sectionid' => $sectionid
+        'sectionid' => $sectionid,
     ]);
 
     // Handle multiple file uploads
@@ -65,7 +64,7 @@ try {
                     'type' => $_FILES['pdf']['type'][$i],
                     'tmp_name' => $_FILES['pdf']['tmp_name'][$i],
                     'size' => $_FILES['pdf']['size'][$i],
-                    'error' => $_FILES['pdf']['error'][$i]
+                    'error' => $_FILES['pdf']['error'][$i],
                 ];
             }
         }
@@ -101,7 +100,7 @@ try {
             http_response_code(400);
             echo json_encode([
                 'status' => 'error',
-                'error' => 'Only PDF files are allowed'
+                'error' => 'Only PDF files are allowed',
             ]);
             exit;
         }
@@ -111,7 +110,7 @@ try {
             http_response_code(400);
             echo json_encode([
                 'status' => 'error',
-                'error' => 'File "' . $file['name'] . '" exceeds the 3MB size limit'
+                'error' => 'File "' . $file['name'] . '" exceeds the 3MB size limit',
             ]);
             exit;
         }
@@ -131,7 +130,7 @@ try {
                         $file['name'] .
                         '". This file appears to be corrupted
                      or is not a valid PDF document.
-                     Please select a genuine PDF file.'
+                     Please select a genuine PDF file.',
                 ]);
                 exit;
             }
@@ -139,7 +138,7 @@ try {
             http_response_code(500);
             echo json_encode([
                 'status' => 'error',
-                'error' => 'Unable to read file: ' . $file['name']
+                'error' => 'Unable to read file: ' . $file['name'],
             ]);
             exit;
         }
@@ -155,15 +154,15 @@ try {
         $itemid = time() . random_int(1000, 9999);
 
         // Prepare file record
-        $filerecord = array(
+        $filerecord = [
             'contextid' => $context->id,
             'component' => 'local_arina_prism_sense',
             'filearea' => 'sources',
             'itemid' => $itemid,
             'filepath' => '/',
             'filename' => clean_filename($file['name']),
-            'userid' => $USER->id
-        );
+            'userid' => $USER->id,
+        ];
 
         // Save file to Moodle file storage
         $storedfile = $fs->create_file_from_pathname($filerecord, $file['tmp_name']);
@@ -206,7 +205,7 @@ try {
             'record' => $record,
             'index' => $index,
             'title' => $record->title,
-            'author' => $record->author
+            'author' => $record->author,
         ];
     }
 
@@ -220,7 +219,6 @@ try {
     // and provisions their SUB_USER wallet if either is missing.
     $userUuid = null;
     try {
-        require_once __DIR__ . '/cms/CreditServiceClient.php';
         $creditClient = new \local_arina_prism_sense\cms\CreditServiceClient();
         $userProfile  = $creditClient->getSubUserProfileCached((int) $USER->id);
         $userUuid     = $userProfile['user_id'] ?? null;
@@ -272,7 +270,7 @@ try {
                     'course_id'       => $courseid,
                     'chapter_id'      => $sectionid,
                     'regen_count'     => $regenCount,
-                    'expected_uploads' => $expectedUploads
+                    'expected_uploads' => $expectedUploads,
                 ];
 
                 $startBatchUrl = API_START_BATCH_UPLOAD . '?' . http_build_query($startBatchParams, '', '&');
@@ -288,7 +286,7 @@ try {
                     CURLOPT_CONNECTTIMEOUT => 10,
                     CURLOPT_SSL_VERIFYPEER => false,
                     CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_HTTPHEADER     => ['X-API-key: ' . $apiKey]
+                    CURLOPT_HTTPHEADER     => ['X-API-key: ' . $apiKey],
                 ]);
 
                 $batchResponse = curl_exec($chBatch);
@@ -341,7 +339,7 @@ try {
                     'index' => $index,
                     'success' => false,
                     'error' => null,
-                    'db_id' => null
+                    'db_id' => null,
                 ];
 
                 try {
@@ -356,7 +354,7 @@ try {
                         'chapter_id' => $sectionid,
                         'regen_count' => $regenCount,
                         'author' => $author,
-                        'title' => $title
+                        'title' => $title,
                     ];
 
                     // Add user_id for credit tracking
@@ -387,8 +385,8 @@ try {
                         CURLOPT_FOLLOWLOCATION => true,
                         CURLOPT_POSTREDIR => 3,
                         CURLOPT_HTTPHEADER => [
-                            'X-API-key: ' . $apiKey
-                        ]
+                            'X-API-key: ' . $apiKey,
+                        ],
                     ]);
 
                     $backendResponse = curl_exec($ch);
@@ -463,7 +461,7 @@ try {
             http_response_code($isApiKeyError ? 401 : 500);
             echo json_encode([
                 'status' => 'error',
-                'error' => $isApiKeyError ? $errorMessage : 'Failed to create batch upload: ' . $errorMessage
+                'error' => $isApiKeyError ? $errorMessage : 'Failed to create batch upload: ' . $errorMessage,
             ]);
             exit;
         }
@@ -478,7 +476,7 @@ try {
                 'index' => $fileData['index'],
                 'success' => true,
                 'error' => null,
-                'db_id' => $dbId
+                'db_id' => $dbId,
             ];
         }
     }
@@ -499,13 +497,13 @@ try {
                 'sectionid' => $sectionid,
                 'processing_status' => $fileData['record']->processing_status,
                 'timecreated' => $fileData['record']->timecreated,
-                'fileitemid' => $fileData['record']->fileitemid
+                'fileitemid' => $fileData['record']->fileitemid,
             ];
         } else {
             $failedUploads[] = [
                 'filename' => $result['filename'],
                 'index' => $result['index'],
-                'error' => $result['error']
+                'error' => $result['error'],
             ];
         }
     }
@@ -516,7 +514,7 @@ try {
         'total_files' => count($storedFiles),
         'successful' => count($successfulUploads),
         'failed' => count($failedUploads),
-        'sources' => $successfulUploads
+        'sources' => $successfulUploads,
     ];
 
     if (!empty($failedUploads)) {
@@ -529,6 +527,6 @@ try {
     http_response_code(500);
     echo json_encode([
         'status' => 'error',
-        'error' => 'Fatal error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine()
+        'error' => 'Fatal error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(),
     ]);
 }

@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -957,4 +958,3 @@ function local_arina_prism_sense_extend_navigation(global_navigation $navigation
         $node->showinflatnavigation = true;
     }
 }
-

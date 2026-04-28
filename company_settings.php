@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -131,16 +132,18 @@ if ($saved) {
 }
 
 // ── Site Admin: company picker ────────────────────────────────────────────────
-if ($isSiteAdmin && !empty($allCompanies)): ?>
+if ($isSiteAdmin && !empty($allCompanies)) : ?>
 <form method="get" action="" style="margin-bottom:1.5rem;">
     <label for="companyid"><strong>Select Company:</strong></label>
     <select id="companyid" name="companyid" onchange="this.form.submit()" style="margin-left:0.5rem;">
         <option value="">— choose a company —</option>
-        <?php foreach ($allCompanies as $co): ?>
+        <?php foreach ($allCompanies as $co) : ?>
         <option value="<?php echo (int)$co->id; ?>"
             <?php echo ($co->id == $selectedCompanyId) ? 'selected' : ''; ?>>
             <?php echo s($co->name); ?>
-            <?php if ($co->code): ?>(<?php echo s($co->code); ?>)<?php endif; ?>
+            <?php if ($co->code) :
+                ?>(<?php echo s($co->code); ?>)<?php
+            endif; ?>
         </option>
         <?php endforeach; ?>
     </select>
@@ -149,16 +152,15 @@ if ($isSiteAdmin && !empty($allCompanies)): ?>
 <?php endif;
 
 // ── Config form ───────────────────────────────────────────────────────────────
-if ($selectedCompanyId && $selectedCompany): ?>
-
+if ($selectedCompanyId && $selectedCompany) : ?>
 <div style="max-width:600px;">
     <p>
         <strong>Company:</strong> <?php echo s($selectedCompany->name); ?><br>
         <strong>Arina Tenant ID (from IOMAD Company Code):</strong>
-        <?php if ($selectedCompany->code): ?>
+        <?php if ($selectedCompany->code) : ?>
             <code><?php echo s($selectedCompany->code); ?></code>
             <small style="color:#666;">— set in IOMAD Company Management → Edit → Code field</small>
-        <?php else: ?>
+        <?php else : ?>
             <span style="color:red;">⚠ Not set — edit the company in IOMAD and enter the Arina Tenant ID
                 in the <strong>Code</strong> field.</span>
         <?php endif; ?>
@@ -180,7 +182,7 @@ if ($selectedCompanyId && $selectedCompany): ?>
                    placeholder="sk-...">
         </div>
 
-        <?php if (!empty($existingConfig->org_wallet_owner_id)): ?>
+        <?php if (!empty($existingConfig->org_wallet_owner_id)) : ?>
         <div style="margin-bottom:1rem;">
             <label><strong>Org Wallet UUID</strong> <small>(auto-managed)</small></label><br>
             <code style="color:#666;font-size:0.85em;"><?php echo s($existingConfig->org_wallet_owner_id); ?></code>
@@ -191,7 +193,7 @@ if ($selectedCompanyId && $selectedCompany): ?>
     </form>
 </div>
 
-<?php elseif ($isSiteAdmin): ?>
+<?php elseif ($isSiteAdmin) : ?>
 <p class="text-muted">Select a company above to configure its settings.</p>
 <?php endif;
 

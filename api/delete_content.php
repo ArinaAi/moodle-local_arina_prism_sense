@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Delete generated content from database (preserves Azure files for restore)
  *
@@ -55,12 +56,11 @@ try {
             'azure_preserved' => true,
         ]);
     }
-
 } catch (Exception $e) {
     error_log('ArinaPrismSense delete_content error: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode([
         'status' => 'error',
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
     ]);
 }

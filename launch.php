@@ -25,8 +25,12 @@ require_once(__DIR__ . '/configurator_azure.php');
 $courseid = required_param('courseid', PARAM_INT);
 require_login($courseid);
 
+// Bootstrap per-company config FIRST so getApiKey() returns the correct per-company
+// value for IOMAD installs (falls back to global config on standalone Moodle).
+\local_arina_prism_sense\CompanyConfig::bootstrap($USER->id);
+
 // Validate API key before allowing access to the plugin
-$apiKey = get_config('local_arina_prism_sense', 'api_key');
+$apiKey = \local_arina_prism_sense\CompanyConfig::getApiKey();
 $validationFailed = false;
 $errorMessage = '';
 
@@ -98,10 +102,6 @@ if ($validationFailed) {
     exit;
 }
 
-// Bootstrap per-company config (resolves org_id, api_key, org_wallet_owner_id for IOMAD).
-// Must be called before prepareContext() so getOrgId() returns the correct value.
-\local_arina_prism_sense\CompanyConfig::bootstrap($USER->id);
-
 // Get course sections and context using Utils
 // Note: Utils::prepareContext includes sections and sesskey
 $context_json = \local_arina_prism_sense\Utils::prepareContext($COURSE, $CFG->wwwroot);
@@ -137,4 +137,4 @@ echo $OUTPUT->header();
 
 
 echo $OUTPUT->footer();
-?>
+

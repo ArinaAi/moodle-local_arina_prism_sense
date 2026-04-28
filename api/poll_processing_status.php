@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Polling endpoint — checks processing status for all 'processing' sources in a section.
  *
@@ -88,7 +89,6 @@ try {
     //          to every source that belongs to that batch.
     // -------------------------------------------------------------------------
     foreach ($batches as $batchId => $batchSources) {
-
         $checkUrl = API_CHECK_BATCH_STATUS . '?' . http_build_query(
             ['batch_id' => $batchId],
             '',
@@ -233,7 +233,6 @@ try {
     }
 
     echo json_encode(['success' => true, 'statuses' => $statuses]);
-
 } catch (Exception $e) {
     error_log('ArinaPrismSense poll_processing_status exception: ' . $e->getMessage());
     http_response_code(500);

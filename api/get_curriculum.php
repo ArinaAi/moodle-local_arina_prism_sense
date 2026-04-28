@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API endpoint to fetch curriculum from a section's Page activity
  *
@@ -69,13 +70,12 @@ try {
     // Return the curriculum (empty string if not found — frontend handles the message)
     echo json_encode([
         'status' => 'success',
-        'curriculum' => $curriculumContent
+        'curriculum' => $curriculumContent,
     ]);
-
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([
         'status' => 'error',
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
     ]);
 }

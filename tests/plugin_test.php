@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -30,13 +31,12 @@ defined('MOODLE_INTERNAL') || die();
  *
  * @covers \local_arina_prism_sense
  */
-class LocalArinaPrismSensePluginTest extends advanced_testcase
+class LocalArinaPrismSensePluginTest extends advanced_testcase // phpcs:ignore PSR1.Classes.ClassDeclaration
 {
-
     /**
      * Verify the plugin is installed and the component name is correct.
      */
-    public function test_plugin_installed(): void
+    public function test_plugin_installed(): void // phpcs:ignore PSR1.Methods.CamelCapsMethodName.NotCamelCaps
     {
         $pluginman = core_plugin_manager::instance();
         $info = $pluginman->get_plugin_info('local_arina_prism_sense');
@@ -47,7 +47,7 @@ class LocalArinaPrismSensePluginTest extends advanced_testcase
     /**
      * Verify the pluginname language string is defined.
      */
-    public function test_pluginname_string_defined(): void
+    public function test_pluginname_string_defined(): void // phpcs:ignore PSR1.Methods.CamelCapsMethodName.NotCamelCaps
     {
         $name = get_string('pluginname', 'local_arina_prism_sense');
         $this->assertNotEmpty($name);
@@ -57,7 +57,7 @@ class LocalArinaPrismSensePluginTest extends advanced_testcase
     /**
      * Verify defined capabilities exist after install.
      */
-    public function test_capabilities_defined(): void
+    public function test_capabilities_defined(): void // phpcs:ignore PSR1.Methods.CamelCapsMethodName.NotCamelCaps
     {
         $caps = [
             'local/arina_prism_sense:generatecontent',

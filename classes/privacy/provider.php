@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -44,15 +45,11 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * Privacy provider for local_arina_prism_sense.
  */
-// phpcs:ignore Generic.Classes.OpeningBraceSameLine -- intentional per Moodle PSR2 style; brace on next line.
-// phpcs:ignore moodle.NamingConventions.ValidFunctionName --
-// 'provider' is the exact class name required by Moodle's privacy API.
-class provider implements
+class provider implements // phpcs:ignore Squiz.Classes.ValidClassName.NotCamelCaps
     \core_privacy\local\metadata\provider,
     \core_privacy\local\request\plugin\provider,
     \core_privacy\local\request\core_userlist_provider
 {
-
     // -------------------------------------------------------------------------
     // Metadata
     // -------------------------------------------------------------------------
@@ -63,7 +60,7 @@ class provider implements
      * @param collection $collection The metadata collection to add to.
      * @return collection The populated collection.
      */
-    public static function get_metadata(collection $collection): collection
+    public static function get_metadata(collection $collection): collection // phpcs:ignore PSR1.Methods.CamelCapsMethodName.NotCamelCaps
     {
 
         // local_arina_prism_sense_content — stores which user created / approved / published content.
@@ -137,7 +134,7 @@ class provider implements
      * @param int $userid The user ID to search for.
      * @return contextlist The list of contexts with data for this user.
      */
-    public static function get_contexts_for_userid(int $userid): contextlist
+    public static function get_contexts_for_userid(int $userid): contextlist // phpcs:ignore PSR1.Methods.CamelCapsMethodName.NotCamelCaps
     {
         $contextlist = new contextlist();
 
@@ -184,7 +181,7 @@ class provider implements
      *
      * @param userlist $userlist The userlist to populate.
      */
-    public static function get_users_in_context(userlist $userlist): void
+    public static function get_users_in_context(userlist $userlist): void // phpcs:ignore PSR1.Methods.CamelCapsMethodName.NotCamelCaps
     {
         $context = $userlist->get_context();
 
@@ -233,7 +230,7 @@ class provider implements
      *
      * @param approved_contextlist $contextlist The approved list of contexts.
      */
-    public static function export_user_data(approved_contextlist $contextlist): void
+    public static function export_user_data(approved_contextlist $contextlist): void // phpcs:ignore PSR1.Methods.CamelCapsMethodName.NotCamelCaps
     {
         global $DB;
 
@@ -314,7 +311,7 @@ class provider implements
      *
      * @param \context $context The context to delete data for.
      */
-    public static function delete_data_for_all_users_in_context(\context $context): void
+    public static function delete_data_for_all_users_in_context(\context $context): void // phpcs:ignore PSR1.Methods.CamelCapsMethodName.NotCamelCaps
     {
         global $DB;
 
@@ -345,7 +342,7 @@ class provider implements
      *
      * @param approved_contextlist $contextlist The approved list of contexts.
      */
-    public static function delete_data_for_user(approved_contextlist $contextlist): void
+    public static function delete_data_for_user(approved_contextlist $contextlist): void // phpcs:ignore PSR1.Methods.CamelCapsMethodName.NotCamelCaps
     {
         global $DB;
 
@@ -403,7 +400,7 @@ class provider implements
      *
      * @param approved_userlist $userlist The approved list of users.
      */
-    public static function delete_data_for_users(approved_userlist $userlist): void
+    public static function delete_data_for_users(approved_userlist $userlist): void // phpcs:ignore PSR1.Methods.CamelCapsMethodName.NotCamelCaps
     {
         global $DB;
 

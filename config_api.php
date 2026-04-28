@@ -1,4 +1,5 @@
 <?php
+
 /**
  * PRISM Sense API Configuration
  *

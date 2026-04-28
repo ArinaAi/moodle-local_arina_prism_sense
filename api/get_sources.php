@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API endpoint to get all source PDFs for a course, grouped by section
  *
@@ -59,13 +60,13 @@ try {
                 'view_url' => $view_url->out(false),
                 'is_scanned' => isset($source->is_scanned) ? (int) $source->is_scanned : null,
                 'processing_status' => isset($source->processing_status) ? $source->processing_status : 'uploaded',
-                'timecreated' => $source->timecreated
+                'timecreated' => $source->timecreated,
             ];
         }
 
         echo json_encode([
             'success' => true,
-            'sources' => $result
+            'sources' => $result,
         ]);
     } else {
         // Return flat array with section info (for LeftColumn)
@@ -87,20 +88,19 @@ try {
                 'view_url' => $view_url->out(false),
                 'is_scanned' => isset($source->is_scanned) ? (int) $source->is_scanned : null,
                 'processing_status' => isset($source->processing_status) ? $source->processing_status : 'uploaded',
-                'timecreated' => $source->timecreated
+                'timecreated' => $source->timecreated,
             ];
         }
 
         echo json_encode([
             'success' => true,
-            'sources' => $result
+            'sources' => $result,
         ]);
     }
-
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
     ]);
 }

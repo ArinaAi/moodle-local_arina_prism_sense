@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Moodle-side proxy for BFF assets (slide images, etc.)
  *

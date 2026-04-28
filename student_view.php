@@ -55,5 +55,5 @@ echo $OUTPUT->header();
     'student'
 );
 echo $OUTPUT->footer();
-?>
+
 

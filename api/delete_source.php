@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API endpoint to delete a source PDF
  *
@@ -113,13 +114,12 @@ try {
 
     echo json_encode([
         'status' => 'success',
-        'message' => 'Source deleted successfully'
+        'message' => 'Source deleted successfully',
     ]);
-
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([
         'status' => 'error',
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
     ]);
 }

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Secure PDF viewer endpoint
  * Serves PDF files with permission checks
@@ -55,8 +56,7 @@ try {
     }
 
     // Serve the file inline (for preview in browser)
-    send_stored_file($file, 0, 0, false, array('filename' => $source->filename));
-
+    send_stored_file($file, 0, 0, false, ['filename' => $source->filename]);
 } catch (Exception $e) {
     // Log error
     debugging('Error viewing PDF: ' . $e->getMessage(), DEBUG_DEVELOPER);

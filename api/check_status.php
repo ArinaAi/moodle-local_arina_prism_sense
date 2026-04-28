@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Check generation status for content items
  *
@@ -44,7 +45,7 @@ try {
                     'firstname' => $approverUser->firstname,
                     'lastname' => $approverUser->lastname,
                     'fullname' => fullname($approverUser),
-                    'email' => $approverUser->email
+                    'email' => $approverUser->email,
                 ];
             }
         }
@@ -79,7 +80,7 @@ try {
             // Add video_length for re-use
             'video_length' => $generationData['video_length'] ?? null,
             // Needed by frontend to remove old card when regeneration completes
-            'parent_content_id' => $content->parent_content_id ?? null
+            'parent_content_id' => $content->parent_content_id ?? null,
         ];
     };
 
@@ -122,13 +123,12 @@ try {
 
     echo json_encode([
         'status' => 'success',
-        'contents' => $contentList
+        'contents' => $contentList,
     ]);
-
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([
         'status' => 'error',
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
     ]);
 }

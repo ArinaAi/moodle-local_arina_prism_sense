@@ -1,4 +1,5 @@
 <?php
+
 /**
  * CMS API: Get Organization-Wide Reserved Credits
  *
@@ -13,7 +14,6 @@
 define('AJAX_SCRIPT', true);
 require_once(__DIR__ . '/../../../../config.php');
 require_once($CFG->libdir . '/moodlelib.php');
-require_once(__DIR__ . '/CreditServiceClient.php');
 
 // Require login; allow Site Admins and IOMAD Company Managers.
 require_login();
@@ -23,16 +23,16 @@ header('Content-Type: application/json');
 
 try {
     $client = new \local_arina_prism_sense\cms\CreditServiceClient();
-    
+
     // Get org owner UUID (this is the external ID used by Credit Service)
     $orgUuid = $client->getOrInitializeOrgWallet();
-    
+
     // Fetch organization-wide reserved credits
     $response = $client->getOrgReservedCredits($orgUuid);
-    
+
     if ($response['status'] >= 200 && $response['status'] < 300) {
         $data = $response['data'];
-        
+
         // For the Overview dashboard, we only show total staff reserved
         // (children_reserved = sum of all sub-user wallet reserved credits)
         echo json_encode([
@@ -44,14 +44,14 @@ try {
                 'total_reserved' => isset($data['total_reserved'])
                     ? (float)$data['total_reserved']
                     : 0,
-            ]
+            ],
         ]);
     } else {
         http_response_code($response['status']);
         echo json_encode([
             'success' => false,
             'message' => 'Failed to fetch reserved credits from Arina Credit Service',
-            'error' => $response['data']
+            'error' => $response['data'],
         ]);
     }
 } catch (\Exception $e) {
@@ -59,6 +59,6 @@ try {
     echo json_encode([
         'success' => false,
         'message' => 'Internal server error',
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
     ]);
 }

@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -20,7 +21,7 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * Exception thrown when a section is not found
  */
-class section_not_found_exception extends \moodle_exception
+class section_not_found_exception extends \moodle_exception // phpcs:ignore Squiz.Classes.ValidClassName.NotCamelCaps
 {
     /**
      * Constructor

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Download/view PPTX file from Azure
  *
@@ -37,13 +38,13 @@ $generationData = json_decode($content->generationdata, true);
 if (!empty($generationData['pptx_path']) && file_exists($generationData['pptx_path'])) {
     $localPath = $generationData['pptx_path'];
     $filesize = filesize($localPath);
-    
+
     // Output headers
     header('Content-Type: application/vnd.openxmlformats-officedocument.presentationml.presentation');
     header('Content-Disposition: attachment; filename="' . $blobName . '"');
     header('Content-Length: ' . $filesize);
     header('Cache-Control: public, max-age=3600');
-    
+
     // Output file
     readfile($localPath);
     exit;
@@ -52,24 +53,24 @@ if (!empty($generationData['pptx_path']) && file_exists($generationData['pptx_pa
 try {
     $blobPath = $generationData['azure_blob_name'] ?? $blobName;
     $containerName = $generationData['azure_container'] ?? AZURE_BLOB_CONTAINER_NAME;
-    
+
     // Construct Proxy URL
     $proxyUrl = API_DOWNLOAD_ASSET .
     '?blob_path=' . urlencode($blobPath) .
     '&container=' . urlencode($containerName);
-    
+
     // Get the API key
     $apiKey = CompanyConfig::getApiKey();
     if (empty($apiKey)) {
         throw new moodle_exception('API key is not configured in settings.');
     }
-    
+
     // Download the blob securely via the BFF proxy
     $ch = curl_init($proxyUrl);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_HTTPHEADER => [
-            "X-Api-key: {$apiKey}"
+            "X-Api-key: {$apiKey}",
         ],
         CURLOPT_TIMEOUT => 300,
         CURLOPT_CONNECTTIMEOUT => 30,
@@ -77,14 +78,14 @@ try {
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_SSL_VERIFYHOST => 0,
     ]);
-    
+
     $fileContent = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    
+
     if (curl_errno($ch)) {
         throw new moodle_exception('error', 'moodle', '', 'cURL error connecting to BFF: ' . curl_error($ch));
     }
-    
+
     curl_close($ch);
 
     if ($httpCode !== 200) {
@@ -99,10 +100,9 @@ try {
     header('Content-Disposition: attachment; filename="' . $blobName . '"');
     header('Content-Length: ' . strlen($fileContent));
     header('Cache-Control: public, max-age=3600');
-    
+
     echo $fileContent;
     exit;
-
 } catch (Exception $e) {
     http_response_code(500);
     die('Error retrieving file via proxy: ' . $e->getMessage());

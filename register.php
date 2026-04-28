@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -536,9 +537,15 @@ function arinaEmitPollResponse(int $httpCode, array $data): void
     if ($status === 'complete') {
         $orgId  = $data['org_id']  ?? null;
         $apiKey = $data['api_key'] ?? null;
-        if ($orgId) { set_config('org_id', $orgId, 'local_arina_prism_sense'); }
-        if ($apiKey) { set_config('api_key', $apiKey, 'local_arina_prism_sense'); }
-        if ($orgId) { set_config('org_wallet_owner_id', $orgId, 'local_arina_prism_sense'); }
+        if ($orgId) {
+            set_config('org_id', $orgId, 'local_arina_prism_sense');
+        }
+        if ($apiKey) {
+            set_config('api_key', $apiKey, 'local_arina_prism_sense');
+        }
+        if ($orgId) {
+            set_config('org_wallet_owner_id', $orgId, 'local_arina_prism_sense');
+        }
         echo json_encode(['success' => true, 'status' => 'complete']);
         return;
     }

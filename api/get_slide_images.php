@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Get slide images from PPTX file
  *
@@ -42,41 +43,40 @@ try {
 
 // Verify user has access to this course
     $course = get_course($content->courseid);
-    
+
     // Use can_access_course for robust permission check (handles role switching better)
     if (!can_access_course($course)) {
         throw new moodle_exception('noaccess', 'moodle', '', null, 'You do not have permission to view this content.');
     }
-    
+
     // Release session lock to prevent blocking during long image extraction/upload
     \core\session\manager::write_close();
 
     // Get the generation data
     $generationData = json_decode($content->generationdata, true);
-    
+
     // Extract images from Azure
     $images = local_arina_prism_sense_extractImagesFromPptx('', $contentid);
-    
+
     echo json_encode([
         'status' => 'success',
         'images' => $images,
-        'slideCount' => count($images)
+        'slideCount' => count($images),
     ]);
-
 } catch (Exception $e) {
     error_log('ArinaPrismSense get_slide_images error: ' . $e->getMessage());
-    
+
     $errorMessage = $e->getMessage();
     if (strpos($errorMessage, 'API key is missing or incorrect') !== false) {
         http_response_code(401);
     } else {
         http_response_code(500);
     }
-    
+
     echo json_encode([
         'status' => 'error',
         'error' => $errorMessage,
-        'images' => []
+        'images' => [],
     ]);
 }
 
@@ -240,7 +240,7 @@ function local_arina_prism_sense_generateAzureImageUrls($azureFolderId, $contain
             $images[] = [
                 'filename'    => $filename,
                 'data'        => $sasUrl,
-                'slideNumber' => (int)$matches[1] + 1 // Frontend expects 1-based index (1-indexed rendering)
+                'slideNumber' => (int)$matches[1] + 1, // Frontend expects 1-based index (1-indexed rendering)
             ];
         }
     }
@@ -309,7 +309,7 @@ function local_arina_prism_sense_processZipArchive($zip)
                 $extractedImages[] = [
                     'filename' => basename($filename),
                     'data' => 'data:' . $mimeType . ';base64,' . base64_encode($imageData),
-                    'slideNumber' => (int)$matches[1]
+                    'slideNumber' => (int)$matches[1],
                 ];
             }
         }
