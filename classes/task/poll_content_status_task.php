@@ -20,6 +20,7 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once(__DIR__ . '/../../config_api.php');
 require_once(__DIR__ . '/../../configurator_azure.php');
+
 require_once(__DIR__ . '/../CompanyConfig.php');
 require_once(__DIR__ . '/../ErrorClassifier.php');
 require_once(__DIR__ . '/../EmailNotifier.php');
@@ -56,10 +57,44 @@ class poll_content_status_task extends \core\task\scheduled_task // phpcs:ignore
      */
     public function execute()
     {
-        global $DB;
+        $start = time();
+        
+        // Retrieve settings, fallback to defaults if not set, invalid, or 0
+        $timeoutStr = get_config('local_arina_prism_sense', 'poll_timeout');
+        $timeout = (is_numeric($timeoutStr) && (int)$timeoutStr > 0) ? (int)$timeoutStr : 50;
+
+        $intervalStr = get_config('local_arina_prism_sense', 'poll_interval');
+        $interval = (is_numeric($intervalStr) && (int)$intervalStr > 0) ? (int)$intervalStr : 20;
 
         $ts = date(self::TIME_FORMAT);
-        mtrace("[{$ts}] Starting poll_content_status_task...");
+        mtrace("[{$ts}] Starting poll_content_status_task (Timeout: {$timeout}s, Interval: {$interval}s)...");
+        
+        while ((time() - $start) < $timeout) {
+            $hasPending = $this->runSinglePollCycle();
+            
+            if (!$hasPending) {
+                mtrace("No more pending content. Exiting loop early.");
+                return;
+            }
+            
+            $elapsed = time() - $start;
+            if ($elapsed < $timeout) {
+                $sleepTime = min($interval, $timeout - $elapsed);
+                mtrace("Sleeping for {$sleepTime} seconds before next check...");
+                sleep($sleepTime);
+            }
+        }
+        
+        mtrace("Reached {$timeout}-second limit. Remaining items will be checked on next cron run.");
+    }
+
+    /**
+     * Run a single poll cycle to check backend for pending content.
+     * Returns true if there were pending items, false if empty.
+     */
+    private function runSinglePollCycle(): bool
+    {
+        global $DB;
 
         // Find all content items that are still generating and have a request_id
         $pendingContent = $DB->get_records_select(
@@ -71,7 +106,7 @@ class poll_content_status_task extends \core\task\scheduled_task // phpcs:ignore
 
         if (empty($pendingContent)) {
             mtrace("No pending content to check.");
-            return;
+            return false;
         }
 
         $count = count($pendingContent);
@@ -101,12 +136,16 @@ class poll_content_status_task extends \core\task\scheduled_task // phpcs:ignore
         $ts = date(self::TIME_FORMAT);
         mtrace("[{$ts}] Calling batch status endpoint with " . count($requestIds) .
             " request_id(s)...");
+            
+        $apiStartTime = microtime(true);
         $batchResponse = $this->checkBatchBackendStatus($requestIds, $apiKey);
+        $apiTime = round(microtime(true) - $apiStartTime, 3);
+        mtrace("    [Timing] Backend batch API call took {$apiTime} seconds.");
 
         if ($batchResponse === null) {
             mtrace("[{$ts}] Batch status call failed or returned no response. " .
                 "Will retry on next run.");
-            return;
+            return true;
         }
 
         // Process each item using its status from the batch response.
@@ -135,7 +174,9 @@ class poll_content_status_task extends \core\task\scheduled_task // phpcs:ignore
         }
 
         $ts = date(self::TIME_FORMAT);
-        mtrace("[{$ts}] poll_content_status_task completed.");
+        mtrace("[{$ts}] poll_content_status_task single cycle completed.");
+        
+        return true;
     }
 
     /**
@@ -316,12 +357,16 @@ class poll_content_status_task extends \core\task\scheduled_task // phpcs:ignore
 
         $apiKey = \local_arina_prism_sense\CompanyConfig::getApiKey()
             ?? get_config('local_arina_prism_sense', 'api_key');
+            
+        $downloadStartTime = microtime(true);
         $success = \local_arina_prism_sense\Utils::downloadFileViaAuthService(
             $blobName,
             $filepath,
             $containerName,
             $apiKey
         );
+        $downloadTime = round(microtime(true) - $downloadStartTime, 3);
+        mtrace("    [Timing] Azure file download took {$downloadTime} seconds.");
 
         if (!$success || !file_exists($filepath) || filesize($filepath) === 0) {
             throw new \local_arina_prism_sense\exception\azure_download_exception(
@@ -442,7 +487,12 @@ class poll_content_status_task extends \core\task\scheduled_task // phpcs:ignore
         $content->status = 'ready';
         $content->generationdata = json_encode(array_merge($genData, $genDataUpdate));
         $content->timemodified = time();
+        
+        $dbUpdateStartTime = microtime(true);
         $DB->update_record('local_arina_prism_sense_content', $content);
+        $dbTime = round(microtime(true) - $dbUpdateStartTime, 3);
+        mtrace("    [Timing] DB record update took {$dbTime} seconds.");
+        
         $ts = date(self::TIME_FORMAT);
         mtrace("    [{$ts}] Content {$content->id} marked as ready!");
 
@@ -567,6 +617,7 @@ class poll_content_status_task extends \core\task\scheduled_task // phpcs:ignore
         // --- 2. Slow path: resolve via Arina (registers + provisions wallet if needed) ---
         if (empty($uuid)) {
             try {
+                require_once(__DIR__ . '/../../api/cms/CreditServiceClient.php');
                 $resolveClient = new \local_arina_prism_sense\cms\CreditServiceClient();
                 $profile       = $resolveClient->ensureSubUserRegistered($userid);
                 $uuid          = $profile['user_id'] ?? null;

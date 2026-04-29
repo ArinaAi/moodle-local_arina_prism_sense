@@ -57,6 +57,16 @@ $string['settings:register_desc'] = 'Don\'t have an Org ID or API Key? ' .
     'account via the Auth Service and automatically configure your Moodle plugin.';
 $string['settings:iomad_heading'] = 'IOMAD Multi-Tenant Configuration';
 $string['settings:iomad_link'] = '⚙ Configure Per-Company API Keys';
+$string['settings:advanced_heading'] = 'Advanced Settings';
+$string['settings:poll_interval'] = 'Polling Interval (seconds)';
+$string['settings:poll_interval_desc'] = 'How often the background task checks for content status.' .
+    ' Default is 20 seconds.';
+$string['settings:poll_timeout'] = 'Polling Task Timeout (seconds)';
+$string['settings:poll_timeout_desc'] = 'Maximum time the polling task is allowed to run as per cron setup' .
+    ' before shutting down. Default is 50 seconds.';
+$string['error_timeout_exceeded'] = 'Timeout must not exceed 59 seconds to prevent blocking the cron process.';
+$string['error_interval_invalid'] = 'Interval must be between 5 and 50 seconds to ensure effective polling.';
+
 
 // ── Privacy API ───────────────────────────────────────────────────────────────
 

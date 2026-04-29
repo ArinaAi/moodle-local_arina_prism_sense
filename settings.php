@@ -340,6 +340,29 @@ JSCRIPT;
         ));
     }
 
+    // ── Advanced Settings ─────────────────────────────────────────────────────
+    $settings->add(new admin_setting_heading(
+        'local_arina_prism_sense/advanced_settings_heading',
+        get_string('settings:advanced_heading', 'local_arina_prism_sense'),
+        ''
+    ));
+
+    $settings->add(new admin_setting_configtext(
+        'local_arina_prism_sense/poll_interval',
+        get_string('settings:poll_interval', 'local_arina_prism_sense'),
+        get_string('settings:poll_interval_desc', 'local_arina_prism_sense'),
+        20,
+        PARAM_INT
+    ));
+
+    $settings->add(new admin_setting_configtext(
+        'local_arina_prism_sense/poll_timeout',
+        get_string('settings:poll_timeout', 'local_arina_prism_sense'),
+        get_string('settings:poll_timeout_desc', 'local_arina_prism_sense'),
+        50,
+        PARAM_INT
+    ));
+
     $ADMIN->add('localplugins', $settings);
 
     // Register the registration page so admin_externalpage_setup() resolves correctly.
