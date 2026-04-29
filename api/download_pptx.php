@@ -54,54 +54,53 @@ try {
     $blobPath = $generationData['azure_blob_name'] ?? $blobName;
     $containerName = $generationData['azure_container'] ?? AZURE_BLOB_CONTAINER_NAME;
 
-    // Construct Proxy URL
-    $proxyUrl = API_DOWNLOAD_ASSET .
-    '?blob_path=' . urlencode($blobPath) .
-    '&container=' . urlencode($containerName);
-
     // Get the API key
     $apiKey = CompanyConfig::getApiKey();
     if (empty($apiKey)) {
         throw new moodle_exception('API key is not configured in settings.');
     }
 
-    // Download the blob securely via the BFF proxy
-    $ch = curl_init($proxyUrl);
+    // Step 1: Call Auth Service to get a short-lived SAS URL for the blob.
+    // This is the same two-step pattern used by stream_video.php, get_toc.php,
+    // get_slide_images.php, and Utils::downloadFileViaAuthService.
+    // The raw gateway (API_DOWNLOAD_ASSET) requires Azure identity credentials —
+    // going through AUTH_SERVICE_URL avoids that requirement entirely.
+    $authUrl = AUTH_SERVICE_URL
+        . '?container=' . urlencode($containerName)
+        . '&blob_path=' . urlencode($blobPath);
+
+    $ch = curl_init($authUrl);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER => [
-            "X-Api-key: {$apiKey}",
-        ],
-        CURLOPT_TIMEOUT => 300,
-        CURLOPT_CONNECTTIMEOUT => 30,
-        // Disable SSL verification for local testing on 127.0.0.1
+        CURLOPT_HTTPHEADER     => ["X-API-Key: {$apiKey}"],
+        CURLOPT_TIMEOUT        => 15,
+        CURLOPT_CONNECTTIMEOUT => 10,
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_SSL_VERIFYHOST => 0,
     ]);
 
-    $fileContent = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-    if (curl_errno($ch)) {
-        throw new moodle_exception('error', 'moodle', '', 'cURL error connecting to BFF: ' . curl_error($ch));
-    }
-
+    $authResponse = curl_exec($ch);
+    $httpCode     = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlErr      = curl_error($ch);
     curl_close($ch);
 
-    if ($httpCode !== 200) {
-        http_response_code($httpCode);
-        $errorResponse = json_decode($fileContent, true);
-        $errorMsg = $errorResponse['detail'] ?? "File not found or access denied (HTTP $httpCode)";
-        die("Download proxy failed: " . $errorMsg);
+    if ($httpCode !== 200 || empty($authResponse)) {
+        $errorData = json_decode($authResponse, true);
+        $errorMsg  = $errorData['detail'] ?? "Auth Service returned HTTP {$httpCode}. Error: {$curlErr}";
+        http_response_code($httpCode ?: 502);
+        die("Download proxy failed: {$errorMsg}");
     }
 
-    // Output headers
-    header('Content-Type: application/vnd.openxmlformats-officedocument.presentationml.presentation');
-    header('Content-Disposition: attachment; filename="' . $blobName . '"');
-    header('Content-Length: ' . strlen($fileContent));
-    header('Cache-Control: public, max-age=3600');
+    $authData = json_decode($authResponse, true);
+    if (!isset($authData['url'])) {
+        http_response_code(502);
+        die('Download proxy failed: Auth Service response did not contain a SAS URL.');
+    }
 
-    echo $fileContent;
+    // Step 2: Redirect the browser directly to the secure Azure SAS URL.
+    // Azure will serve the file and handle Content-Disposition automatically.
+    // Using a redirect avoids buffering the entire file in PHP memory.
+    header("Location: " . $authData['url'], true, 302);
     exit;
 } catch (Exception $e) {
     http_response_code(500);
