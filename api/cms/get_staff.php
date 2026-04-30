@@ -71,12 +71,16 @@ try {
         $sql = "SELECT DISTINCT u.id, u.firstname, u.lastname, u.email, u.department
                 FROM {user} u
                 JOIN {company_users} cu ON cu.userid = u.id
-                JOIN {role_assignments} ra ON ra.userid = u.id
-                JOIN {role} r ON r.id = ra.roleid
+                LEFT JOIN {role_assignments} ra ON ra.userid = u.id
+                LEFT JOIN {role} r ON r.id = ra.roleid
                 WHERE u.deleted = 0
                   AND u.suspended = 0
                   AND cu.companyid = :companyid
-                  AND r.shortname IN ('editingteacher', 'teacher')";
+                  AND (r.shortname IN (
+                      'manager', 'coursecreator', 'editingteacher', 'teacher',
+                      'companymanager', 'companycourseeditor', 'clientadministrator', 'companydepartmentmanager'
+                  )
+                       OR cu.managertype = 1)";
 
         $teachers = $DB->get_records_sql($sql, ['companyid' => $scopedCompanyId]);
         // adminUsers stays empty — company managers don't see site admins.
@@ -93,12 +97,21 @@ try {
             $excludeClause = "AND u.id {$inSql}";
         }
 
+        $iomadInstalled = \local_arina_prism_sense\CompanyConfig::isIomadInstalled();
+        $joinCompanyUsers = $iomadInstalled ? "LEFT JOIN {company_users} cu ON cu.userid = u.id" : "";
+        $orCompanyManager = $iomadInstalled ? "OR cu.managertype = 1" : "";
+
         $sql = "SELECT DISTINCT u.id, u.firstname, u.lastname, u.email, u.department
                 FROM {user} u
-                JOIN {role_assignments} ra ON ra.userid = u.id
-                JOIN {role} r ON r.id = ra.roleid
+                LEFT JOIN {role_assignments} ra ON ra.userid = u.id
+                LEFT JOIN {role} r ON r.id = ra.roleid
+                {$joinCompanyUsers}
                 WHERE u.deleted = 0 AND u.suspended = 0
-                  AND r.shortname IN ('editingteacher', 'teacher')
+                  AND (r.shortname IN (
+                      'manager', 'coursecreator', 'editingteacher', 'teacher',
+                      'companymanager', 'companycourseeditor', 'clientadministrator', 'companydepartmentmanager'
+                  )
+                       {$orCompanyManager})
                   {$excludeClause}";
 
         $teachers = $DB->get_records_sql($sql, $params);
