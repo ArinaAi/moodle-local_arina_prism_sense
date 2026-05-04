@@ -57,6 +57,7 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
   // Find current content item to check approval status
   const currentContentItem = contentItems.find(item => item.id === currentContentId);
   const isApproved = currentContentItem?.approved || slidesApproved;
+  const isCurrentlyRegenerating = contentItems.some(item => item.parent_content_id && Number(item.parent_content_id) === Number(currentContentId) && item.status === 'generating');
 
   const handleDownloadSlides = () => {
     if (!currentContentId) {
@@ -153,6 +154,7 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
             onDownload={handleDownloadSlides}
             currentContentItem={currentContentItem}
             isMobile={isMobile}
+            isRegenerating={isCurrentlyRegenerating}
           />
         </Box>
       );
@@ -175,6 +177,7 @@ const CenterColumn: React.FC<CenterColumnProps> = ({
           onDownload={handleDownloadSlides}
           currentContentItem={currentContentItem}
           isMobile={isMobile}
+          isRegenerating={isCurrentlyRegenerating}
         />
       </Box>
     );

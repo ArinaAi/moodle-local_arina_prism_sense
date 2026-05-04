@@ -11,6 +11,7 @@ interface PreviewActionsProps {
     onDownload: () => void;
     currentContentItem?: ContentItem;
     isMobile?: boolean;
+    isRegenerating?: boolean;
 }
 
 // Helper to get responsive styles - now using fluid clamp() values
@@ -99,6 +100,7 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
     onDownload,
     currentContentItem,
     isMobile: _isMobile = false,
+    isRegenerating = false,
 }) => {
     const isVideo = currentContentItem?.contenttype === 'video';
     const showRegenerate = currentContentItem?.status !== 'published' && !isApproved && !isVideo;
@@ -114,6 +116,9 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
 
     // Determine tooltip message
     const getTooltipMessage = () => {
+        if (isRegenerating) {
+            return "This content is currently being regenerated.";
+        }
         if (!canApprove && !isApproved) {
             // User lacks permission and content is not approved
             return "You do not have the permission. Please contact admin";
@@ -131,7 +136,7 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
             color={showApprovedState ? 'success' : 'primary'}
             startIcon={<Check />}
             onClick={onApprove}
-            disabled={isApproved || !canApprove}
+            disabled={isApproved || !canApprove || isRegenerating}
             sx={{ ...styles.button, ...approveStyles }}
         >
             {approveLabel}
@@ -169,7 +174,7 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
             spacing={styles.stack.spacing}
             sx={{ mt: styles.stack.mt, flexWrap: 'wrap', gap: 'clamp(4px, 1vw, 8px)' }}
         >
-            {(!canApprove || isApproved) && getTooltipMessage() ? (
+            {((!canApprove || isApproved || isRegenerating) && getTooltipMessage()) ? (
                 <Tooltip
                     title={getTooltipMessage()}
                     arrow
@@ -187,15 +192,31 @@ const PreviewActions: React.FC<PreviewActionsProps> = ({
             )}
 
             {showRegenerate && (
-                <Button
-                    variant="outlined"
-                    color="primary"
-                    startIcon={<Refresh />}
-                    onClick={onRegenerate}
-                    sx={{ ...styles.button, borderWidth: 1, '&:hover': styles.outlinedHover }}
-                >
-                    Regenerate
-                </Button>
+                isRegenerating ? (
+                    <Tooltip title="This content is currently being regenerated." arrow placement="top" componentsProps={{ popper: { style: { zIndex: 100010 } } }}>
+                        <span style={{ display: 'inline-flex', flex: '1 1 auto', minWidth: 0 }}>
+                            <Button
+                                variant="outlined"
+                                color="primary"
+                                startIcon={<Refresh />}
+                                disabled={true}
+                                sx={{ ...styles.button, borderWidth: 1, '&:hover': styles.outlinedHover }}
+                            >
+                                Regenerating...
+                            </Button>
+                        </span>
+                    </Tooltip>
+                ) : (
+                    <Button
+                        variant="outlined"
+                        color="primary"
+                        startIcon={<Refresh />}
+                        onClick={onRegenerate}
+                        sx={{ ...styles.button, borderWidth: 1, '&:hover': styles.outlinedHover }}
+                    >
+                        Regenerate
+                    </Button>
+                )
             )}
 
             <Button

@@ -126,6 +126,7 @@ try {
             'video_length' => $generationData['video_length'] ?? null,
             'processing_status' => $generationData['processing_status'] ?? null,
             'isCompleted' => $isCompleted,
+            'parent_content_id' => $content->parent_content_id ? (int) $content->parent_content_id : null,
         ];
     }
 

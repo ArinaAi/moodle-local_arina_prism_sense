@@ -31,7 +31,7 @@ const GeneratedContentList: React.FC<GeneratedContentListProps> = ({
     const theme = useTheme();
 
     // Filter items - excluding published (they go in PublishedContentList)
-    const generatingItems = contentItems.filter(item => item.status === 'generating');
+    const generatingItems = contentItems.filter(item => item.status === 'generating' && !item.parent_content_id);
     const readyItems = contentItems.filter(item => item.status === 'ready');
     const errorItems = contentItems.filter(item => item.status === 'error');
 
@@ -82,6 +82,10 @@ const GeneratedContentList: React.FC<GeneratedContentListProps> = ({
         </Box>
     );
 
+    const checkIsRegenerating = (id: number | string) => {
+        return contentItems.some(item => item.parent_content_id && Number(item.parent_content_id) === Number(id) && item.status === 'generating');
+    };
+
     const renderList = () => {
         if (isLoading) {
             return renderLoadingState();
@@ -96,21 +100,21 @@ const GeneratedContentList: React.FC<GeneratedContentListProps> = ({
                     {errorItems.map((item, index) => (
                         <Collapse key={item.id} timeout={400}>
                             <Box sx={staggeredAnimation(index, 0)}>
-                                <GeneratedContentItem item={item} onPublish={onPublish} onUnpublish={onUnpublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} moodleContext={moodleContext} />
+                                <GeneratedContentItem item={item} onPublish={onPublish} onUnpublish={onUnpublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} moodleContext={moodleContext} isBeingRegenerated={checkIsRegenerating(item.id)} />
                             </Box>
                         </Collapse>
                     ))}
                     {generatingItems.map((item, index) => (
                         <Collapse key={item.id} timeout={400}>
                             <Box sx={staggeredAnimation(errorItems.length + index, 0.05)}>
-                                <GeneratedContentItem item={item} onPublish={onPublish} onUnpublish={onUnpublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} moodleContext={moodleContext} />
+                                <GeneratedContentItem item={item} onPublish={onPublish} onUnpublish={onUnpublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} moodleContext={moodleContext} isBeingRegenerated={checkIsRegenerating(item.id)} />
                             </Box>
                         </Collapse>
                     ))}
                     {readyItems.map((item, index) => (
                         <Collapse key={item.id} timeout={400}>
                             <Box sx={staggeredAnimation(errorItems.length + generatingItems.length + index, 0.1)}>
-                                <GeneratedContentItem item={item} onPublish={onPublish} onUnpublish={onUnpublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} moodleContext={moodleContext} />
+                                <GeneratedContentItem item={item} onPublish={onPublish} onUnpublish={onUnpublish} onMenuOpen={onMenuOpen} onPreview={onPreviewContent} moodleContext={moodleContext} isBeingRegenerated={checkIsRegenerating(item.id)} />
                             </Box>
                         </Collapse>
                     ))}

@@ -14,6 +14,7 @@ interface GeneratedContentItemProps {
     onMenuOpen: (event: React.MouseEvent<HTMLButtonElement>, contentId: number) => void;
     onPreview?: (contentId: number) => void;
     moodleContext: MoodleContext;
+    isBeingRegenerated?: boolean;
 }
 
 const TOOLTIP_CONFIG = {
@@ -25,7 +26,7 @@ const TOOLTIP_CONFIG = {
     PopperProps: { sx: { zIndex: 100006 } }
 };
 
-const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPublish, onMenuOpen, onPreview, moodleContext }) => {
+const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPublish, onMenuOpen, onPreview, moodleContext, isBeingRegenerated }) => {
     const theme = useTheme();
     const { handlePreviewContent: localHandlePreview } = useContentPreview({ contentItems: [item] });
 
@@ -201,7 +202,8 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                 gap: 'clamp(8px, 1.5vw, 12px)',
                 // GPU-safe: only animate transform and box-shadow
                 transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                cursor: 'pointer',
+                cursor: isBeingRegenerated ? 'not-allowed' : 'pointer',
+                opacity: isBeingRegenerated ? 0.6 : 1,
                 position: 'relative',
                 overflow: 'hidden',
                 '&::before': {
@@ -226,6 +228,7 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                 },
             }}
             onClick={(e) => {
+                if (isBeingRegenerated) { return; }
                 e.stopPropagation();
                 if (item.result) {
                     handlePreview(item.id);
@@ -271,8 +274,13 @@ const GeneratedContentItem: React.FC<GeneratedContentItemProps> = ({ item, onPub
                             }
                         </Typography>
                     </Box>
+                    {isBeingRegenerated && (
+                        <Typography variant="caption" sx={{ color: 'warning.main', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                            <CircularProgress size={10} color="inherit" thickness={6} /> Regenerating...
+                        </Typography>
+                    )}
                 </Box>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'clamp(4px, 1vw, 8px)', flexShrink: 0, alignItems: 'center' }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 'clamp(4px, 1vw, 8px)', flexShrink: 0, alignItems: 'center', pointerEvents: isBeingRegenerated ? 'none' : 'auto' }}>
                     {item.approved && !isPublished && (
                         <Tooltip
                             title={moodleContext.canApprove ? "Publish to course page" : "You do not have the permission. Please contact admin"}

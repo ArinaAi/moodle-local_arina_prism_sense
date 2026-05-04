@@ -102,6 +102,7 @@ export const useContentActions = (
             approvedby: null,
             timeapproved: null,
             approver: null,
+            parent_content_id: parentContentId || null,
         };
 
         // Add temporary item to the UI immediately

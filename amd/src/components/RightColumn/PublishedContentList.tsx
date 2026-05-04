@@ -65,6 +65,7 @@ const PublishedContentList: React.FC<PublishedContentListProps> = ({
                                         onMenuOpen={onMenuOpen}
                                         onPreview={onPreviewContent}
                                         moodleContext={moodleContext}
+                                        isBeingRegenerated={contentItems.some(i => i.parent_content_id === item.id && i.status === 'generating')}
                                     />
                                 </Collapse>
                             ))}
