@@ -96,6 +96,16 @@ class poll_content_status_task extends \core\task\scheduled_task // phpcs:ignore
     {
         global $DB;
 
+        // ------------------------------------------------------------------
+        // ORPHAN CHECK: Release any slide regenerations that are waiting for
+        // a video whose generation has already finished (success or failure).
+        // This handles the race condition where the video's terminal status
+        // was processed by a previous cron run *before* the user queued the
+        // slide regeneration, meaning triggerQueuedSlideRegeneration() was
+        // never called for that video.
+        // ------------------------------------------------------------------
+        $this->releaseOrphanedQueuedSlides();
+
         // Find all content items that are still generating and have a request_id
         $pendingContent = $DB->get_records_select(
             'local_arina_prism_sense_content',
@@ -380,6 +390,7 @@ class poll_content_status_task extends \core\task\scheduled_task // phpcs:ignore
         $context = ['isVideo' => $isVideo, 'courseid' => $courseid, 'sectionid' => $sectionid];
 
         $this->updateContentOnSuccess($content, $generationData, $blobName, $statusResponse, $fileDetails, $context);
+        $this->triggerQueuedSlideRegeneration($content);
     }
 
     /**
@@ -417,6 +428,102 @@ class poll_content_status_task extends \core\task\scheduled_task // phpcs:ignore
             \local_arina_prism_sense\EmailNotifier::sendContentFailure($content, $sentinel);
         } catch (\Throwable $emailEx) {
             mtrace("    Email notification failed (non-fatal): " . $emailEx->getMessage());
+        }
+
+        $this->triggerQueuedSlideRegeneration($content);
+    }
+
+    /**
+     * Rescue slide regenerations whose video already finished before the user
+     * queued the regen. Finds any 'slide-deck' record in 'generating' status
+     * with processing_status = 'queued_waiting_for_video' where there is no
+     * longer an active ('generating') video with the same sectionid + regen_count.
+     */
+    private function releaseOrphanedQueuedSlides()
+    {
+        global $DB;
+
+        // Find all slide-deck records that are waiting for a video.
+        $orphanCandidates = $DB->get_records_select(
+            'local_arina_prism_sense_content',
+            "contenttype = 'slide-deck' AND status = 'generating'",
+            null,
+            'timemodified ASC'
+        );
+
+        foreach ($orphanCandidates as $candidate) {
+            $genData = json_decode($candidate->generationdata, true);
+            if (!isset($genData['processing_status']) || $genData['processing_status'] !== 'queued_waiting_for_video') {
+                continue;
+            }
+
+            $regenCount = isset($genData['regen_count']) ? (int)$genData['regen_count'] : null;
+            if ($regenCount === null) {
+                continue;
+            }
+
+            // Check if a video is still actively generating for this section + regen_count.
+            $activeVideo = $DB->get_record_select(
+                'local_arina_prism_sense_content',
+                "sectionid = ? AND contenttype = 'video' AND status = 'generating' AND regen_count = ?",
+                [$candidate->sectionid, $regenCount]
+            );
+
+            if ($activeVideo) {
+                // Video is still running — keep waiting.
+                continue;
+            }
+
+            // No active video found — trigger the queued slide regeneration now.
+            $taskData = $genData['task_data'] ?? null;
+            if ($taskData) {
+                $task = new \local_arina_prism_sense\task\generate_content_task();
+                $task->set_custom_data($taskData);
+                \core\task\manager::queue_adhoc_task($task);
+
+                $genData['processing_status'] = 'pending';
+                $candidate->generationdata = json_encode($genData);
+                $DB->update_record('local_arina_prism_sense_content', $candidate);
+                mtrace("  [Orphan Check] Released deferred slide regen {$candidate->id} (video no longer generating).");
+            }
+        }
+    }
+
+    /**
+     * Trigger any deferred slide regeneration tasks waiting for this video to complete.
+     */
+    private function triggerQueuedSlideRegeneration($videoContent)
+    {
+        global $DB;
+        if ($videoContent->contenttype !== 'video') {
+            return;
+        }
+
+        $queuedRegens = $DB->get_records_select(
+            'local_arina_prism_sense_content',
+            "sectionid = ? AND contenttype = 'slide-deck' AND status = 'generating'",
+            [$videoContent->sectionid]
+        );
+
+        foreach ($queuedRegens as $queuedRegen) {
+            $queuedGenData = json_decode($queuedRegen->generationdata, true);
+            $regenCountMatches = isset($queuedGenData['regen_count'])
+                && (int)$queuedGenData['regen_count'] === (int)$videoContent->regen_count;
+            $isQueuedForVideo = isset($queuedGenData['processing_status'])
+                && $queuedGenData['processing_status'] === 'queued_waiting_for_video';
+            if ($regenCountMatches && $isQueuedForVideo) {
+                $taskData = $queuedGenData['task_data'] ?? null;
+                if ($taskData) {
+                    $task = new \local_arina_prism_sense\task\generate_content_task();
+                    $task->set_custom_data($taskData);
+                    \core\task\manager::queue_adhoc_task($task);
+
+                    $queuedGenData['processing_status'] = 'pending';
+                    $queuedRegen->generationdata = json_encode($queuedGenData);
+                    $DB->update_record('local_arina_prism_sense_content', $queuedRegen);
+                    mtrace("    Triggered deferred slide regeneration task for content {$queuedRegen->id}");
+                }
+            }
         }
     }
 

@@ -314,6 +314,18 @@ try {
     // ==========================================
     // NEW: Queue Adhoc Task
     // ==========================================
+
+    // Resolve user's personal wallet UUID for credit tracking synchronously using cookie cache
+    $userUuid = null;
+    try {
+        $creditClient = new \local_arina_prism_sense\cms\CreditServiceClient();
+        $userProfile  = $creditClient->getSubUserProfileCached((int) $USER->id);
+        $userUuid     = $userProfile['user_id'] ?? null;
+    } catch (\Exception $e) {
+        // Non-fatal: credit tracking will be skipped or fall back to DB in the task
+        error_log('ArinaPrismSense: Failed to resolve user UUID for credit tracking: ' . $e->getMessage());
+    }
+
     // Create Adhoc Task (Real or Mock based on config)
     $task_data = [
         'content_id' => $contentId,
@@ -332,26 +344,51 @@ try {
         'feedback' => $feedbackDetails,
         'parent_content_id' => $parentContentId,
         'user_id' => $USER->id,  // Pass Moodle user ID for UUID lookup in task
+        'user_uuid' => $userUuid, // Pass resolved Arina user UUID
     ];
 
-    if (defined('DEVELOPER_MODE') && DEVELOPER_MODE) {
-        $task = new \local_arina_prism_sense\task\generate_content_task_mock();
-        $task->set_custom_data($task_data);
-
-        // DEVELOPER MODE: EXECUTE SYNCHRONOUSLY
-        // Bypassing Adhoc Queue to avoid Cron dependencies in local dev
-        error_log("ArinaPrismSense: [DEV] Executing mock task synchronously for content $contentId");
-        $task->execute();
-    } else {
-        $task = new \local_arina_prism_sense\task\generate_content_task();
-        $task->set_custom_data($task_data);
-
-        // PRODUCTION: Queue the task
-        \core\task\manager::queue_adhoc_task($task);
-        error_log("ArinaPrismSense: Queued generation task for content $contentId");
+    // Detect if we need to queue this slide regeneration because a video is generating
+    $isSlideRegenQueued = false;
+    if ($contentType === 'slide-deck' && $parentContentId > 0 && $regenCount !== null) {
+        $activeVideo = $DB->get_record_select(
+            'local_arina_prism_sense_content',
+            "sectionid = ? AND contenttype = 'video' AND status = 'generating' AND regen_count = ?",
+            [$sectionid, $regenCount]
+        );
+        if ($activeVideo) {
+            $isSlideRegenQueued = true;
+            $msg = "ArinaPrismSense: Slide regeneration $contentId queued because " .
+                   "video {$activeVideo->id} is generating.";
+            error_log($msg);
+        }
     }
 
-    error_log("ArinaPrismSense: Queued generation task for content $contentId");
+    if ($isSlideRegenQueued) {
+        $contentRecord = $DB->get_record('local_arina_prism_sense_content', ['id' => $contentId]);
+        $genData = json_decode($contentRecord->generationdata, true);
+        $genData['processing_status'] = 'queued_waiting_for_video';
+        $genData['task_data'] = $task_data;
+        $contentRecord->generationdata = json_encode($genData);
+        $DB->update_record('local_arina_prism_sense_content', $contentRecord);
+        error_log("ArinaPrismSense: Deferred generation task for content $contentId (waiting for video)");
+    } else {
+        if (defined('DEVELOPER_MODE') && DEVELOPER_MODE) {
+            $task = new \local_arina_prism_sense\task\generate_content_task_mock();
+            $task->set_custom_data($task_data);
+
+            // DEVELOPER MODE: EXECUTE SYNCHRONOUSLY
+            // Bypassing Adhoc Queue to avoid Cron dependencies in local dev
+            error_log("ArinaPrismSense: [DEV] Executing mock task synchronously for content $contentId");
+            $task->execute();
+        } else {
+            $task = new \local_arina_prism_sense\task\generate_content_task();
+            $task->set_custom_data($task_data);
+
+            // PRODUCTION: Queue the task
+            \core\task\manager::queue_adhoc_task($task);
+            error_log("ArinaPrismSense: Queued generation task for content $contentId");
+        }
+    }
 
     // Return success immediately
     echo json_encode([

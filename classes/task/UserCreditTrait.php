@@ -79,6 +79,12 @@ trait UserCreditTrait
      */
     private function getUserUuidForCredit($data): ?string
     {
+        // First check if the UUID was already resolved synchronously during the web request.
+        if (!empty($data->user_uuid)) {
+            mtrace("Using pre-resolved user_uuid from task data: {$data->user_uuid}");
+            return $data->user_uuid;
+        }
+
         if (!isset($data->user_id)) {
             mtrace("No user_id in task data");
             return null;
@@ -88,11 +94,7 @@ trait UserCreditTrait
         mtrace("Looking up personal wallet UUID for user_id: {$moodleUserId}");
 
         $cached = $this->getCachedUserUuid($moodleUserId);
-        if ($cached !== null) {
-            return $cached;
-        }
-
-        return $this->resolveUserUuidFromApi($moodleUserId);
+        return $cached ?? $this->resolveUserUuidFromApi($moodleUserId);
     }
 
     /**
