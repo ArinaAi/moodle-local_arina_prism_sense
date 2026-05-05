@@ -340,56 +340,7 @@ class Utils
         return self::performDownload($responseData['url'], $outputPath);
     }
 
-    /**
-     * Download File from Azure Blob Storage directly to path
-     *
-     * @deprecated Use downloadFileViaAuthService() instead — no Azure credentials required.
-     */
-    public static function downloadFileFromAzure($blobName, $outputPath, $containerName)
-    {
-        try {
-            $accountName = AZURE_STORAGE_ACCOUNT_NAME;
-            $blobUrl = "https://{$accountName}.blob.core.windows.net/{$containerName}/{$blobName}";
 
-            $date = gmdate('D, d M Y H:i:s T');
-            $version = '2020-04-08';
-
-            $stringToSign = "GET\n" .
-                "\n" .
-                "\n" .
-                "\n" .
-                "\n" .
-                "\n" .
-                "\n" .
-                "\n" .
-                "\n" .
-                "\n" .
-                "\n" .
-                "\n" .
-                "x-ms-date:{$date}\n" .
-                "x-ms-version:{$version}\n" .
-                "/{$accountName}/{$containerName}/{$blobName}";
-
-            $signature = base64_encode(hash_hmac(
-                'sha256',
-                mb_convert_encoding($stringToSign, "UTF-8"),
-                base64_decode(AZURE_STORAGE_ACCOUNT_KEY),
-                true
-            ));
-            $authHeader = "SharedKey {$accountName}:{$signature}";
-
-            $headers = [
-                "x-ms-date: {$date}",
-                "x-ms-version: {$version}",
-                "Authorization: {$authHeader}",
-            ];
-
-            return self::performDownload($blobUrl, $outputPath, $headers);
-        } catch (\Exception $e) {
-            mtrace("  - Error downloading from Azure: " . $e->getMessage());
-            return false;
-        }
-    }
 
     /**
      * Download file directly from a public URL

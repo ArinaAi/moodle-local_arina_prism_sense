@@ -9,7 +9,7 @@
  */
 
 require_once __DIR__ . '/../../../config.php';
-require_once __DIR__ . '/../configurator_azure.php';
+
 require_once __DIR__ . '/../config_api.php';
 
 use local_arina_prism_sense\CompanyConfig;

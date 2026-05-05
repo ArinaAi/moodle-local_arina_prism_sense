@@ -15,7 +15,7 @@ use local_arina_prism_sense\CompanyConfig;
 
 require_once __DIR__ . '/../config_api.php';
 require_once $CFG->libdir . '/filelib.php';
-require_once __DIR__ . '/../lib_azure_storage.php';
+
 require_once __DIR__ . '/../classes/exception/curl_execution_exception.php';
 require_once __DIR__ . '/../classes/exception/api_http_exception.php';
 
@@ -232,9 +232,16 @@ try {
 
     if (defined('ENABLE_BACKEND_PDF_UPLOAD') && ENABLE_BACKEND_PDF_UPLOAD) {
         try {
-            // Get org ID, regen count and API key.
+            // Get org ID and API key.
             $orgId = CompanyConfig::getOrgId();
-            $regenCount = local_arina_prism_sense_get_azure_regen_count($courseid, $sectionid);
+            
+            // Calculate the correct regen_count using the exact same DB logic as generate_content.php
+            // This ensures PDFs go into the folder that the next generation will use.
+            $maxCount = $DB->get_field_sql(
+                'SELECT MAX(regen_count) FROM {local_arina_prism_sense_content} WHERE courseid = ? AND sectionid = ?',
+                [$courseid, $sectionid]
+            );
+            $regenCount = ($maxCount !== null && $maxCount !== false) ? (int)$maxCount + 1 : 0;
             // Fetch API key once — used both in start_batch_upload and per-file upload.
             $apiKey = CompanyConfig::getApiKey();
 

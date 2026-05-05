@@ -12,8 +12,7 @@ define('AJAX_SCRIPT', true);
 
 require_once(__DIR__ . '/../../../config.php');
 require_once(__DIR__ . '/../config_api.php');
-require_once(__DIR__ . '/../configurator_azure.php');
-require_once(__DIR__ . '/../lib_azure_storage.php');
+
 
 use local_arina_prism_sense\CompanyConfig;
 

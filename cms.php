@@ -27,7 +27,7 @@ require_once(__DIR__ . '/../../config.php');
 
 use local_arina_prism_sense\CompanyConfig;
 
-require_once(__DIR__ . '/configurator_azure.php');
+
 
 // Security: Require login; allow Site Admins and IOMAD Company Managers.
 // requireCmsAccess() also calls bootstrap() internally so getters are ready.

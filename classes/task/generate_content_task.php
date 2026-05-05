@@ -19,7 +19,7 @@ namespace local_arina_prism_sense\task;
 defined('MOODLE_INTERNAL') || die();
 
 require_once(__DIR__ . '/../../config_api.php');
-require_once(__DIR__ . '/../../configurator_azure.php');
+
 require_once(__DIR__ . '/../CompanyConfig.php');
 require_once(__DIR__ . '/../ErrorClassifier.php');
 require_once(__DIR__ . '/TriggerGenerationTrait.php');

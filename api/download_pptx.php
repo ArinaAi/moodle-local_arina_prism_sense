@@ -13,7 +13,7 @@ require_once(__DIR__ . '/../../../config.php');
 use local_arina_prism_sense\CompanyConfig;
 
 require_once(__DIR__ . '/../config_api.php');
-require_once(__DIR__ . '/../configurator_azure.php');
+
 
 $contentid = required_param('contentid', PARAM_INT);
 require_login();
@@ -52,7 +52,7 @@ if (!empty($generationData['pptx_path']) && file_exists($generationData['pptx_pa
 
 try {
     $blobPath = $generationData['azure_blob_name'] ?? $blobName;
-    $containerName = $generationData['azure_container'] ?? AZURE_BLOB_CONTAINER_NAME;
+    $containerName = $generationData['azure_container'] ?? 'blob-tutorial-gen-default';
 
     // Get the API key
     $apiKey = CompanyConfig::getApiKey();

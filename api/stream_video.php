@@ -14,8 +14,7 @@ require_once __DIR__ . '/../../../config.php';
 
 use local_arina_prism_sense\CompanyConfig;
 
-require_once __DIR__ . '/../configurator_azure.php';
-require_once __DIR__ . '/../lib_azure_storage.php';
+
 require_once __DIR__ . '/../config_api.php';
 
 try {

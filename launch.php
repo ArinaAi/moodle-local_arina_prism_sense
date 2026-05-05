@@ -20,7 +20,7 @@ require_once($CFG->libdir . '/adminlib.php');
 require_once(__DIR__ . '/classes/Utils.php');
 require_once(__DIR__ . '/classes/CompanyConfig.php');
 require_once(__DIR__ . '/config_api.php');
-require_once(__DIR__ . '/configurator_azure.php');
+
 
 $courseid = required_param('courseid', PARAM_INT);
 require_login($courseid);
