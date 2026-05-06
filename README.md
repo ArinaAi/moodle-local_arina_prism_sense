@@ -49,16 +49,6 @@ Each company's users will then use their own Arina credit pool.
 
 ---
 
-## Obtaining an API Key
-
-PRISM Sense requires an Arina AI API key to generate content. To obtain one:
-
-- Visit [https://arina.ai](https://arina.ai) and sign up for an account.
-- API keys are issued per organisation/company.
-- Contact [info@arina.ai](mailto:info@arina.ai) for enterprise plans or reviewer trial credentials.
-
----
-
 ## Features
 
 - **AI content generation** — Converts PDFs into structured Moodle lectures via the Arina API.
