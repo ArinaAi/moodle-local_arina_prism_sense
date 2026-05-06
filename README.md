@@ -11,7 +11,7 @@ AI-powered lecture content generation for Moodle. PRISM Sense connects to the **
 | Moodle | 4.5+ (2024100700) |
 | PHP | 8.1+ |
 | Database | MySQL 8 / MariaDB 10.6+ / PostgreSQL 13+ |
-| **Arina API key** | Required — see [Obtaining an API Key](#obtaining-an-api-key) |
+| **Arina API key** | Required (details below) |
 
 > **Third-party subscription required.** This plugin requires an active Arina AI account and API key. Contact [info@arina.ai](mailto:info@arina.ai) for access or trial credentials.
 
