@@ -317,6 +317,26 @@ class CreditServiceClient // phpcs:ignore PSR1.Classes.ClassDeclaration.Multiple
     }
 
     /**
+     * Ensure a sub-user exists in Arina and has a credit wallet, then return
+     * their wallet_id. Equivalent to getOrInitializeOrgWallet() but for
+     * individual staff members.
+     *
+     * @param int $moodleUserId Moodle user ID
+     * @return string The Arina wallet_id for this user
+     * @throws CreditServiceException if registration fails or wallet_id is missing
+     */
+    public function getOrInitializeSubUserWallet(int $moodleUserId): string
+    {
+        $profile = $this->getSubUserProfileCached($moodleUserId);
+        if (empty($profile['wallet_id'])) {
+            throw new CreditServiceException(
+                "Could not resolve wallet for Moodle user {$moodleUserId}."
+            );
+        }
+        return $profile['wallet_id'];
+    }
+
+    /**
      * Lookup a sub-user wallet by external ID (Moodle user ID).
      * @param string $externalId The Moodle user ID
      * @param string $parentOwnerId The parent org owner UUID
