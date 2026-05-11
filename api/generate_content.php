@@ -263,6 +263,9 @@ try {
         );
     }
 
+    // Initialise here so the atomic check inside the lock can set it to true.
+    $isVideoQueued = false;
+
     try {
         if ($regenCount === null) {
             // Fresh generation: find the highest regen_count already used for this section.
@@ -305,6 +308,33 @@ try {
         $content->timemodified = time();
 
         $contentId = $DB->insert_record('local_arina_prism_sense_content', $content);
+
+        // -----------------------------------------------------------------------
+        // ATOMIC GUARD (inside lock): Check whether a slide regeneration is
+        // actively running for this section + regen_count. Because both the
+        // slide regen and the video request compete for the SAME section lock,
+        // this check is serialized with the slide regen's INSERT. Either:
+        //   a) Slide regen held the lock first → its INSERT is committed before
+        //      we acquired the lock, so we will find it here.
+        //   b) We held the lock first → slide regen hasn't inserted yet. The
+        //      existing guard in the slide regen branch (isSlideRegenQueued)
+        //      will find our freshly committed video INSERT and defer itself.
+        // In both cases exactly one of the two jobs proceeds immediately.
+        // -----------------------------------------------------------------------
+        if ($contentType === 'video' && $regenCount !== null) {
+            $atomicSlideRegen = $DB->get_record_select(
+                'local_arina_prism_sense_content',
+                "sectionid = ? AND contenttype = 'slide-deck' AND status = 'generating' AND regen_count = ?",
+                [$sectionid, $regenCount]
+            );
+            if ($atomicSlideRegen) {
+                $isVideoQueued = true;
+                error_log(
+                    "ArinaPrismSense: [atomic guard] Video $contentId queued inside lock — " .
+                    "slide regen {$atomicSlideRegen->id} is generating."
+                );
+            }
+        }
     } finally {
         // Always release the lock — even if the INSERT threw an exception.
         $lock->release();
@@ -346,7 +376,8 @@ try {
         'user_uuid' => $userUuid, // Pass resolved Arina user UUID
     ];
 
-    // Detect if we need to queue this slide regeneration because a video is generating
+    // Detect if we need to queue this slide regeneration because a video is generating.
+    // NOTE: $isVideoQueued is set atomically inside the lock above.
     $isSlideRegenQueued = false;
     if ($contentType === 'slide-deck' && $parentContentId > 0 && $regenCount !== null) {
         $activeVideo = $DB->get_record_select(
@@ -370,6 +401,14 @@ try {
         $contentRecord->generationdata = json_encode($genData);
         $DB->update_record('local_arina_prism_sense_content', $contentRecord);
         error_log("ArinaPrismSense: Deferred generation task for content $contentId (waiting for video)");
+    } elseif ($isVideoQueued) {
+        $contentRecord = $DB->get_record('local_arina_prism_sense_content', ['id' => $contentId]);
+        $genData = json_decode($contentRecord->generationdata, true);
+        $genData['processing_status'] = 'queued_waiting_for_slide_regen';
+        $genData['task_data'] = $task_data;
+        $contentRecord->generationdata = json_encode($genData);
+        $DB->update_record('local_arina_prism_sense_content', $contentRecord);
+        error_log("ArinaPrismSense: Deferred video task for content $contentId (waiting for slide regeneration)");
     } else {
         if (defined('DEVELOPER_MODE') && DEVELOPER_MODE) {
             $task = new \local_arina_prism_sense\task\generate_content_task_mock();

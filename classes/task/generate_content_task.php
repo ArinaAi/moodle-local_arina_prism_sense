@@ -171,6 +171,46 @@ class generate_content_task extends \core\task\adhoc_task // phpcs:ignore Squiz.
      */
     private function handleLegacyWorkflow($content, $taskData)
     {
+        global $DB;
+
+        // -----------------------------------------------------------------------
+        // RACE-CONDITION GUARD: For video generation, check right here — inside
+        // the task — whether a slide regeneration is actively running for the
+        // same section + regen_count. The PHP endpoint check in generate_content.php
+        // can be beaten by a concurrent request; the task-level check is safe
+        // because by the time any adhoc task executes, all concurrent DB inserts
+        // have long since committed.
+        // -----------------------------------------------------------------------
+        $isVideo = ($taskData['contentType'] === 'video' || $taskData['avatarVideoNeeded'] === 'yes');
+        if ($isVideo) {
+            $sectionId  = (int) $taskData['data']->section_id;
+            $regenCount = isset($taskData['data']->regen_count) ? (int) $taskData['data']->regen_count : null;
+
+            if ($regenCount !== null) {
+                $activeSlideRegen = $DB->get_record_select(
+                    'local_arina_prism_sense_content',
+                    "sectionid = ? AND contenttype = 'slide-deck' AND status = 'generating' AND regen_count = ?",
+                    [$sectionId, $regenCount]
+                );
+
+                if ($activeSlideRegen) {
+                    // Slide regeneration is still in progress — defer this video task.
+                    // Store task_data so poll_content_status_task can re-queue it once
+                    // the slide regen finishes (via triggerQueuedVideoGeneration).
+                    $genData = json_decode($content->generationdata, true) ?: [];
+                    $genData['processing_status'] = 'queued_waiting_for_slide_regen';
+                    $genData['task_data'] = (array) $taskData['data'];
+                    $content->generationdata = json_encode($genData);
+                    $DB->update_record('local_arina_prism_sense_content', $content);
+
+                    mtrace("Video {$content->id} deferred (task-level guard): " .
+                        "slide regen {$activeSlideRegen->id} is still generating for " .
+                        "sectionid={$sectionId}, regen_count={$regenCount}.");
+                    return; // Do NOT call the backend — return and let poll task re-queue.
+                }
+            }
+        }
+
         $apiUrl = $this->getApiUrl(
             $taskData['data'],
             $taskData['contentType'],
