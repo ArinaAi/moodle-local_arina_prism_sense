@@ -119,6 +119,68 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
             .sort((a, b) => a.sectionId - b.sectionId); // Sort by section order
     }, [contentItems]);
 
+    // Detect if a video exists for the same section + settings but from an older slide version (different regen_count).
+    // This means the user regenerated the slide and is now trying to generate a video again — the old video will be overwritten.
+    const staleVideo = useMemo(() => {
+        if (!selectedSlideId) { return null; }
+
+        const selectedSlide = contentItems.find(item => item.id === selectedSlideId);
+        if (!selectedSlide) { return null; }
+
+        const slideGenData = selectedSlide.generationdata
+            ? (JSON.parse(selectedSlide.generationdata) as Record<string, unknown>)
+            : {};
+        const slideRegenCount = slideGenData['regen_count'] ?? 0;
+
+        return contentItems.find(item => {
+            if (item.contenttype !== 'video') { return false; }
+            if (item.status === 'error') { return false; }
+            if (item.sectionid !== selectedSlide.sectionid) { return false; }
+
+            const genData = item.generationdata
+                ? (JSON.parse(item.generationdata) as Record<string, unknown>)
+                : {};
+
+            return (
+                genData['regen_count'] !== slideRegenCount &&
+                genData['language'] === language &&
+                genData['voice_gender'] === voiceGender &&
+                genData['avatar_strategy'] === avatarStrategy
+            );
+        }) ?? null;
+    }, [selectedSlideId, contentItems, language, voiceGender, avatarStrategy]);
+
+    // Detect if a video with the same settings already exists for the selected slide.
+    // Videos are matched by sectionid + regen_count (slide version) + language + voice_gender + avatar_strategy.
+    const duplicateVideo = useMemo(() => {
+        if (!selectedSlideId) {return null};
+
+        const selectedSlide = contentItems.find(item => item.id === selectedSlideId);
+        if (!selectedSlide) {return null};
+
+        const slideGenData = selectedSlide.generationdata
+            ? (JSON.parse(selectedSlide.generationdata) as Record<string, unknown>)
+            : {};
+        const slideRegenCount = slideGenData['regen_count'] ?? 0;
+
+        return contentItems.find(item => {
+            if (item.contenttype !== 'video') {return false};
+            if (item.status === 'error') {return false};
+            if (item.sectionid !== selectedSlide.sectionid) {return false};
+
+            const genData = item.generationdata
+                ? (JSON.parse(item.generationdata) as Record<string, unknown>)
+                : {};
+
+            return (
+                genData['regen_count'] === slideRegenCount &&
+                genData['language'] === language &&
+                genData['voice_gender'] === voiceGender &&
+                genData['avatar_strategy'] === avatarStrategy
+            );
+        }) ?? null;
+    }, [selectedSlideId, contentItems, language, voiceGender, avatarStrategy]);
+
     // Reset selection when modal opens
     useEffect(() => {
         if (open) {
@@ -185,6 +247,17 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                 {/* Options Panel - Only show when slide selected */}
                 {selectedSlideId && (
                     <Box>
+                        {staleVideo && !duplicateVideo && (
+                            <Alert
+                                severity="warning"
+                                sx={{ mb: 2, borderRadius: 2 }}
+                            >
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                    Please note: the existing video will be overwritten
+                                </Typography>
+                            </Alert>
+                        )}
+
                         <Typography
                             variant="subtitle2"
                             sx={{
@@ -352,6 +425,20 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                                 </RadioGroup>
                             </FormControl>
                         </Paper>
+
+                        {duplicateVideo && (
+                            <Alert
+                                severity="warning"
+                                sx={{ mt: 2, borderRadius: 2 }}
+                            >
+                                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                                    Video already generated with the same settings
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                    A video with these settings already exists for this slide. Please regenerate the slides first before generating a new video with the same settings.
+                                </Typography>
+                            </Alert>
+                        )}
                     </Box>
                 )}
             </Box>
@@ -426,7 +513,7 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                         variant="contained"
                         size="medium"
                         onClick={handleGenerate}
-                        disabled={!selectedSlideId}
+                        disabled={!selectedSlideId || !!duplicateVideo}
                         fullWidth={isMobile}
                         sx={{
                             fontWeight: 600,
