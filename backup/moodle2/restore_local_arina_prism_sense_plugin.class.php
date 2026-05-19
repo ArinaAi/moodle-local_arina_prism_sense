@@ -187,6 +187,22 @@ class restore_local_arina_prism_sense_plugin extends restore_local_plugin // NOS
     }
 
     /**
+     * Return the ID of the course being restored.
+     *
+     * The base class restore_local_plugin does not provide this helper, so
+     * each concrete plugin class must delegate to its task.  Without this
+     * method, after_restore_course() throws:
+     *   "Call to undefined method restore_local_arina_prism_sense_plugin::get_courseid()"
+     * which aborts core_course_duplicate_course entirely.
+     *
+     * @return int The new (destination) course ID.
+     */
+    protected function get_courseid(): int
+    {
+        return $this->task->get_courseid();
+    }
+
+    /**
      * Post-restore hook: fix up self-referential foreign keys in
      * local_arina_prism_sense_content that could not be resolved during the first pass.
      *
