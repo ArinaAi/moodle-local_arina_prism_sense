@@ -89,6 +89,9 @@ try {
     $voiceGender = $input['voice_gender'] ?? 'female';
     $avatarStrategy = $input['avatar_strategy'] ?? 'title_only';
     $avatarVideoNeeded = $input['avtar_video_needed'] ?? 'no';
+    // When false, the course has duplicated Weaviate content — no local PDFs are needed.
+    // The task will call start_batch_upload with expected_uploads=0 and skip polling.
+    $uploadsRequired = isset($input['uploads_required']) ? (bool) $input['uploads_required'] : true;
 
     // Determine content type
     $contentType = ($avatarVideoNeeded === 'yes') ? 'video' : 'slide-deck';
@@ -199,7 +202,7 @@ try {
         'sectionid' => $sectionid,
     ]);
 
-    if (empty($sources)) {
+    if (empty($sources) && $uploadsRequired) {
         throw new \moodle_exception('No source PDFs found for this section');
     }
 
@@ -374,6 +377,7 @@ try {
         'parent_content_id' => $parentContentId,
         'user_id' => $USER->id,  // Pass Moodle user ID for UUID lookup in task
         'user_uuid' => $userUuid, // Pass resolved Arina user UUID
+        'uploads_required' => $uploadsRequired, // false = duplicated course, skip PDF flow
     ];
 
     // Detect if we need to queue this slide regeneration because a video is generating.

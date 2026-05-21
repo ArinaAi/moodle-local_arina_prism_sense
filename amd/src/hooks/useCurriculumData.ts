@@ -15,7 +15,7 @@ export interface SectionWithSources {
 export function useCurriculumData(
   open: boolean,
   onClose: () => void,
-  onGenerate: (curriculum: CurriculumStructure, contentStrategy: 'standard' | 'example_driven', sectionId: number, videoLength: string) => void,
+  onGenerate: (curriculum: CurriculumStructure, contentStrategy: 'standard' | 'example_driven', sectionId: number, videoLength: string, regenOptions?: { parentContentId?: number; feedbackId?: number; regenCount?: number; uploadsRequired?: boolean }) => void,
   moodleContext: MoodleContext
 ) {
   const [sectionsWithSources, setSectionsWithSources] = useState<SectionWithSources[]>([]);
@@ -26,6 +26,8 @@ export function useCurriculumData(
   const [error, setError] = useState('');
   const [showCurriculum, setShowCurriculum] = useState(false);
   const [curriculumText, setCurriculumText] = useState('');
+  // True = normal upload flow; false = content already duplicated in Weaviate (no PDFs needed).
+  const [uploadsRequired, setUploadsRequired] = useState(true);
 
   const [addingCurriculumSectionId, setAddingCurriculumSectionId] = useState<number | null>(null);
   const [newCurriculumText, setNewCurriculumText] = useState('');
@@ -37,6 +39,23 @@ export function useCurriculumData(
     setError('');
 
     try {
+      // --- Step 1: check whether this course has duplicated Weaviate content ---
+      let courseUploadsRequired = true;
+      try {
+        const statusRes = await apiFetch(
+          `${moodleContext.wwwroot}/local/arina_prism_sense/api/get_course_content_status.php` +
+            `?courseid=${moodleContext.courseid}&sesskey=${(moodleContext as any).sesskey}`,
+          { method: 'GET', credentials: 'include' }
+        );
+        const statusData = await statusRes.json();
+        courseUploadsRequired = statusData.uploads_required !== false;
+      } catch {
+        // Network/auth error — fall back to normal upload flow
+        courseUploadsRequired = true;
+      }
+      setUploadsRequired(courseUploadsRequired);
+
+      // --- Step 2: load uploaded sources ---
       const response = await apiFetch(
         `${moodleContext.wwwroot}/local/arina_prism_sense/api/get_sources.php?courseid=${moodleContext.courseid}`,
         {
@@ -58,12 +77,18 @@ export function useCurriculumData(
         });
       }
 
+      // When uploads are NOT required (duplicated course), show every course section
+      // regardless of whether PDFs exist.  Otherwise keep the existing filter.
       const baseSections = moodleContext.sections
-        .filter((section) => sourcesBySection[section.id] && sourcesBySection[section.id] > 0)
+        .filter((section) =>
+          courseUploadsRequired
+            ? (sourcesBySection[section.id] && sourcesBySection[section.id] > 0)
+            : true
+        )
         .map((section) => ({
           id: section.id,
           name: section.name,
-          sourceCount: sourcesBySection[section.id],
+          sourceCount: sourcesBySection[section.id] ?? 0,
           hasCurriculum: false as boolean | undefined,
           curriculum: undefined as string | undefined,
           curriculumChecked: false,
@@ -199,14 +224,15 @@ export function useCurriculumData(
     };
 
     onClose();
-    onGenerate(curriculum, contentStrategy, selectedSectionId, videoLength);
-  }, [selectedSectionId, sectionsWithSources, contentStrategy, videoLength, onClose, onGenerate]);
+    onGenerate(curriculum, contentStrategy, selectedSectionId, videoLength, { uploadsRequired });
+  }, [selectedSectionId, sectionsWithSources, contentStrategy, videoLength, uploadsRequired, onClose, onGenerate]);
 
   return {
     sectionsWithSources,
     selectedSectionId,
     contentStrategy,
     videoLength,
+    uploadsRequired,
     loading,
     error,
     showCurriculum,

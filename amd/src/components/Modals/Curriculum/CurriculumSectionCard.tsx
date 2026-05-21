@@ -137,16 +137,15 @@ export const CurriculumSectionCard = React.memo<CurriculumSectionCardProps>(({
 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
                 <Chip
-                  label={`${section.sourceCount} PDF${section.sourceCount === 1 ? '' : 's'}`}
-                  size="small"
-                  sx={{
-                    bgcolor: missingCurriculum ? 'rgba(0,0,0,0.06)' : 'rgba(13, 92, 162, 0.1)',
-                    color: missingCurriculum ? '#6c757d' : '#0D5CA2',
-                    fontWeight: 600,
-                    fontSize: '0.7rem',
-                  }}
-                />
-
+                    label={`${section.sourceCount} PDF${section.sourceCount === 1 ? '' : 's'}`}
+                    size="small"
+                    sx={{
+                      bgcolor: missingCurriculum ? 'rgba(0,0,0,0.06)' : 'rgba(13, 92, 162, 0.1)',
+                      color: missingCurriculum ? '#6c757d' : '#0D5CA2',
+                      fontWeight: 600,
+                      fontSize: '0.7rem',
+                    }}
+                  />
                 {/* Show View Curriculum only when curriculum exists */}
                 {!missingCurriculum && section.curriculum && (
                   <Button

@@ -42,8 +42,31 @@ trait TriggerGenerationTrait
      */
     private function triggerGenerationWithPolling($data, $userUuid = null)
     {
-        global $DB;
+        // ── Duplicated-course fast path ─────────────────────────────────────────
+        // When uploads_required=false the course has pre-populated Weaviate content.
+        // There are no local source PDFs, so getBatchIdFromSources() would return
+        // null and abort.  Instead:
+        //   1. Create a zero-upload batch via start_batch_upload.
+        //   2. Call trigger_generation once — no polling loop required.
+        if (isset($data->uploads_required) && $data->uploads_required === false) {
+            return $this->triggerGenerationForDuplicatedCourse($data, $userUuid);
+        }
+        // ── Normal upload flow ──────────────────────────────────────────────────
+        return $this->runNormalUploadPollingFlow($data, $userUuid);
+    }
 
+    /**
+     * Run the standard polling flow for courses with locally-uploaded PDFs.
+     *
+     * Extracted from triggerGenerationWithPolling to keep return-count under the
+     * Sonar threshold (max 3 per method).
+     *
+     * @param object      $data
+     * @param string|null $userUuid
+     * @return string|null
+     */
+    private function runNormalUploadPollingFlow($data, $userUuid)
+    {
         $batchId = $this->getBatchIdFromSources($data->course_id, $data->section_id);
         if (empty($batchId)) {
             return null;
@@ -213,6 +236,127 @@ trait TriggerGenerationTrait
 
         sleep($pollInterval);
         return $uploadNotReadyCount;
+    }
+
+    /**
+     * Trigger generation for a course whose content has already been duplicated in Weaviate.
+     *
+     * No source PDFs exist locally, so we:
+     *   1. Call start_batch_upload with expected_uploads=0 and uploads_required=false to
+     *      obtain a fresh batch_id without waiting for any PDF processing.
+     *   2. Call trigger_generation once — the backend will fire immediately because
+     *      all_uploads_completed=true for an empty batch.
+     *
+     * @param object      $data     Task custom data
+     * @param string|null $userUuid User UUID for credit tracking
+     * @return string|null The content_request_id, or null on failure
+     */
+    private function triggerGenerationForDuplicatedCourse($data, $userUuid = null)
+    {
+        mtrace("uploads_required=false: using duplicated-course fast path (no PDF polling).");
+
+        $apiKey = \local_arina_prism_sense\CompanyConfig::getApiKey()
+            ?? get_config('local_arina_prism_sense', 'api_key');
+        if (empty($apiKey)) {
+            throw new \local_arina_prism_sense\exception\api_http_exception('API key is not configured');
+        }
+
+        // ── Step 1: create a zero-upload batch ──────────────────────────────────
+        $batchId = $this->createZeroUploadBatch($data, $apiKey);
+        if ($batchId === null) {
+            return null;
+        }
+
+        // ── Step 2: call trigger_generation once (no polling needed) ─────────────
+        $params       = $this->buildTriggerParams($data, $batchId, $userUuid);
+        $responseData = $this->callTriggerGenerationApi($params, $apiKey);
+        if ($responseData === null) {
+            mtrace("✗ trigger_generation call failed (null response).");
+            return null;
+        }
+
+        return $this->resolveOneShotTrigger($responseData);
+    }
+
+    /**
+     * Create a zero-upload batch via start_batch_upload for a duplicated course.
+     *
+     * @param object $data     Task custom data (tenant_id, course_id, section_id, regen_count)
+     * @param string $apiKey
+     * @return string|null batch_id on success, null on any failure
+     */
+    private function createZeroUploadBatch($data, $apiKey)
+    {
+        $startBatchParams = [
+            'organization_id'  => $data->tenant_id,
+            'course_id'        => $data->course_id,
+            'chapter_id'       => $data->section_id,
+            'regen_count'      => $data->regen_count ?? 0,
+            'expected_uploads' => 0,
+            'uploads_required' => 'false',
+        ];
+
+        $startBatchUrl = API_START_BATCH_UPLOAD . '?' .
+            http_build_query($startBatchParams, '', '&', PHP_QUERY_RFC3986);
+
+        mtrace("Calling start_batch_upload (expected_uploads=0): $startBatchUrl");
+
+        $chBatch = curl_init($startBatchUrl);
+        curl_setopt_array($chBatch, [
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => '',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTPHEADER     => ['X-API-key: ' . $apiKey],
+        ]);
+
+        $batchResponse = curl_exec($chBatch);
+        $batchHttpCode = curl_getinfo($chBatch, CURLINFO_HTTP_CODE);
+        $batchCurlErr  = curl_error($chBatch);
+        curl_close($chBatch);
+
+        if ($batchCurlErr || $batchHttpCode !== 200) {
+            $detail = $batchCurlErr ?: "HTTP $batchHttpCode: $batchResponse";
+            mtrace("✗ start_batch_upload failed: $detail");
+            return null;
+        }
+
+        $batchData = json_decode($batchResponse, true);
+        if (empty($batchData['batch_id'])) {
+            mtrace("✗ start_batch_upload returned unexpected response: $batchResponse");
+            return null;
+        }
+
+        mtrace("Zero-upload batch created. batch_id: {$batchData['batch_id']}");
+        return $batchData['batch_id'];
+    }
+
+    /**
+     * Resolve the trigger_generation response for a one-shot (duplicated-course) call.
+     *
+     * @param array $responseData
+     * @return string|null content_request_id on success, null otherwise
+     */
+    private function resolveOneShotTrigger(array $responseData)
+    {
+        $status           = $responseData['status'] ?? 'unknown';
+        $contentRequestId = $responseData['content_request_id'] ?? null;
+
+        if ($status === 'generation_triggered' && !empty($contentRequestId)) {
+            $this->logSuccessfulTrigger($contentRequestId, $responseData);
+            return $contentRequestId;
+        }
+
+        if ($this->isFailedStatus($status)) {
+            $this->handleTriggerFailure($responseData);
+        }
+
+        mtrace("✗ Unexpected trigger_generation response for duplicated course: " .
+            json_encode($responseData));
+        return null;
     }
 
     /**

@@ -63,12 +63,16 @@ export const useContentActions = (
             // replaced so the backend overwrites the same Azure folder.
             // Omit for fresh generation — Azure will pick the next new index.
             regenCount?: number;
+            /** When false the course has duplicated Weaviate content — no PDF uploads are needed. */
+            uploadsRequired?: boolean;
         }
     ) => {
         const parentContentId = regenOptions?.parentContentId;
         const feedbackId = regenOptions?.feedbackId;
         const feedbackData = regenOptions?.feedbackData;
         const regenCount = regenOptions?.regenCount;
+        // Default to true so existing callers that omit the flag keep the normal upload flow.
+        const uploadsRequired = regenOptions?.uploadsRequired !== false;
 
         if (!state.moodleContext) {
             showNotification('Moodle context not available', 'error');
@@ -133,6 +137,9 @@ export const useContentActions = (
                 // overwrites the same Azure folder instead of creating a new one.
                 // For fresh generation, omit it so Azure picks the next index.
                 ...(regenCount !== undefined ? { regen_count: regenCount } : {}),
+                // Duplicated-course flag: false tells the backend to skip the PDF
+                // guard and call start_batch_upload with expected_uploads=0.
+                ...(!uploadsRequired ? { uploads_required: false } : {}),
             };
 
             // Pass raw feedback fields so generate_content.php can forward them

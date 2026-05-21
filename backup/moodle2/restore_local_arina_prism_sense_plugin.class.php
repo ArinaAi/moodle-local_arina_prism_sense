@@ -90,10 +90,16 @@ class restore_local_arina_prism_sense_plugin extends restore_local_plugin // NOS
 
         $newid = $DB->insert_record('local_arina_prism_sense_sources', $data);
 
-        // Store the old→new mapping so linked records (tracking, feedback) can
-        // resolve contentid references later during the same restore pass.
+        // Store the old→new mapping so linked records can resolve references.
+        // The 'true' flag tells the restore engine to also restore associated files.
+        // The backup uses 'arina_prism_sense_source' as the annotate_files mapping,
+        // so Moodle will remap the file item ID to $newid in mdl_files.
         $this->set_mapping('arina_prism_sense_source', $oldid, $newid, true);
-        // 'true' above tells the restore engine to also restore associated files.
+
+        // After set_mapping, update fileitemid in the source record to match the
+        // new item ID that the restore engine will use ($newid), so view_pdf.php
+        // can look up the file via the correct itemid.
+        $DB->set_field('local_arina_prism_sense_sources', 'fileitemid', $newid, ['id' => $newid]);
     }
 
     /**

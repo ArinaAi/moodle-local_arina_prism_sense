@@ -46,7 +46,7 @@ class backup_local_arina_prism_sense_plugin extends backup_local_plugin // NOSON
         $sources = new backup_nested_element(
             'arina_prism_sense_sources',
             null,
-            null
+            []
         );
 
         $source = new backup_nested_element(
@@ -73,7 +73,7 @@ class backup_local_arina_prism_sense_plugin extends backup_local_plugin // NOSON
         $contents = new backup_nested_element(
             'arina_prism_sense_contents',
             null,
-            null
+            []
         );
 
         $content = new backup_nested_element(
@@ -106,7 +106,7 @@ class backup_local_arina_prism_sense_plugin extends backup_local_plugin // NOSON
         $trackings = new backup_nested_element(
             'arina_prism_sense_trackings',
             null,
-            null
+            []
         );
 
         $tracking = new backup_nested_element(
@@ -126,7 +126,7 @@ class backup_local_arina_prism_sense_plugin extends backup_local_plugin // NOSON
         $feedbacks = new backup_nested_element(
             'arina_prism_sense_feedbacks',
             null,
-            null
+            []
         );
 
         $feedback = new backup_nested_element(
@@ -200,7 +200,10 @@ class backup_local_arina_prism_sense_plugin extends backup_local_plugin // NOSON
         $feedback->annotate_ids('course', 'courseid');
 
         // ── Include Moodle file storage (uploaded PDFs) ───────────────────────
-        $source->annotate_files('local_arina_prism_sense', 'sources', 'fileitemid');
+        // Pass null so Moodle uses the source record's 'id' as the file itemid.
+        // 'arina_prism_sense_source' is an element name, not a field name — using
+        // it throws baseelementincorrectfinalorattribute during backup.
+        $source->annotate_files('local_arina_prism_sense', 'sources', null);
 
         return $plugin;
     }

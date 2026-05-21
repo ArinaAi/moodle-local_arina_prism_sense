@@ -34,7 +34,7 @@ import { CurriculumDepthSelector } from './Curriculum/CurriculumDepthSelector';
 interface CurriculumModalProps {
   open: boolean;
   onClose: () => void;
-  onGenerate: (curriculum: CurriculumStructure, contentStrategy: 'standard' | 'example_driven', sectionId: number, videoLength: string, regenOptions?: { parentContentId?: number; feedbackId?: number; regenCount?: number }) => void;
+  onGenerate: (curriculum: CurriculumStructure, contentStrategy: 'standard' | 'example_driven', sectionId: number, videoLength: string, regenOptions?: { parentContentId?: number; feedbackId?: number; regenCount?: number; uploadsRequired?: boolean }) => void;
   moodleContext: MoodleContext;
   /** User's current available credit balance */
   availableBalance: number;

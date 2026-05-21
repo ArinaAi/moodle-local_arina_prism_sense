@@ -42,61 +42,57 @@ try {
 
     $sources = $DB->get_records('local_arina_prism_sense_sources', $params, 'sectionid, timecreated');
 
-    // If requesting specific section, return grouped format (for modal)
-    if ($sectionid !== null) {
-        $result = [];
-        foreach ($sources as $source) {
-            // Generate secure view URL
-            $view_url = new moodle_url('/local/arina_prism_sense/view_pdf.php', ['id' => $source->id]);
-
-            $result[] = [
-                'id' => $source->id,
-                'filename' => $source->filename,
-                'filesize' => $source->filesize,
-                'title' => $source->title,
-                'author' => $source->author,
-                'fileitemid' => $source->fileitemid,
-                'upload_id' => $source->upload_id ?? null,
-                'view_url' => $view_url->out(false),
-                'is_scanned' => isset($source->is_scanned) ? (int) $source->is_scanned : null,
-                'processing_status' => isset($source->processing_status) ? $source->processing_status : 'uploaded',
-                'timecreated' => $source->timecreated,
-            ];
-        }
-
-        echo json_encode([
-            'success' => true,
-            'sources' => $result,
-        ]);
-    } else {
-        // Return flat array with section info (for LeftColumn)
-        $result = [];
-        foreach ($sources as $source) {
-            // Generate secure view URL
-            $view_url = new moodle_url('/local/arina_prism_sense/view_pdf.php', ['id' => $source->id]);
-
-            $result[] = [
-                'id' => $source->id,
-                'filename' => $source->filename,
-                'filesize' => $source->filesize,
-                'title' => $source->title,
-                'author' => $source->author,
-                'fileitemid' => $source->fileitemid,
-                'upload_id' => $source->upload_id ?? null,
-                'sectionid' => $source->sectionid,
-                'sectionname' => $section_names[$source->sectionid] ?? "Unknown Section",
-                'view_url' => $view_url->out(false),
-                'is_scanned' => isset($source->is_scanned) ? (int) $source->is_scanned : null,
-                'processing_status' => isset($source->processing_status) ? $source->processing_status : 'uploaded',
-                'timecreated' => $source->timecreated,
-            ];
-        }
-
-        echo json_encode([
-            'success' => true,
-            'sources' => $result,
-        ]);
+    // Pre-fetch which fileitemids actually exist in mdl_files.
+    // Backup-restored sources may have a source DB record but no corresponding file —
+    // emitting a view URL for them would cause a 404 in view_pdf.php.
+    $allItemids = array_column((array) $sources, 'fileitemid');
+    $existingItemids = [];
+    if (!empty($allItemids)) {
+        [$inSql, $inParams] = $DB->get_in_or_equal($allItemids, SQL_PARAMS_QM);
+        $existingItemids = array_flip(array_column(
+            $DB->get_records_select(
+                'files',
+                "component = 'local_arina_prism_sense' AND filearea = 'sources' AND filename != '.' AND itemid $inSql",
+                $inParams,
+                '',
+                'itemid'
+            ),
+            'itemid'
+        ));
     }
+
+    // Build result rows — shared logic for both section-scoped and course-wide requests.
+    // The flat (course-wide) format adds sectionid/sectionname for the LeftColumn view.
+    $result = [];
+    foreach ($sources as $source) {
+        $hasFile  = isset($existingItemids[$source->fileitemid]);
+        $view_url = $hasFile
+            ? (new moodle_url('/local/arina_prism_sense/view_pdf.php', ['id' => $source->id]))->out(false)
+            : null;
+
+        $row = [
+            'id'                => $source->id,
+            'filename'          => $source->filename,
+            'filesize'          => $source->filesize,
+            'title'             => $source->title,
+            'author'            => $source->author,
+            'fileitemid'        => $source->fileitemid,
+            'upload_id'         => $source->upload_id ?? null,
+            'view_url'          => $view_url,
+            'is_scanned'        => isset($source->is_scanned) ? (int) $source->is_scanned : null,
+            'processing_status' => isset($source->processing_status) ? $source->processing_status : 'uploaded',
+            'timecreated'       => $source->timecreated,
+        ];
+
+        if ($sectionid === null) {
+            $row['sectionid']   = $source->sectionid;
+            $row['sectionname'] = $section_names[$source->sectionid] ?? 'Unknown Section';
+        }
+
+        $result[] = $row;
+    }
+
+    echo json_encode(['success' => true, 'sources' => $result]);
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([
