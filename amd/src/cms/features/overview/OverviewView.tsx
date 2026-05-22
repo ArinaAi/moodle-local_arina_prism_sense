@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { DollarSign, Users, Zap, AlertCircle } from 'lucide-react';
+import { DollarSign, Users, Zap, AlertCircle, RefreshCw } from 'lucide-react';
 import { Skeleton } from '@mui/material';
 import { stagger } from '../../config/animations';
 import { StatCard } from '../../components/ui/StatCard';
@@ -10,45 +10,76 @@ import { useLiveBalance } from '../../hooks/useLiveBalance';
 import { apiFetch } from '../../../utils/apiFetch';
 
 // Service Overview Card
-const ServiceOverviewCard: React.FC = () => (
-    <motion.div
-        variants={{ initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 } }}
-        style={{
-            background: 'var(--paper)',
-            border: '1px solid var(--border)',
-            borderRadius: 20,
-            padding: '16px 24px',
-            boxShadow: 'var(--shadow)',
-        }}
-    >
-        <div
+interface ServiceOverviewCardProps {
+    onRefresh: () => void;
+    isRefreshing: boolean;
+    lastUpdatedAt: number;
+}
+
+const ServiceOverviewCard: React.FC<ServiceOverviewCardProps> = ({ onRefresh, isRefreshing, lastUpdatedAt }) => {
+    const lastUpdatedLabel = lastUpdatedAt > 0
+        ? `Updated ${new Date(lastUpdatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+        : 'Loading...';
+
+    return (
+        <motion.div
+            variants={{ initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 } }}
             style={{
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.07em',
-                color: '#0f6cbf',
-                marginBottom: 10,
+                background: 'var(--paper)',
+                border: '1px solid var(--border)',
+                borderRadius: 20,
+                padding: '16px 24px',
+                boxShadow: 'var(--shadow)',
             }}
         >
-            Institutional Overview
-        </div>
-        <p style={{ fontSize: '0.9375rem', color: 'var(--ts)', lineHeight: 1.7, margin: 0 }}>
-            This dashboard provides a complete view of the institution&apos;s Prism credit activity.
-            Monitor the credit pool, track faculty allocations, and review service usage across departments.
-        </p>
-    </motion.div>
-);
+            <div
+                style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.07em',
+                    color: '#0f6cbf',
+                    marginBottom: 10,
+                }}
+            >
+                Institutional Overview
+            </div>
+            <p style={{ fontSize: '0.9375rem', color: 'var(--ts)', lineHeight: 1.7, marginBottom: 16 }}>
+                This dashboard provides a complete view of the institution&apos;s Prism credit activity.
+                Monitor the credit pool, track faculty allocations, and review service usage across departments.
+            </p>
+            {/* Refresh status bar */}
+            <div style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.75rem', fontWeight: 500, color: '#94a3b8', background: '#f8fafc', padding: '6px 12px', borderRadius: 8, border: '1px solid #f1f5f9', gap: 4 }}>
+                <span style={{ color: '#64748b' }}>{lastUpdatedLabel}</span>
+                <span style={{ margin: '0 6px', color: '#cbd5e1' }}>|</span>
+                <button
+                    onClick={onRefresh}
+                    disabled={isRefreshing}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#0066FF', background: 'none', border: 'none', cursor: isRefreshing ? 'default' : 'pointer', fontWeight: 500, fontSize: '0.75rem', padding: 0, opacity: isRefreshing ? 0.7 : 1 }}
+                >
+                    <motion.span
+                        style={{ display: 'inline-flex' }}
+                        animate={{ rotate: isRefreshing ? 360 : 0 }}
+                        transition={isRefreshing ? { duration: 0.8, ease: 'linear', repeat: Infinity } : { duration: 0.3, ease: 'easeOut' }}
+                    >
+                        <RefreshCw size={13} />
+                    </motion.span>
+                    <span>Refresh now</span>
+                </button>
+            </div>
+        </motion.div>
+    );
+};
 
 // Overview Page
 export const OverviewView: React.FC = () => {
-    // useLiveBalance(true) → polling enabled because we are on the Overview tab
-    const { balanceData, staffReserved, delta, loading, error } = useLiveBalance(true);
+    const { balanceData, staffReserved, delta, loading, error, lastUpdatedAt, refresh } = useLiveBalance();
 
-    // Usage metrics still fetched locally (not included in balance hook)
+    // Usage metrics — fetched on mount and on manual refresh
     const [usageData, setUsageData] = React.useState<any[]>([]);
     const [usageLoading, setUsageLoading] = React.useState(true);
-    React.useEffect(() => {
+    const fetchUsage = React.useCallback(() => {
+        setUsageLoading(true);
         const baseUrl = window.MOODLE_CMS_CONTEXT?.wwwroot || '';
         apiFetch(`${baseUrl}/local/arina_prism_sense/api/cms/get_usage_metrics.php`, { credentials: 'include' })
             .then((r) => r.json())
@@ -56,6 +87,15 @@ export const OverviewView: React.FC = () => {
             .catch(() => {/* silently ignore */ })
             .finally(() => setUsageLoading(false));
     }, []);
+
+    React.useEffect(() => { fetchUsage(); }, [fetchUsage]);
+
+    const refreshAll = React.useCallback(() => {
+        refresh();
+        fetchUsage();
+    }, [refresh, fetchUsage]);
+
+    const isRefreshing = loading || usageLoading;
 
     const isEmpty = !loading && !usageLoading && !error && balanceData && balanceData.current_balance === 0 && usageData.length === 0;
 
@@ -71,7 +111,7 @@ export const OverviewView: React.FC = () => {
             variants={stagger.cards}
             style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
         >
-            <ServiceOverviewCard />
+            <ServiceOverviewCard onRefresh={refreshAll} isRefreshing={isRefreshing} lastUpdatedAt={lastUpdatedAt} />
 
             {/* Error Banner */}
             {error && (

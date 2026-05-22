@@ -20,15 +20,15 @@ interface LiveBalanceResult {
     delta: BalanceDelta | null; // null on first load
     loading: boolean;
     error: string | null;
+    lastUpdatedAt: number;  // epoch ms of last successful fetch, 0 if never
     refresh: () => void;
 }
 
-const POLL_INTERVAL_MS = 30_000;
 const VISIBILITY_MIN_MS = 30_000; // min gap before re-fetching on focus
 
 /**
  * Fetches org balance + staff reserved credits.
- * - Polls every 30s when `enabled` (i.e. Overview tab is active).
+ * - On initial page visit and on manual refresh.
  * - Instant refresh on `creditBalanceChanged` custom event.
  * - Refresh on visibilitychange if >30s since last fetch.
  */
@@ -37,12 +37,13 @@ const VISIBILITY_MIN_MS = 30_000; // min gap before re-fetching on focus
 let _prevBalance: number | null = null;
 let _prevReserved: number | null = null;
 
-export function useLiveBalance(enabled: boolean): LiveBalanceResult {
+export function useLiveBalance(): LiveBalanceResult {
     const [balanceData, setBalanceData] = useState<BalanceData | null>(null);
     const [staffReserved, setStaffReserved] = useState<number>(0);
     const [delta, setDelta] = useState<BalanceDelta | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [lastUpdatedAt, setLastUpdatedAt] = useState<number>(0);
 
     const lastFetchAt = useRef<number>(0);
 
@@ -105,6 +106,7 @@ export function useLiveBalance(enabled: boolean): LiveBalanceResult {
         } finally {
             setLoading(false);
             lastFetchAt.current = Date.now();
+            setLastUpdatedAt(Date.now());
         }
     }, []);
 
@@ -113,21 +115,14 @@ export function useLiveBalance(enabled: boolean): LiveBalanceResult {
         fetchAll();
     }, [fetchAll]);
 
-    // ── 2. Polling (only when enabled) ───────────────────────────────────────
-    useEffect(() => {
-        if (!enabled) { return; }
-        const id = setInterval(fetchAll, POLL_INTERVAL_MS);
-        return () => clearInterval(id);
-    }, [enabled, fetchAll]);
-
-    // ── 3. Event-driven instant refresh ──────────────────────────────────────
+    // ── 2. Event-driven instant refresh ──────────────────────────────────────────
     useEffect(() => {
         const handler = () => { void fetchAll(); };
         globalThis.addEventListener(BALANCE_REFRESH_EVENT, handler);
         return () => globalThis.removeEventListener(BALANCE_REFRESH_EVENT, handler);
     }, [fetchAll]);
 
-    // ── 4. Page Visibility API — refresh on tab focus if stale ───────────────
+    // ── 3. Page Visibility API — refresh on tab focus if stale ───────────────
     useEffect(() => {
         const handler = () => {
             if (document.visibilityState === 'visible') {
@@ -139,5 +134,5 @@ export function useLiveBalance(enabled: boolean): LiveBalanceResult {
         return () => document.removeEventListener('visibilitychange', handler);
     }, [fetchAll]);
 
-    return { balanceData, staffReserved, delta, loading, error, refresh: () => { void fetchAll(); } };
+    return { balanceData, staffReserved, delta, loading, error, lastUpdatedAt, refresh: () => { void fetchAll(); } };
 }
