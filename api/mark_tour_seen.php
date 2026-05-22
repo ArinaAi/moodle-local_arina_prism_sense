@@ -28,6 +28,7 @@ $allowed = [
     'arina_prism_sense_tour_teacher_seen',
     'arina_prism_sense_tour_student_seen',
     'arina_prism_sense_tour_cms_seen',
+    'arina_prism_sense_ripple_seen',
 ];
 
 if (!in_array($pref, $allowed)) {

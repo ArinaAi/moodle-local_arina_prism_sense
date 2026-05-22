@@ -163,10 +163,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
                         </Box>
                         <motion.button
                             id="arina_prism_sense-tour-cms-add-credits"
-                            onClick={() => setPurchaseOpen(true)}
-                            whileHover={{ backgroundColor: '#0a5a9d', y: -1, boxShadow: '0 4px 12px rgba(15,108,191,0.25)' }}
-                            whileTap={{ scale: 0.97 }}
-                            style={{ padding: '8px 16px', border: 'none', borderRadius: '20px', background: '#0f6cbf', color: '#fff', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+                            disabled
+                            style={{ padding: '8px 16px', border: 'none', borderRadius: '20px', background: '#b0bec5', color: '#fff', fontSize: '0.875rem', fontWeight: 600, cursor: 'not-allowed', fontFamily: 'inherit', whiteSpace: 'nowrap', opacity: 0.6, pointerEvents: 'none' }}
                         >
                             + Add Credits
                         </motion.button>

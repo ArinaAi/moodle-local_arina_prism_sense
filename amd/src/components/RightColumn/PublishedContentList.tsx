@@ -37,7 +37,7 @@ const PublishedContentList: React.FC<PublishedContentListProps> = ({
     );
 
     return (
-        <Card sx={{
+        <Card id="arina_prism_sense-tour-published-col" sx={{
             flex: 1,
             display: 'flex',
             flexDirection: 'column',

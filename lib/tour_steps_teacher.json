@@ -6,21 +6,21 @@
         "attachTo": { "element": "#arina_prism_sense-tour-header", "on": "bottom" }
     },
     {
+        "id": "add-source",
+        "title": "Manage Sources",
+        "text": "Click here to upload PDF of lecture notes and chapter reference materials. Once uploaded, PRISM Sense uses it to generate your lecture content.",
+        "attachTo": { "element": "#arina_prism_sense-tour-add-source-btn", "on": "right" }
+    },
+    {
         "id": "sources-panel",
         "title": "Sources",
         "text": "All your uploaded course materials (PDFs, documents) are managed here. Sources are the raw input for AI content generation.",
         "attachTo": { "element": "#arina_prism_sense-tour-sources-panel", "on": "right" }
     },
     {
-        "id": "add-source",
-        "title": "Manage Sources",
-        "text": "Click here to upload a PDF or document. Once uploaded, PRISM Sense uses it to generate your lecture content.",
-        "attachTo": { "element": "#arina_prism_sense-tour-add-source-btn", "on": "right" }
-    },
-    {
         "id": "content-dock",
         "title": "Content Types",
-        "text": "Choose what you want to generate — a <strong>Slide Deck</strong> or a <strong>Video Lecture</strong>. Click a button to start generating AI content for the selected course section.",
+        "text": "Choose to generate — a <strong>Slide Deck</strong> followed by <strong>Video Lecture</strong>. Click a button to start generating AI content for the selected course section.",
         "attachTo": { "element": "#arina_prism_sense-tour-content-dock", "on": "right" }
     },
     {
@@ -36,9 +36,21 @@
         "attachTo": { "element": "#arina_prism_sense-tour-right-col", "on": "left" }
     },
     {
+        "id": "published-content",
+        "title": "Published Content",
+        "text": "Published content for students appears here.",
+        "attachTo": { "element": "#arina_prism_sense-tour-published-col", "on": "left" }
+    },
+    {
         "id": "credits",
         "title": "Credit Balance",
-        "text": "Each content generation uses credits from your Arina AI balance. Your current balance is displayed here.",
+        "text": "Each content generation uses credits from your available balance. Your current balance is displayed here.",
         "attachTo": { "element": "#arina_prism_sense-tour-credit-badge", "on": "bottom" }
+    },
+    {
+        "id": "report-issue",
+        "title": "Report Issue",
+        "text": "Encountered a problem or have a suggestion? Click here to report an issue or share feedback with the PRISM Sense team.",
+        "attachTo": { "element": "#arina_prism_sense-tour-report-issue", "on": "bottom" }
     }
 ]

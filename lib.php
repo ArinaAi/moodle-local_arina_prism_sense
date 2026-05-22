@@ -69,7 +69,7 @@ function local_arina_prism_sense_get_button_js($wwwroot)
                     button.style.cssText = "margin-top: 10px; margin-right: 15px; background: #0f6cbf;" +
                         " border-color: #0f6cbf; color: white;" +
                         " font-weight: 600; padding: 8px 16px; border-radius: 4px; display: " +
-                        "inline-block; cursor: pointer;";
+                        "inline-block; cursor: pointer; position: relative;";
 
                     button.addEventListener("click", function() {
                         if (window.MOODLE_CONTEXT && window.MOODLE_CONTEXT.courseid) {
@@ -132,13 +132,13 @@ function local_arina_prism_sense_get_student_button_js($wwwroot)
                     console.log("ArinaPrismSense: Found student target", targetElement);
                     const button = document.createElement("a");
                     button.className = "btn btn-primary arina_prism_sense-student-button"; // Changed to btn-primary
-                    button.innerHTML = '<i class="fa fa-play-circle" aria-hidden="true"></i> ' + "{$buttontext}";
+                    button.innerHTML = "{$buttontext}";
                     button.href = "#";
                     // Matched colors: background: #0f6cbf; border-color: #0f6cbf; color: white;
                     button.style.cssText = "margin-top: 10px; margin-right: 10px; background: #0f6cbf; " +
                         "border-color: #0f6cbf; color: white; " +
                         "font-weight: 600; padding: 8px 16px; border-radius: 4px; " +
-                        "display: inline-block; cursor: pointer;";
+                        "display: inline-block; cursor: pointer; position: relative;";
 
                     button.addEventListener("click", function(e) {
                         e.preventDefault();
@@ -253,6 +253,13 @@ function local_arina_prism_sense_before_footer()
             $contextPrepared = true;
         }
         $jsToInject .= local_arina_prism_sense_get_student_button_js($CFG->wwwroot);
+    }
+
+    // 3. Squeeze animation — first-login animation on the relevant button
+    if (local_arina_prism_sense_can_access() || $canAccessStudent) {
+        $hasGenPerm = isset($COURSE->id) && $COURSE->id > 1
+            && has_capability(CAPABILITY_GENERATE_CONTENT, context_course::instance($COURSE->id));
+        $jsToInject .= local_arina_prism_sense_get_squeeze_js($hasGenPerm, $CFG->wwwroot);
     }
 
     if ($jsToInject !== '') {
@@ -383,6 +390,85 @@ function local_arina_prism_sense_get_cms_menu_js($wwwroot)
         })();
 JS;
 }
+
+/**
+ * Generate JavaScript for the first-login squeeze animation on course buttons.
+ *
+ * @param bool   $hasGeneratePermission True if user can generate content (teacher role)
+ * @param string $wwwroot               Moodle wwwroot for constructing the mark-seen API URL
+ * @return string JavaScript code
+ */
+function local_arina_prism_sense_get_squeeze_js($hasGeneratePermission, $wwwroot)
+{
+    // PHP-side guard: if user has already seen the animation (stored in Moodle DB), inject nothing.
+    if (get_user_preferences('arina_prism_sense_ripple_seen', 0)) {
+        return '';
+    }
+
+    $prefKey      = 'arina_prism_sense_ripple_seen';
+    $sesskeyVal   = sesskey();
+    $markSeenUrl  = $wwwroot . '/local/arina_prism_sense/api/mark_tour_seen.php';
+    $targetSelector = $hasGeneratePermission
+        ? '.arina_prism_sense-course-button'
+        : '.arina_prism_sense-student-button';
+
+    return <<<JS
+        (function() {
+            var TARGET_SEL    = '{$targetSelector}';
+            var MARK_SEEN_URL = '{$markSeenUrl}';
+            var PREF_KEY      = '{$prefKey}';
+            var SESSKEY       = '{$sesskeyVal}';
+
+            // Inject squeeze keyframe CSS once
+            if (!document.getElementById('arina-squeeze-style')) {
+                var style = document.createElement('style');
+                style.id = 'arina-squeeze-style';
+                style.textContent =
+                    '@keyframes arina-squeeze{' +
+                        '0%,100%{transform:scaleX(1) scaleY(1)}' +
+                        '20%{transform:scaleX(.92) scaleY(1.06)}' +
+                        '40%{transform:scaleX(1.06) scaleY(.95)}' +
+                        '60%{transform:scaleX(.97) scaleY(1.02)}' +
+                        '80%{transform:scaleX(1.02) scaleY(.99)}' +
+                    '}' +
+                    '.arina-squeeze{animation:arina-squeeze 1.8s ease-in-out infinite;}';
+                document.head.appendChild(style);
+            }
+
+            function applySqueeze() {
+                var btn = document.querySelector(TARGET_SEL);
+                if (!btn) { return; }
+
+                // Add squeeze animation class to the button
+                btn.classList.add('arina-squeeze');
+
+                // On click: stop animation and persist "seen" to Moodle DB
+                btn.addEventListener('click', function() {
+                    btn.classList.remove('arina-squeeze');
+                    fetch(
+                        MARK_SEEN_URL +
+                        '?sesskey=' + encodeURIComponent(SESSKEY) +
+                        '&pref='    + encodeURIComponent(PREF_KEY),
+                        { method: 'POST', credentials: 'same-origin' }
+                    ).catch(function() {}); // fire-and-forget
+                }, { once: true });
+            }
+
+            // Wait for the button to be injected into the DOM
+            var attempts = 0;
+            var squeezeInterval = setInterval(function() {
+                attempts++;
+                if (document.querySelector(TARGET_SEL)) {
+                    clearInterval(squeezeInterval);
+                    applySqueeze();
+                } else if (attempts > 40) {
+                    clearInterval(squeezeInterval); // Give up after 10 s
+                }
+            }, 250);
+        })();
+JS;
+}
+
 
 /**
  * Check if current page is the login page.

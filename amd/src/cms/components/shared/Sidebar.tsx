@@ -134,6 +134,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         return (
                             <motion.button
                                 key={id}
+                                id={`arina_prism_sense-tour-cms-nav-${id}`}
                                 onClick={() => onNavChange(id)}
                                 whileTap={{ scale: 0.97 }}
                                 style={{

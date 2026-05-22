@@ -37,6 +37,10 @@ function xmldb_local_arina_prism_sense_uninstall() // NOSONAR
     $userPreferenceNames = [
         'arina_prism_sense_wallet_sub_user_id',
         'arina_prism_sense_low_credits_state',
+        'arina_prism_sense_tour_teacher_seen',
+        'arina_prism_sense_tour_student_seen',
+        'arina_prism_sense_tour_cms_seen',
+        'arina_prism_sense_ripple_seen',
     ];
 
     foreach ($userPreferenceNames as $prefName) {

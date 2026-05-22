@@ -6,16 +6,16 @@
         "attachTo": { "element": "#arina_prism_sense-tour-student-header", "on": "bottom" }
     },
     {
-        "id": "content-navigator",
-        "title": "Content Navigator",
-        "text": "Browse your course sections here. Select any item to view the slides or video lecture your teacher has published.",
-        "attachTo": { "element": "#arina_prism_sense-tour-content-navigator", "on": "right" }
-    },
-    {
         "id": "section-filter",
         "title": "Filter by Section",
         "text": "Use this dropdown to jump to a specific course section and view only the content that belongs to it.",
         "attachTo": { "element": "#arina_prism_sense-tour-section-filter", "on": "right" }
+    },
+    {
+        "id": "content-navigator",
+        "title": "Content Navigator",
+        "text": "Browse your course sections here. Select any item to view the slides or video lecture your teacher has published.",
+        "attachTo": { "element": "#arina_prism_sense-tour-content-navigator", "on": "right" }
     },
     {
         "id": "content-viewer",

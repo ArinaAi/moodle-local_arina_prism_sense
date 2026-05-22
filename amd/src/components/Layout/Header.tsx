@@ -192,6 +192,7 @@ const Header: React.FC<HeaderProps> = ({ moodleContext, children, onBack, onOpen
                 {/* Plugin Feedback Button */}
                 {onOpenPluginFeedback && (
                     <IconButton
+                        id="arina_prism_sense-tour-report-issue"
                         onClick={onOpenPluginFeedback}
                         size="small"
                         sx={{

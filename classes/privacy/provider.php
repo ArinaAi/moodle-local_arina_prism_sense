@@ -112,6 +112,25 @@ class provider implements // phpcs:ignore Squiz.Classes.ValidClassName.NotCamelC
             'privacy:metadata:preference:arina_prism_sense_wallet_sub_user_id'
         );
 
+        // UI state preferences: track whether guided tours and the first-login
+        // ripple effect have been dismissed for this user.
+        $collection->add_user_preference(
+            'arina_prism_sense_tour_teacher_seen',
+            'privacy:metadata:preference:arina_prism_sense_tour_teacher_seen'
+        );
+        $collection->add_user_preference(
+            'arina_prism_sense_tour_student_seen',
+            'privacy:metadata:preference:arina_prism_sense_tour_student_seen'
+        );
+        $collection->add_user_preference(
+            'arina_prism_sense_tour_cms_seen',
+            'privacy:metadata:preference:arina_prism_sense_tour_cms_seen'
+        );
+        $collection->add_user_preference(
+            'arina_prism_sense_ripple_seen',
+            'privacy:metadata:preference:arina_prism_sense_ripple_seen'
+        );
+
         // External service: Arina AI API receives the user's UUID for credit tracking.
         $collection->add_external_location_link(
             'arina_api',
@@ -300,6 +319,25 @@ class provider implements // phpcs:ignore Squiz.Classes.ValidClassName.NotCamelC
                 )
             );
         }
+
+        // --- UI state preferences (tour seen / ripple seen) ---
+        $uiPrefs = [
+            'arina_prism_sense_tour_teacher_seen',
+            'arina_prism_sense_tour_student_seen',
+            'arina_prism_sense_tour_cms_seen',
+            'arina_prism_sense_ripple_seen',
+        ];
+        foreach ($uiPrefs as $uiPrefName) {
+            $uiPrefVal = get_user_preferences($uiPrefName, null, $userid);
+            if ($uiPrefVal !== null) {
+                writer::with_context(\context_user::instance($userid))->export_user_preference(
+                    'local_arina_prism_sense',
+                    $uiPrefName,
+                    $uiPrefVal,
+                    get_string('privacy:metadata:preference:' . $uiPrefName, 'local_arina_prism_sense')
+                );
+            }
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -391,8 +429,16 @@ class provider implements // phpcs:ignore Squiz.Classes.ValidClassName.NotCamelC
             );
         }
 
-        // Delete user preference (wallet UUID).
-        unset_user_preference('arina_prism_sense_wallet_sub_user_id', $userid);
+        // Delete user preferences (wallet UUID + UI state).
+        foreach ([
+            'arina_prism_sense_wallet_sub_user_id',
+            'arina_prism_sense_tour_teacher_seen',
+            'arina_prism_sense_tour_student_seen',
+            'arina_prism_sense_tour_cms_seen',
+            'arina_prism_sense_ripple_seen',
+        ] as $prefName) {
+            unset_user_preference($prefName, $userid);
+        }
     }
 
     /**
@@ -454,5 +500,18 @@ class provider implements // phpcs:ignore Squiz.Classes.ValidClassName.NotCamelC
             "courseid = :courseid3 AND publishedby $insql",
             array_merge(['courseid3' => $courseid], $inparams)
         );
+
+        // Delete UI state preferences for each user in the list.
+        foreach ($userlist->get_userids() as $uid) {
+            foreach ([
+                'arina_prism_sense_wallet_sub_user_id',
+                'arina_prism_sense_tour_teacher_seen',
+                'arina_prism_sense_tour_student_seen',
+                'arina_prism_sense_tour_cms_seen',
+                'arina_prism_sense_ripple_seen',
+            ] as $prefName) {
+                unset_user_preference($prefName, $uid);
+            }
+        }
     }
 }

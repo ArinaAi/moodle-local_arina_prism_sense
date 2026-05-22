@@ -26,12 +26,12 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['pluginname'] = 'PRISM Sense';
-$string['generatelecture'] = 'Generate AI Lecture';
+$string['generatelecture'] = 'Professor Co-Pilot';
 $string['generating'] = 'Generating Lecture...';
 $string['creditmanagement'] = 'Credit Management';
 $string['task:generate_content_task'] = 'Generate PRISM Sense Content';
 $string['task:poll_content_status'] = 'Poll Content Generation Status';
-$string['courseplayer'] = 'Start Course';
+$string['courseplayer'] = 'Student Co-Pilot';
 $string['unabletoopenprism'] = 'Unable to open PRISM Sense. Please refresh the page and try again.';
 
 // PDF viewing errors
@@ -123,6 +123,14 @@ $string['privacy:metadata:local_arina_prism_sense_feedback:timecreated'] =
 // User preference
 $string['privacy:metadata:preference:arina_prism_sense_wallet_sub_user_id'] =
     'A UUID that links this Moodle user to their Arina credit wallet account for usage tracking.';
+$string['privacy:metadata:preference:arina_prism_sense_tour_teacher_seen'] =
+    'Records whether this user has already completed the Professor Co-Pilot guided tour.';
+$string['privacy:metadata:preference:arina_prism_sense_tour_student_seen'] =
+    'Records whether this user has already completed the Student Co-Pilot guided tour.';
+$string['privacy:metadata:preference:arina_prism_sense_tour_cms_seen'] =
+    'Records whether this user has already completed the Credit Management guided tour.';
+$string['privacy:metadata:preference:arina_prism_sense_ripple_seen'] =
+    'Records whether this user has already been shown the first-login ripple animation on the course buttons.';
 
 // External service: Arina AI API
 $string['privacy:metadata:arina_api'] =

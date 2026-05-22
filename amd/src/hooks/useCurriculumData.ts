@@ -77,14 +77,10 @@ export function useCurriculumData(
         });
       }
 
-      // When uploads are NOT required (duplicated course), show every course section
-      // regardless of whether PDFs exist.  Otherwise keep the existing filter.
+      // Always filter out sections that have no uploaded PDFs, regardless of
+      // whether uploads are required (courseUploadsRequired flag).
       const baseSections = moodleContext.sections
-        .filter((section) =>
-          courseUploadsRequired
-            ? (sourcesBySection[section.id] && sourcesBySection[section.id] > 0)
-            : true
-        )
+        .filter((section) => sourcesBySection[section.id] && sourcesBySection[section.id] > 0)
         .map((section) => ({
           id: section.id,
           name: section.name,

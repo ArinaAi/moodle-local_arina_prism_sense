@@ -71,8 +71,8 @@ if (empty($apiKey)) {
 
 $PAGE->set_url(new moodle_url('/local/arina_prism_sense/launch.php', ['courseid' => $courseid]));
 $PAGE->set_pagelayout('popup'); // Use popup layout for full-screen app
-$PAGE->set_title('Generate AI Lecture');
-$PAGE->set_heading('Generate AI Lecture');
+$PAGE->set_title('Professor Co-Pilot');
+$PAGE->set_heading('Professor Co-Pilot');
 
 // If validation failed, show error page and exit
 if ($validationFailed) {

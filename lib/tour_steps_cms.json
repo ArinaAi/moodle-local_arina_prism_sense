@@ -1,7 +1,7 @@
 [
     {
         "id": "welcome",
-        "title": "Welcome to the CMS Dashboard",
+        "title": "Welcome to the Credit Management",
         "text": "This quick tour walks you through the Credit Management System — where you manage institutional credits, staff allocations, and financial reporting.",
         "attachTo": { "element": "#arina_prism_sense-tour-cms-header", "on": "bottom" }
     },
@@ -14,7 +14,7 @@
     {
         "id": "main-content",
         "title": "Main Content Area",
-        "text": "The selected section is displayed here. Each view provides detailed data and actions for managing your institution's credit usage.",
+        "text": "The selected section is displayed here. Each view provides detailed data about your institution's credit usage.",
         "attachTo": { "element": "#arina_prism_sense-tour-cms-main", "on": "top" }
     },
     {
@@ -28,5 +28,29 @@
         "title": "Purchase Credits",
         "text": "Click here to top up your institutional credit balance. Credits are shared across all staff members you assign them to.",
         "attachTo": { "element": "#arina_prism_sense-tour-cms-add-credits", "on": "bottom" }
+    },
+    {
+        "id": "nav-staff",
+        "title": "Staff Management",
+        "text": "View and manage your institution's staff members. Allocate or recall credits for individual staff, and monitor each person's balance.",
+        "attachTo": { "element": "#arina_prism_sense-tour-cms-nav-staff", "on": "right" }
+    },
+    {
+        "id": "nav-financials",
+        "title": "Financials",
+        "text": "Review your institution's credit purchase history and available coupon codes in the Financials section.",
+        "attachTo": { "element": "#arina_prism_sense-tour-cms-nav-financials", "on": "right" }
+    },
+    {
+        "id": "nav-audit",
+        "title": "Audit Ledger",
+        "text": "The Audit Ledger provides a full history of every credit transaction — allocations, consumption, and adjustments — for transparency and compliance.",
+        "attachTo": { "element": "#arina_prism_sense-tour-cms-nav-audit", "on": "right" }
+    },
+    {
+        "id": "nav-pricing",
+        "title": "Pricing Info",
+        "text": "Browse available credit packages and pricing tiers here to choose the right plan for your institution.",
+        "attachTo": { "element": "#arina_prism_sense-tour-cms-nav-pricing", "on": "right" }
     }
 ]
