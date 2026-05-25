@@ -17,8 +17,14 @@ import {
     Chip,
     Autocomplete,
     TextField,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogContentText,
+    DialogActions,
     useTheme,
     useMediaQuery,
+    Tooltip,
 } from '@mui/material';
 import { Close } from '@mui/icons-material';
 
@@ -119,8 +125,11 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
             .sort((a, b) => a.sectionId - b.sectionId); // Sort by section order
     }, [contentItems]);
 
-    // Detect if a video exists for the same section + settings but from an older slide version (different regen_count).
-    // This means the user regenerated the slide and is now trying to generate a video again — the old video will be overwritten.
+    // Overwrite confirmation dialog state
+    const [overwriteConfirm, setOverwriteConfirm] = useState(false);
+
+    // Detect if a video exists in this section from a different slide version with the same settings.
+    // This means generating will overwrite an older video in the section.
     const staleVideo = useMemo(() => {
         if (!selectedSlideId) { return null; }
 
@@ -134,15 +143,23 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
 
         return contentItems.find(item => {
             if (item.contenttype !== 'video') { return false; }
-            if (item.status === 'error') { return false; }
+            if (item.status === 'error' || item.status === 'generating') { return false; }
             if (item.sectionid !== selectedSlide.sectionid) { return false; }
 
             const genData = item.generationdata
                 ? (JSON.parse(item.generationdata) as Record<string, unknown>)
                 : {};
 
+            // Two-tier: temp items carry source_content_id; real backend items use regen_count fallback
+            const srcId = genData['source_content_id'];
+            const isFromCurrentSlide = srcId !== null && srcId !== undefined
+                ? Number(srcId) === selectedSlideId
+                : genData['regen_count'] === slideRegenCount;
+
+            // A stale video was generated from a different slide in this section
+            if (isFromCurrentSlide) { return false; }
+
             return (
-                genData['regen_count'] !== slideRegenCount &&
                 genData['language'] === language &&
                 genData['voice_gender'] === voiceGender &&
                 genData['avatar_strategy'] === avatarStrategy
@@ -150,13 +167,13 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
         }) ?? null;
     }, [selectedSlideId, contentItems, language, voiceGender, avatarStrategy]);
 
-    // Detect if a video with the same settings already exists for the selected slide.
-    // Videos are matched by sectionid + regen_count (slide version) + language + voice_gender + avatar_strategy.
+    // Detect if a video was already generated from this exact slide with the same settings.
+    // Two-tier: source_content_id for temp items, regen_count fallback for real backend items.
     const duplicateVideo = useMemo(() => {
-        if (!selectedSlideId) {return null};
+        if (!selectedSlideId) { return null; }
 
         const selectedSlide = contentItems.find(item => item.id === selectedSlideId);
-        if (!selectedSlide) {return null};
+        if (!selectedSlide) { return null; }
 
         const slideGenData = selectedSlide.generationdata
             ? (JSON.parse(selectedSlide.generationdata) as Record<string, unknown>)
@@ -164,16 +181,60 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
         const slideRegenCount = slideGenData['regen_count'] ?? 0;
 
         return contentItems.find(item => {
-            if (item.contenttype !== 'video') {return false};
-            if (item.status === 'error') {return false};
-            if (item.sectionid !== selectedSlide.sectionid) {return false};
+            if (item.contenttype !== 'video') { return false; }
+            if (item.status === 'error' || item.status === 'generating') { return false; }
 
             const genData = item.generationdata
                 ? (JSON.parse(item.generationdata) as Record<string, unknown>)
                 : {};
 
+            // Two-tier: temp items carry source_content_id; real backend items use regen_count fallback
+            const srcId = genData['source_content_id'];
+            const isFromCurrentSlide = srcId !== null && srcId !== undefined
+                ? Number(srcId) === selectedSlideId
+                : (item.sectionid === selectedSlide.sectionid &&
+                   genData['regen_count'] === slideRegenCount);
+
+            if (!isFromCurrentSlide) { return false; }
+
             return (
-                genData['regen_count'] === slideRegenCount &&
+                genData['language'] === language &&
+                genData['voice_gender'] === voiceGender &&
+                genData['avatar_strategy'] === avatarStrategy
+            );
+        }) ?? null;
+    }, [selectedSlideId, contentItems, language, voiceGender, avatarStrategy]);
+
+    // Detect if a video generation is currently in progress for this ppt with the same settings.
+    const inProgressVideo = useMemo(() => {
+        if (!selectedSlideId) { return null; }
+
+        const selectedSlide = contentItems.find(item => item.id === selectedSlideId);
+        if (!selectedSlide) { return null; }
+
+        const slideGenData = selectedSlide.generationdata
+            ? (JSON.parse(selectedSlide.generationdata) as Record<string, unknown>)
+            : {};
+        const slideRegenCount = slideGenData['regen_count'] ?? 0;
+
+        return contentItems.find(item => {
+            if (item.contenttype !== 'video') { return false; }
+            if (item.status !== 'generating') { return false; }
+            if (item.sectionid !== selectedSlide.sectionid) { return false; }
+
+            const genData = item.generationdata
+                ? (JSON.parse(item.generationdata) as Record<string, unknown>)
+                : {};
+
+            // Two-tier: temp items carry source_content_id; real backend items use regen_count fallback
+            const srcId = genData['source_content_id'];
+            const isFromCurrentSlide = srcId !== null && srcId !== undefined
+                ? Number(srcId) === selectedSlideId
+                : genData['regen_count'] === slideRegenCount;
+
+            if (!isFromCurrentSlide) { return false; }
+
+            return (
                 genData['language'] === language &&
                 genData['voice_gender'] === voiceGender &&
                 genData['avatar_strategy'] === avatarStrategy
@@ -195,10 +256,19 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
         return null;
     }
 
-    const handleGenerate = () => {
+    const doGenerate = () => {
         if (!selectedSlideId) { return; }
         onGenerate(selectedSlideId, 'standard', language, voiceGender, avatarStrategy);
         onClose();
+    };
+
+    const handleGenerate = () => {
+        if (!selectedSlideId) { return; }
+        if (duplicateVideo) {
+            setOverwriteConfirm(true);
+            return;
+        }
+        doGenerate();
     };
 
     const renderContent = () => {
@@ -428,14 +498,11 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
 
                         {duplicateVideo && (
                             <Alert
-                                severity="warning"
+                                severity="info"
                                 sx={{ mt: 2, borderRadius: 2 }}
                             >
-                                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                                    Video already generated with the same settings
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                    A video with these settings already exists for this slide. Please regenerate the slides first before generating a new video with the same settings.
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                    A video with these settings already exists — it will be overwritten.
                                 </Typography>
                             </Alert>
                         )}
@@ -446,6 +513,7 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
     };
 
     return (
+        <>
         <Modal open={open} onClose={onClose} sx={{ zIndex: 100001 }}>
             <Box
                 sx={{
@@ -509,33 +577,81 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                     // Never shrink footer
                     flexShrink: 0,
                 }}>
-                    <Button
-                        variant="contained"
-                        size="medium"
-                        onClick={handleGenerate}
-                        disabled={!selectedSlideId || !!duplicateVideo}
-                        fullWidth={isMobile}
-                        sx={{
-                            fontWeight: 600,
-                            px: 4,
-                            py: 1.25,
-                            ...styles.touchTarget,
-                            transition: 'all 0.3s ease',
-                            '&:hover': {
-                                background: 'linear-gradient(135deg, #0a5a9d 0%, #084a82 100%)',
-                                boxShadow: '0 4px 12px rgba(15, 108, 191, 0.4)',
-                            },
-                            '&:disabled': {
-                                background: '#e0e0e0',
-                                color: '#9e9e9e',
-                            },
-                        }}
+                    <Tooltip
+                        title={inProgressVideo ? 'Generation in progress' : ''}
+                        placement="top"
+                        arrow
+                        slotProps={{ popper: { sx: { zIndex: 100030 } } }}
                     >
-                        {selectedSlideId ? 'Generate Video' : 'Select Slides'}
-                    </Button>
+                        <span style={{ display: isMobile ? 'block' : 'inline-flex' }}>
+                            <Button
+                                variant="contained"
+                                size="medium"
+                                onClick={handleGenerate}
+                                disabled={!selectedSlideId || !!inProgressVideo}
+                                fullWidth={isMobile}
+                                sx={{
+                                    fontWeight: 600,
+                                    px: 4,
+                                    py: 1.25,
+                                    ...styles.touchTarget,
+                                    transition: 'all 0.3s ease',
+                                    '&:hover': {
+                                        background: 'linear-gradient(135deg, #0a5a9d 0%, #084a82 100%)',
+                                        boxShadow: '0 4px 12px rgba(15, 108, 191, 0.4)',
+                                    },
+                                    '&:disabled': {
+                                        background: '#e0e0e0',
+                                        color: '#9e9e9e',
+                                    },
+                                }}
+                            >
+                                {selectedSlideId
+                                    ? inProgressVideo
+                                        ? 'Generating...'
+                                        : (duplicateVideo ? 'Regenerate' : 'Generate Video')
+                                    : 'Select Slides'
+                                }
+                            </Button>
+                        </span>
+                    </Tooltip>
                 </Box>
             </Box>
         </Modal>
+
+        {/* Overwrite confirmation dialog — outside Modal to avoid single-child constraint */}
+            <Dialog
+                open={overwriteConfirm}
+                onClose={() => setOverwriteConfirm(false)}
+                maxWidth="xs"
+                fullWidth
+                sx={{ zIndex: 100020 }}
+                PaperProps={{ sx: { borderRadius: '12px', p: 1 } }}
+            >
+                <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Overwrite Existing Video?</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Existing video with same settings will be overwritten. This action cannot be undone.
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+                    <Button
+                        onClick={() => setOverwriteConfirm(false)}
+                        color="inherit"
+                        variant="outlined"
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        onClick={() => { setOverwriteConfirm(false); doGenerate(); }}
+                        variant="contained"
+                        color="primary"
+                    >
+                        Continue
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        </>
     );
 };
 

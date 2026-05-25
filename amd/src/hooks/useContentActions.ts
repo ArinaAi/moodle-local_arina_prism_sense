@@ -273,6 +273,13 @@ export const useContentActions = (
             approvedby: null,
             timeapproved: null,
             approver: null,
+            generationdata: JSON.stringify({
+                source_content_id: contentId,
+                regen_count: regenCount,
+                language,
+                voice_gender: voiceGender,
+                avatar_strategy: avatarStrategy,
+            }),
         };
 
         // Add to local items

@@ -75,7 +75,7 @@ export const App: React.FC = () => {
     handlePublishContent,
     handleUnpublishContent,
     handleClearAllContent,
-    handleDeleteContent
+    handleDeleteContent,
   } = useContentActions(state, dispatch, showNotification);
 
   // Wrap generation handlers to auto-refresh credits after completion
