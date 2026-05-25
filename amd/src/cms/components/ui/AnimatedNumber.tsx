@@ -9,7 +9,7 @@ export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
     value,
     duration = 700,
 }) => {
-    const [display, setDisplay] = useState(0);
+    const [display, setDisplay] = useState(value);
 
     useEffect(() => {
         const start = performance.now();

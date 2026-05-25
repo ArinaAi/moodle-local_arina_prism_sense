@@ -1,8 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
 import { Skeleton } from '@mui/material';
 import { Presentation, Video, RefreshCw, Layers, Star, Info } from 'lucide-react';
-import { stagger, spring } from '../../config/animations';
 import { apiFetch, SessionExpiredError } from '../../../utils/apiFetch';
 
 export interface PricingCard {
@@ -29,64 +27,13 @@ const getIconComponent = (iconName: string) => {
 // Tier ranking — second card is the recommended one
 const POPULAR_INDEX = 1;
 
-// ─── Animated Number Hook ──────────────────────────────────────────────────────
-// Smoothly counts from the previous value to the target value over ~400ms
-function useAnimatedNumber(target: number, decimals = 2): string {
-    const [display, setDisplay] = useState(target);
-    const animRef = useRef<number | null>(null);
-    const startRef = useRef<number>(target);
-    const startTimeRef = useRef<number | null>(null);
-    const DURATION = 400;
-
-    useEffect(() => {
-        if (animRef.current !== null) { cancelAnimationFrame(animRef.current); }
-        const from = startRef.current;
-        startTimeRef.current = null;
-
-        const animate = (time: number) => {
-            if (startTimeRef.current === null) { startTimeRef.current = time; }
-            const elapsed = time - startTimeRef.current;
-            const progress = Math.min(elapsed / DURATION, 1);
-            // Ease-out cubic
-            const eased = 1 - Math.pow(1 - progress, 3);
-            const current = from + (target - from) * eased;
-            setDisplay(current);
-            if (progress < 1) {
-                animRef.current = requestAnimationFrame(animate);
-            } else {
-                startRef.current = target;
-            }
-        };
-        animRef.current = requestAnimationFrame(animate);
-        return () => { if (animRef.current !== null) { cancelAnimationFrame(animRef.current); } };
-    }, [target]);
-
-    return display.toFixed(decimals);
-}
-
-// ─── Animated Price Cell ───────────────────────────────────────────────────────
-const AnimatedPrice: React.FC<{ value: number; symbol: string; locale?: string; decimals?: number }> = ({
-    value,
-    symbol,
-    locale,
-    decimals = 2,
-}) => {
-    const raw = useAnimatedNumber(value, decimals);
-    const formatted = parseFloat(raw).toLocaleString(locale, {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals,
-    });
-    return <>{symbol}{formatted}</>;
+// ─── Static price formatters ───────────────────────────────────────────────────
+const formatPrice = (value: number, symbol: string, locale: string | undefined, decimals: number): string => {
+    return symbol + value.toLocaleString(locale, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 };
 
-// ─── Animated Per-Credit Cell ──────────────────────────────────────────────────
-const AnimatedPerCredit: React.FC<{ value: number; symbol: string; locale?: string }> = ({ value, symbol, locale }) => {
-    const raw = useAnimatedNumber(value, 4);
-    const formatted = parseFloat(raw).toLocaleString(locale, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 4,
-    });
-    return <>{symbol}{formatted}</>;
+const formatPerCredit = (value: number, symbol: string, locale: string | undefined): string => {
+    return symbol + value.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
 };
 
 
@@ -105,7 +52,8 @@ export const PricingInfoView: React.FC = () => {
     const [packages, setPackages] = useState<PricingCard[]>([]);
     const [loading, setLoading] = useState(true);
     const [currency, setCurrency] = useState<Currency>('USD');
-    const [rates, setRates] = useState<Record<string, number>>({ USD: 1, INR: 87, EUR: 0.95 });
+    const [rates, setRates] = useState<Record<string, number>>({ USD: 1 });
+    const [ratesLoaded, setRatesLoaded] = useState(false);
 
     const fetchPackages = async () => {
         try {
@@ -125,12 +73,17 @@ export const PricingInfoView: React.FC = () => {
 
     const fetchRates = async () => {
         try {
-            const res = await fetch('https://open.er-api.com/v6/latest/USD');
+            const baseUrl = window.MOODLE_CMS_CONTEXT?.wwwroot || '';
+            const res = await apiFetch(`${baseUrl}/local/arina_prism_sense/api/cms/get_exchange_rates.php`, {
+                credentials: 'include',
+            });
             const data = await res.json();
-            if (data && data.rates) {
-                setRates({ USD: 1, INR: data.rates.INR, EUR: data.rates.EUR });
+            if (data.success && data.data) {
+                setRates(data.data);
+                setRatesLoaded(true);
             }
         } catch (e) {
+            if (e instanceof SessionExpiredError) { return; }
             console.error('Failed to fetch live rates, using fallbacks:', e);
         }
     };
@@ -166,78 +119,61 @@ export const PricingInfoView: React.FC = () => {
                     border: '1px solid var(--border)',
                     position: 'relative',
                 }}>
-                    {CURRENCIES.map(cur => (
+                    {CURRENCIES.map(cur => {
+                        const disabled = cur !== 'USD' && !ratesLoaded;
+                        return (
                         <button
                             key={cur}
-                            onClick={() => setCurrency(cur)}
+                            onClick={() => !disabled && setCurrency(cur)}
+                            disabled={disabled}
+                            title={disabled ? 'Live rates unavailable' : undefined}
                             style={{
                                 position: 'relative',
                                 zIndex: 1,
                                 padding: '8px 22px',
                                 border: 'none',
-                                background: 'transparent',
-                                color: currency === cur ? '#0f6cbf' : 'var(--ts)',
+                                background: currency === cur ? 'rgba(15,108,191,0.10)' : 'transparent',
+                                color: disabled ? 'var(--td)' : currency === cur ? '#0f6cbf' : 'var(--ts)',
                                 fontWeight: currency === cur ? 700 : 500,
                                 borderRadius: 10,
-                                cursor: 'pointer',
+                                cursor: disabled ? 'not-allowed' : 'pointer',
                                 fontSize: '0.875rem',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: 6,
-                                transition: 'color 0.2s',
+                                outline: currency === cur ? '1px solid rgba(15,108,191,0.18)' : 'none',
+                                transition: 'background 0.15s, color 0.15s',
+                                opacity: disabled ? 0.45 : 1,
                             }}
                         >
-                            {/* Sliding pill */}
-                            {currency === cur && (
-                                <motion.span
-                                    layoutId="currency-pill"
-                                    style={{
-                                        position: 'absolute',
-                                        inset: 0,
-                                        borderRadius: 10,
-                                        background: 'rgba(15,108,191,0.10)',
-                                        zIndex: -1,
-                                        border: '1px solid rgba(15,108,191,0.18)',
-                                    }}
-                                    transition={{ type: 'spring', stiffness: 380, damping: 34 }}
-                                />
-                            )}
                             {cur}
                         </button>
-                    ))}
+                        );
+                    })}
                 </div>
 
                 {/* Disclaimer for foreign currencies */}
                 <div style={{ height: 20 }}>
-                    <AnimatePresence>
-                        {(currency === 'USD' || currency === 'EUR') && (
-                            <motion.div
-                                initial={{ opacity: 0, y: -4 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -4 }}
-                                transition={{ duration: 0.2 }}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 6,
-                                    color: 'var(--ts)', // darker text color for better visibility
-                                    fontSize: '0.75rem',
-                                    fontWeight: 500, // make it slightly bolder
-                                }}
-                            >
-                                <Info size={14} />
-                                <span>Final prices may slightly differ at checkout.</span>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                    {(currency === 'USD' || currency === 'EUR') && (
+                        <div
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                color: 'var(--ts)',
+                                fontSize: '0.75rem',
+                                fontWeight: 500,
+                            }}
+                        >
+                            <Info size={14} />
+                            <span>Final prices may slightly differ at checkout.</span>
+                        </div>
+                    )}
                 </div>
             </div>
 
             {/* ── Pricing Cards ── */}
-            <motion.div
-                initial="initial"
-                animate="animate"
-                variants={stagger.cards}
+            <div
                 style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
@@ -257,15 +193,8 @@ export const PricingInfoView: React.FC = () => {
                     const staticRows = card.rows;
 
                     return (
-                        <motion.div
+                        <div
                             key={card.title}
-                            variants={{
-                                initial: { opacity: 0, y: 24, scale: 0.96 },
-                                animate: { opacity: 1, y: 0, scale: 1 },
-                            }}
-                            whileHover={{ y: -4, boxShadow: '0 12px 32px rgba(0,0,0,0.10)' }}
-                            transition={spring.snappy}
-                            layout
                             style={{
                                 background: 'var(--paper)',
                                 border: isPopular ? '2px solid #0f6cbf' : '1px solid var(--border)',
@@ -389,7 +318,7 @@ export const PricingInfoView: React.FC = () => {
                                         color: 'var(--tp)',
                                         fontVariantNumeric: 'tabular-nums',
                                     }}>
-                                        <AnimatedPrice value={priceValue} symbol={symbol} locale={locale} decimals={2} />
+                                        {formatPrice(priceValue, symbol, locale, 2)}
                                     </span>
                                 </div>
 
@@ -407,7 +336,7 @@ export const PricingInfoView: React.FC = () => {
                                         color: 'var(--tp)',
                                         fontVariantNumeric: 'tabular-nums',
                                     }}>
-                                        <AnimatedPerCredit value={perCredit} symbol={symbol} locale={locale} />
+                                        {formatPerCredit(perCredit, symbol, locale)}
                                     </span>
                                 </div>
                             </div>
@@ -426,10 +355,10 @@ export const PricingInfoView: React.FC = () => {
                                     {card.note}
                                 </p>
                             </div>
-                        </motion.div>
+                        </div>
                     );
                 })}
-            </motion.div>
+            </div>
         </div>
     );
 };

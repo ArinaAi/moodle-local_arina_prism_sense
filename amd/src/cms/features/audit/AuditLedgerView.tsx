@@ -1,8 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Download, BookOpen } from 'lucide-react';
 import { Skeleton } from '@mui/material';
-import { stagger, fadeIn } from '../../config/animations';
 import { Badge } from '../../components/ui/Badge';
 import { DateRangeFilter } from '../../components/ui/DateRangeFilter';
 import { apiFetch, SessionExpiredError } from '../../../utils/apiFetch';
@@ -118,10 +116,9 @@ export const AuditLedgerView: React.FC = () => {
     }, [filtered]);
 
     return (
-        <motion.div initial="initial" animate="animate" variants={stagger.cards} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {/* Filter bar — blueprint §5.6.A: 6 controls */}
-            <motion.div
-                variants={fadeIn}
+            <div
                 style={{
                     display: 'flex',
                     gap: 10,
@@ -171,8 +168,7 @@ export const AuditLedgerView: React.FC = () => {
                 />
 
                 {/* Export CSV — blueprint §5.6: #0f6cbf weight 600 */}
-                <motion.button
-                    whileHover={{ color: '#0a5a9d' }}
+                <button
                     onClick={handleExportCSV}
                     style={{
                         display: 'flex',
@@ -192,12 +188,11 @@ export const AuditLedgerView: React.FC = () => {
                     disabled={filtered.length === 0}
                 >
                     <Download size={14} />Export CSV
-                </motion.button>
-            </motion.div>
+                </button>
+            </div>
 
             {/* Table */}
-            <motion.div
-                variants={fadeIn}
+            <div
                 style={{
                     background: 'var(--paper)',
                     border: '1px solid var(--border)',
@@ -236,7 +231,6 @@ export const AuditLedgerView: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            <AnimatePresence>
                                 {loading ? (
                                     Array.from({ length: 5 }).map((_, i) => (
                                         <tr key={`skeleton-${i}`} style={{ borderBottom: '1px solid var(--border)' }}>
@@ -266,12 +260,8 @@ export const AuditLedgerView: React.FC = () => {
                                     </tr>
                                 ) : (
                                     filtered.map((row) => (
-                                        <motion.tr
+                                        <tr
                                             key={row.id}
-                                            initial={{ opacity: 0, y: 8 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: -8 }}
-                                            transition={{ duration: 0.15 }}
                                             style={{ borderBottom: '1px solid var(--border)' }}
                                             onMouseEnter={(e) => {
                                                 (e.currentTarget as HTMLElement).style.background = 'var(--rh)';
@@ -306,14 +296,13 @@ export const AuditLedgerView: React.FC = () => {
                                             >
                                                 {row.balance.toLocaleString()}
                                             </td>
-                                        </motion.tr>
+                                        </tr>
                                     ))
                                 )}
-                            </AnimatePresence>
                         </tbody>
                     </table>
                 </div>
-            </motion.div>
-        </motion.div>
+            </div>
+        </div>
     );
 };

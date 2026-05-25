@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { ArrowLeft, BookOpen } from 'lucide-react';
 import { Skeleton } from '@mui/material';
-import { stagger, fadeIn, spring } from '../../config/animations';
 import { Badge } from '../../components/ui/Badge';
 import type { ApiStaffMember } from './StaffManagementView';
 import { apiFetch, SessionExpiredError } from '../../../utils/apiFetch';
@@ -46,14 +44,11 @@ export const StaffHistoryView: React.FC<StaffHistoryViewProps> = ({ staff, onBac
     }, [staff.id]);
 
     return (
-        <motion.div initial="initial" animate="animate" variants={stagger.cards} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {/* Back — blueprint §5.3 + §6.15 */}
-            <motion.div variants={fadeIn}>
-                <motion.button
+            <div>
+                <button
                     onClick={onBack}
-                    whileHover={{ x: -3, color: '#0f6cbf' }}
-                    whileTap={{ scale: 0.97 }}
-                    transition={spring.snappy}
                     style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -67,14 +62,16 @@ export const StaffHistoryView: React.FC<StaffHistoryViewProps> = ({ staff, onBac
                         fontFamily: 'inherit',
                         padding: 0,
                     }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = '#0f6cbf'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--ts)'; }}
                 >
                     <ArrowLeft size={18} />
                     {staff.name}
-                </motion.button>
-            </motion.div>
+                </button>
+            </div>
 
             {/* 4 info cards — blueprint §5.3.B */}
-            <motion.div variants={fadeIn} style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
                 <InfoCard label="Current Balance" value={staff.balance.toLocaleString()} accent="#0f6cbf" />
                 <InfoCard
                     label="Reserved Credits"
@@ -83,11 +80,10 @@ export const StaffHistoryView: React.FC<StaffHistoryViewProps> = ({ staff, onBac
                 />
                 <InfoCard label="Department" value={staff.department} accent="#28a745" />
                 <InfoCard label="Email" value={staff.email} accent="#6f42c1" />
-            </motion.div>
+            </div>
 
             {/* History table */}
-            <motion.div
-                variants={fadeIn}
+            <div
                 style={{
                     background: 'var(--paper)',
                     border: '1px solid var(--border)',
@@ -207,16 +203,14 @@ export const StaffHistoryView: React.FC<StaffHistoryViewProps> = ({ staff, onBac
                         </tbody>
                     </table>
                 </div>
-            </motion.div>
-        </motion.div>
+            </div>
+        </div>
     );
 };
 
 // ── Info Card — blueprint §5.3.B ─────────────────────────────
 const InfoCard: React.FC<{ label: string; value: string; accent: string }> = ({ label, value, accent }) => (
-    <motion.div
-        whileHover={{ y: -1, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
-        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+    <div
         style={{
             background: 'var(--paper)',
             border: '1px solid var(--border)',
@@ -230,5 +224,5 @@ const InfoCard: React.FC<{ label: string; value: string; accent: string }> = ({ 
             {label}
         </div>
         <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--tp)' }}>{value}</div>
-    </motion.div>
+    </div>
 );

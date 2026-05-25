@@ -625,7 +625,7 @@ class EmailNotifier
     {
         global $CFG;
         // Use Moodle's pix directory for the plugin logo if available.
-        return $CFG->wwwroot . '/local/arina_prism_sense/pix/arina-logo.png';
+        return $CFG->wwwroot . '/local/arina_prism_sense/pix/icon.png';
     }
 
     /**

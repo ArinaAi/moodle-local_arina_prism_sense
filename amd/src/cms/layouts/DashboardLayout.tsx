@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Sidebar } from '../components/shared/Sidebar';
 import { AppHeader } from '../components/shared/AppHeader';
 import { THEMES, createCMSTheme, type ThemeName } from '../config/theme';
@@ -99,7 +98,7 @@ export const DashboardLayout: React.FC = () => {
                         setTheme={setThemeName}
                     />
 
-                    {/* Scrollable content area with page transition */}
+                    {/* Scrollable content area */}
                     <main
                         id="arina_prism_sense-tour-cms-main"
                         style={{
@@ -109,19 +108,7 @@ export const DashboardLayout: React.FC = () => {
                             minWidth: 0,
                         }}
                     >
-                        {/* AnimatePresence: blueprint §6.2 — fade+slide on nav change, mode='wait' */}
-                        <AnimatePresence mode="wait">
-                            <motion.div
-                                key={viewingStaff ? `staff-history-${viewingStaff.id}` : activeNav}
-                                initial={{ opacity: 0, y: -6 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -6 }}
-                                transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
-                                style={{ height: '100%' }}
-                            >
-                                {renderContent()}
-                            </motion.div>
-                        </AnimatePresence>
+                        {renderContent()}
                     </main>
                 </div>
             </div>

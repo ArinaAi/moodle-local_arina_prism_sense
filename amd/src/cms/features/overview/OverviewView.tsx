@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { DollarSign, Users, Zap, AlertCircle, RefreshCw } from 'lucide-react';
 import { Skeleton } from '@mui/material';
-import { stagger } from '../../config/animations';
+
 import { StatCard } from '../../components/ui/StatCard';
 import { DonutChart } from '../../components/charts/DonutChart';
 import { BreakdownPanel } from '../../components/charts/BreakdownPanel';
@@ -22,8 +22,7 @@ const ServiceOverviewCard: React.FC<ServiceOverviewCardProps> = ({ onRefresh, is
         : 'Loading...';
 
     return (
-        <motion.div
-            variants={{ initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 } }}
+        <div
             style={{
                 background: 'var(--paper)',
                 border: '1px solid var(--border)',
@@ -67,7 +66,7 @@ const ServiceOverviewCard: React.FC<ServiceOverviewCardProps> = ({ onRefresh, is
                     <span>Refresh now</span>
                 </button>
             </div>
-        </motion.div>
+        </div>
     );
 };
 
@@ -105,12 +104,7 @@ export const OverviewView: React.FC = () => {
         : 0;
 
     return (
-        <motion.div
-            initial="initial"
-            animate="animate"
-            variants={stagger.cards}
-            style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
-        >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <ServiceOverviewCard onRefresh={refreshAll} isRefreshing={isRefreshing} lastUpdatedAt={lastUpdatedAt} />
 
             {/* Error Banner */}
@@ -123,10 +117,7 @@ export const OverviewView: React.FC = () => {
 
             {/* Empty State Banner */}
             {isEmpty && (
-                <motion.div
-                    variants={{ initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 } }}
-                    style={{ padding: '16px 20px', background: '#e3f2fd', border: '1px solid #90caf9', borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 6 }}
-                >
+                <div style={{ padding: '16px 20px', background: '#e3f2fd', border: '1px solid #90caf9', borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#0d47a1', fontWeight: 600 }}>
                         <Zap size={20} />
                         <span>Welcome to your Arina AI Credit Dashboard!</span>
@@ -134,12 +125,12 @@ export const OverviewView: React.FC = () => {
                     <p style={{ margin: 0, fontSize: '0.9rem', color: '#1565c0' }}>
                         Get started by purchasing a credit package to fuel your institution&apos;s AI generation.
                     </p>
-                </motion.div>
+                </div>
             )}
 
             {/* Stat cards — 3 column grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-                {loading ? (
+                {isRefreshing ? (
                     <>
                         <Skeleton variant="rectangular" height={140} sx={{ borderRadius: '20px' }} animation="wave" />
                         <Skeleton variant="rectangular" height={140} sx={{ borderRadius: '20px' }} animation="wave" />
@@ -179,8 +170,7 @@ export const OverviewView: React.FC = () => {
             </div>
 
             {/* Donut + Breakdown panel */}
-            <motion.div
-                variants={{ initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 } }}
+            <div
                 style={{
                     background: 'var(--paper)',
                     border: '1px solid var(--border)',
@@ -221,7 +211,7 @@ export const OverviewView: React.FC = () => {
                 ) : (
                     <BreakdownPanel data={isEmpty ? [] : usageData} />
                 )}
-            </motion.div>
-        </motion.div>
+            </div>
+        </div>
     );
 };

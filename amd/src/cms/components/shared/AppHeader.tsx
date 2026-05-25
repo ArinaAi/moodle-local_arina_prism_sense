@@ -202,7 +202,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
                             />
                         </IconButton>
                     </Tooltip>
-                    <Box component="img" src={`${moodleContext.wwwroot}/local/arina_prism_sense/pix/arina-logo.png?v=1`} alt="Arina AI" sx={{ height: { xs: 32, sm: 40, md: 48 }, width: 'auto', objectFit: 'contain', ml: { xs: 0, sm: 1 } }} onError={(e: React.SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
+                    <Box component="img" src={`${moodleContext.wwwroot}/local/arina_prism_sense/pix/icon.png?v=1`} alt="Arina AI" sx={{ height: { xs: 32, sm: 40, md: 48 }, width: 'auto', objectFit: 'contain', ml: { xs: 0, sm: 1 } }} onError={(e: React.SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
                 </Box>
             </Box>
 

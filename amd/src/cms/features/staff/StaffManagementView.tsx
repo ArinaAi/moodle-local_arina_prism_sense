@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Search, AlertCircle, Users } from 'lucide-react';
 import { Skeleton, Snackbar, Alert } from '@mui/material';
-import { stagger, fadeIn } from '../../config/animations';
 import { Badge } from '../../components/ui/Badge';
 import { CreditAllocationModal } from '../../components/shared/CreditAllocationModal';
 import { apiFetch, SessionExpiredError } from '../../../utils/apiFetch';
@@ -92,9 +90,9 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ onView
     };
 
     return (
-        <motion.div initial="initial" animate="animate" variants={stagger.cards} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Header row */}
-            <motion.div variants={fadeIn} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                     <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--tp)', margin: 0 }}>Staff &amp; Admins</h2>
                     <p style={{ fontSize: '0.875rem', color: 'var(--ts)', marginTop: 4 }}>
@@ -139,7 +137,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ onView
                         }}
                     />
                 </div>
-            </motion.div>
+            </div>
 
             {/* Error Banner */}
             {error && (
@@ -150,8 +148,7 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ onView
             )}
 
             {/* Table */}
-            <motion.div
-                variants={fadeIn}
+            <div
                 style={{
                     background: 'var(--paper)',
                     border: '1px solid var(--border)',
@@ -195,7 +192,6 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ onView
                             </tr>
                         </thead>
                         <tbody>
-                            <AnimatePresence>
                                 {loading ? (
                                     Array.from({ length: 5 }).map((_, i) => (
                                         <tr key={`staff-skeleton-${i}`} style={{ borderBottom: '1px solid var(--border)' }}>
@@ -222,16 +218,11 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ onView
                                     </tr>
                                 ) : (
                                     filtered.map((s, idx) => (
-                                        <motion.tr
+                                        <tr
                                             key={s.id}
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: -10 }}
-                                            transition={{ duration: 0.2, delay: idx * 0.03 }}
                                             style={{
                                                 borderBottom: '1px solid var(--border)',
                                                 cursor: 'default',
-                                                // Alternating rows — subtle stripe
                                                 background: idx % 2 === 1 ? 'rgba(15,108,191,0.02)' : 'transparent',
                                                 transition: 'background 0.15s',
                                             }}
@@ -345,14 +336,13 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ onView
                                                     )}
                                                 </div>
                                             </td>
-                                        </motion.tr>
+                                        </tr>
                                     ))
                                 )}
-                            </AnimatePresence>
                         </tbody>
                     </table>
                 </div> {/* end scrollable wrapper */}
-            </motion.div>
+            </div>
 
             {/* Modal */}
             {modal.staff && (
@@ -376,15 +366,13 @@ export const StaffManagementView: React.FC<StaffManagementViewProps> = ({ onView
                     {toast.message}
                 </Alert>
             </Snackbar>
-        </motion.div>
+        </div>
     );
 };
 
 // ── Action link — blueprint §5.2: always #0f6cbf weight 600, hover underline ──
 const ActionLink: React.FC<{ label: string; onClick: () => void }> = ({ label, onClick }) => (
-    <motion.button
-        whileHover={{ textDecoration: 'underline', color: '#0a5a9d' }}
-        whileTap={{ scale: 0.97 }}
+    <button
         onClick={onClick}
         style={{
             background: 'none',
@@ -397,9 +385,11 @@ const ActionLink: React.FC<{ label: string; onClick: () => void }> = ({ label, o
             fontFamily: 'inherit',
             textDecoration: 'none',
         }}
+        onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline'; e.currentTarget.style.color = '#0a5a9d'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; e.currentTarget.style.color = '#0f6cbf'; }}
     >
         {label}
-    </motion.button>
+    </button>
 );
 
 // Dot separator between action links (blueprint §5.2)

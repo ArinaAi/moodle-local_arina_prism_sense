@@ -222,7 +222,7 @@ const Header: React.FC<HeaderProps> = ({ moodleContext, children, onBack, onOpen
                 )}
                 <Box
                     component="img"
-                    src={`${moodleContext.wwwroot}/local/arina_prism_sense/pix/arina-logo.png?v=1`}
+                    src={`${moodleContext.wwwroot}/local/arina_prism_sense/pix/icon.png?v=1`}
                     alt="Arina AI"
                     sx={{
                         height: { xs: 36, sm: 48, md: 60 },

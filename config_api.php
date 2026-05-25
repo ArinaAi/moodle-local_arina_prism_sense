@@ -78,6 +78,9 @@ define('AUTH_SERVICE_URL', API_BASE_URL . '/service/arina_auth_service/validate'
 // Default video length (in minutes)
 define('DEFAULT_VIDEO_LENGTH', 2);
 
+// ── Third-party external services ─────────────────────────────────────────────
+define('EXCHANGE_RATES_URL', 'https://open.er-api.com/v6/latest/USD');
+
 // API timeout settings (in seconds)
 define('API_TIMEOUT', 0); // Infinite timeout for generation (handled by cron)
 
