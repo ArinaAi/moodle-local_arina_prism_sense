@@ -79,7 +79,8 @@ class Utils
     public static function getJsUrl($wwwroot, $plugindir, $filename = 'arina_prism_sense_built.js')
     {
         $filesToCheck = [
-            '/amd/build/' . $filename,
+            '/build/' . $filename,
+            '/amd/build/' . $filename,  // fallback for older builds
             '/amd/build/arina_prism_sense_built.js',
         ];
 
@@ -217,9 +218,9 @@ class Utils
                 // If it exists, chain-load it before the app bundle so MUI/Emotion are available.
                 // If it doesn't exist (e.g. local dev without a full rebuild), load the app directly.
                 global $CFG;
-                $vendorDiskPath = $CFG->dirroot . '/local/arina_prism_sense/amd/build/vendor.min.js';
+                $vendorDiskPath = $CFG->dirroot . '/local/arina_prism_sense/build/vendor.min.js';
                 if (file_exists($vendorDiskPath)) :
-                    $vendorUrl = $CFG->wwwroot . '/local/arina_prism_sense/amd/build/vendor.min.js?v=' .
+                    $vendorUrl = $CFG->wwwroot . '/local/arina_prism_sense/build/vendor.min.js?v=' .
                         filemtime($vendorDiskPath);
                     ?>
                     // vendor.min.js found — load shared chunk first, then the app bundle.

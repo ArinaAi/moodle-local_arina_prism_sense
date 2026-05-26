@@ -6,8 +6,7 @@ import { Skeleton } from '@mui/material';
 import { StatCard } from '../../components/ui/StatCard';
 import { DonutChart } from '../../components/charts/DonutChart';
 import { BreakdownPanel } from '../../components/charts/BreakdownPanel';
-import { useLiveBalance } from '../../hooks/useLiveBalance';
-import { apiFetch } from '../../../utils/apiFetch';
+import { useBalanceContext } from '../../context/BalanceContext';
 
 // Service Overview Card
 interface ServiceOverviewCardProps {
@@ -72,27 +71,7 @@ const ServiceOverviewCard: React.FC<ServiceOverviewCardProps> = ({ onRefresh, is
 
 // Overview Page
 export const OverviewView: React.FC = () => {
-    const { balanceData, staffReserved, delta, loading, error, lastUpdatedAt, refresh } = useLiveBalance();
-
-    // Usage metrics — fetched on mount and on manual refresh
-    const [usageData, setUsageData] = React.useState<any[]>([]);
-    const [usageLoading, setUsageLoading] = React.useState(true);
-    const fetchUsage = React.useCallback(() => {
-        setUsageLoading(true);
-        const baseUrl = window.MOODLE_CMS_CONTEXT?.wwwroot || '';
-        apiFetch(`${baseUrl}/local/arina_prism_sense/api/cms/get_usage_metrics.php`, { credentials: 'include' })
-            .then((r) => r.json())
-            .then((res) => { if (res.success && res.data) { setUsageData(res.data); } })
-            .catch(() => {/* silently ignore */ })
-            .finally(() => setUsageLoading(false));
-    }, []);
-
-    React.useEffect(() => { fetchUsage(); }, [fetchUsage]);
-
-    const refreshAll = React.useCallback(() => {
-        refresh();
-        fetchUsage();
-    }, [refresh, fetchUsage]);
+    const { balanceData, staffReserved, delta, loading, error, lastUpdatedAt, usageData, usageLoading, refreshAll } = useBalanceContext();
 
     const isRefreshing = loading || usageLoading;
 

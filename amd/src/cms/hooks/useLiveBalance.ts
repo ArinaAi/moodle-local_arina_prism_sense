@@ -14,7 +14,7 @@ export interface BalanceDelta {
     reserved: number;      // staffReserved diff
 }
 
-interface LiveBalanceResult {
+export interface LiveBalanceResult {
     balanceData: BalanceData | null;
     staffReserved: number;
     delta: BalanceDelta | null; // null on first load
@@ -45,9 +45,12 @@ export function useLiveBalance(): LiveBalanceResult {
     const [error, setError] = useState<string | null>(null);
     const [lastUpdatedAt, setLastUpdatedAt] = useState<number>(0);
 
-    const lastFetchAt = useRef<number>(0);
+    const lastFetchAt = useRef<number>(Date.now());
+    const isFetching = useRef(false);
 
     const fetchAll = useCallback(async () => {
+        if (isFetching.current) { return; }
+        isFetching.current = true;
         try {
             const baseUrl = (window.MOODLE_CMS_CONTEXT?.wwwroot) || '';
             const [balRes, reservedRes] = await Promise.all([
@@ -104,6 +107,7 @@ export function useLiveBalance(): LiveBalanceResult {
             console.error('useLiveBalance: fetch error', err);
             setError('Network error: Unable to load balance data');
         } finally {
+            isFetching.current = false;
             setLoading(false);
             lastFetchAt.current = Date.now();
             setLastUpdatedAt(Date.now());

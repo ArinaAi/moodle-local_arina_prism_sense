@@ -78,15 +78,15 @@ echo html_writer::tag('script', '', [
 
 // Shared vendor chunk (MUI, Emotion, framer-motion) extracted by webpack splitChunks.
 // Must load before the app bundle since the bundle imports from these modules.
-$vendorbuildpath = $CFG->dirroot . '/local/arina_prism_sense/amd/build/vendor.min.js';
+$vendorbuildpath = $CFG->dirroot . '/local/arina_prism_sense/build/vendor.min.js';
 if (file_exists($vendorbuildpath)) {
-    $vendorjsurl = $CFG->wwwroot . '/local/arina_prism_sense/amd/build/vendor.min.js?v=' .
+    $vendorjsurl = $CFG->wwwroot . '/local/arina_prism_sense/build/vendor.min.js?v=' .
         filemtime($vendorbuildpath);
     echo html_writer::tag('script', '', ['src' => $vendorjsurl]);
 }
 
-$cmsbuildpath = $CFG->dirroot . '/local/arina_prism_sense/amd/build/cms.min.js';
-$cmsjsurl = $CFG->wwwroot . '/local/arina_prism_sense/amd/build/cms.min.js?v=' .
+$cmsbuildpath = $CFG->dirroot . '/local/arina_prism_sense/build/cms.min.js';
+$cmsjsurl = $CFG->wwwroot . '/local/arina_prism_sense/build/cms.min.js?v=' .
     filemtime($cmsbuildpath);
 echo html_writer::tag('script', '', ['src' => $cmsjsurl]);
 

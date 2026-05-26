@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Box, Typography, useTheme, useMediaQuery, IconButton, Tooltip } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NAV_TITLES } from '../../config/mockData';
@@ -7,8 +7,7 @@ import { AnimatedNumber } from '../ui/AnimatedNumber';
 import { DeltaBadge } from '../ui/DeltaBadge';
 import { tween } from '../../config/animations';
 import { PurchaseCreditsModal } from './PurchaseCreditsModal';
-import { BALANCE_REFRESH_EVENT } from '../../lib/balanceEvents';
-import { apiFetch, SessionExpiredError } from '../../../utils/apiFetch';
+import { useBalanceContext } from '../../context/BalanceContext';
 
 interface AppHeaderProps {
     activeNav: string;
@@ -20,55 +19,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
     const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
     const moodleContext = window.MOODLE_CMS_CONTEXT || { wwwroot: '' };
 
-    const [balance, setBalance] = useState<number>(0);
-    const [balanceDelta, setBalanceDelta] = useState<number | null>(null);
+    const { balanceData, delta } = useBalanceContext();
+    const balance = balanceData?.current_balance ?? 0;
+    const balanceDelta = delta?.institutional ?? null;
+
     const [purchaseOpen, setPurchaseOpen] = useState(false);
-    const prevBalance = useRef<number | null>(null);
-    const lastFetchAt = useRef<number>(0);
-
-    const fetchBalance = useCallback(async () => {
-        try {
-            const baseUrl = moodleContext.wwwroot || '';
-            const res = await apiFetch(`${baseUrl}/local/arina_prism_sense/api/cms/get_balance.php`, { credentials: 'include' });
-            const data = await res.json();
-            if (data.success && data.data) {
-                const newBalance: number = data.data.current_balance || 0;
-                // Compute delta vs previous (skip on first load)
-                if (prevBalance.current !== null && newBalance !== prevBalance.current) {
-                    setBalanceDelta(newBalance - prevBalance.current);
-                }
-                prevBalance.current = newBalance;
-                setBalance(newBalance);
-            }
-        } catch (e) {
-            if (e instanceof SessionExpiredError) { return; }
-            console.error('Failed to fetch balance', e);
-        } finally {
-            lastFetchAt.current = Date.now();
-        }
-    }, [moodleContext.wwwroot]);
-
-    useEffect(() => {
-        void fetchBalance();
-    }, [fetchBalance]);
-
-    // Listen for balance refresh events (from CreditAllocationModal, PurchaseCreditsModal)
-    useEffect(() => {
-        const handler = () => { void fetchBalance(); };
-        globalThis.addEventListener(BALANCE_REFRESH_EVENT, handler);
-        return () => globalThis.removeEventListener(BALANCE_REFRESH_EVENT, handler);
-    }, [fetchBalance]);
-
-    // Refresh on tab visibility regain if >30s stale
-    useEffect(() => {
-        const handler = () => {
-            if (document.visibilityState === 'visible' && Date.now() - lastFetchAt.current > 30_000) {
-                void fetchBalance();
-            }
-        };
-        document.addEventListener('visibilitychange', handler);
-        return () => document.removeEventListener('visibilitychange', handler);
-    }, [fetchBalance]);
 
     const getTitleVariant = () => {
         if (isMobile) { return 'subtitle1'; }
@@ -208,11 +163,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
 
             <PurchaseCreditsModal
                 open={purchaseOpen}
-                onClose={(success) => {
+                onClose={() => {
                     setPurchaseOpen(false);
-                    if (success) {
-                        fetchBalance();
-                    }
                 }}
             />
         </React.Fragment>

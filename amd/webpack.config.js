@@ -8,13 +8,16 @@ const appConfig = {
     cms: './src/cms/index.tsx'
   },
   output: {
-    path: path.resolve(__dirname, 'build'),
+    // Output to plugin-root build/ instead of amd/build/ so Moodle's AMD scanner
+    // never registers these bundles as RequireJS modules and double-executes them.
+    // (Same reason shepherd-tour.min.js lives in js/ — see shepherd config below.)
+    path: path.resolve(__dirname, '../build'),
     filename: '[name].min.js',
     library: {
       name: 'ArinaPrismSense',
       type: 'window'
     },
-    publicPath: '/local/arina_prism_sense/amd/build/'
+    publicPath: '/local/arina_prism_sense/build/'
   },
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx'],

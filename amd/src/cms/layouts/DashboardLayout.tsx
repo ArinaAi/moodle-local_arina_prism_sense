@@ -3,6 +3,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import { Sidebar } from '../components/shared/Sidebar';
 import { AppHeader } from '../components/shared/AppHeader';
 import { THEMES, createCMSTheme, type ThemeName } from '../config/theme';
+import { BalanceProvider } from '../context/BalanceContext';
 
 import { OverviewView } from '../features/overview/OverviewView';
 import { StaffManagementView, type ApiStaffMember } from '../features/staff/StaffManagementView';
@@ -73,6 +74,7 @@ export const DashboardLayout: React.FC = () => {
 
     return (
         <ThemeProvider theme={cmsTheme}>
+            <BalanceProvider>
             {/* prism-cms-app: scoped ID for Moodle CSS isolation (Boost theme reset) */}
             <div
                 id="prism-cms-app"
@@ -112,6 +114,7 @@ export const DashboardLayout: React.FC = () => {
                     </main>
                 </div>
             </div>
+            </BalanceProvider>
         </ThemeProvider>
     );
 };
