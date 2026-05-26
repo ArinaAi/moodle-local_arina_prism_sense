@@ -136,10 +136,13 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
         const selectedSlide = contentItems.find(item => item.id === selectedSlideId);
         if (!selectedSlide) { return null; }
 
-        const slideGenData = selectedSlide.generationdata
+        // Use null (not {}) when generationdata is absent so we can detect the
+        // "not yet populated" case and skip the regen_count fallback — otherwise
+        // a default of 0 causes false-positive matches against older videos.
+        const slideGenDataRaw = selectedSlide.generationdata
             ? (JSON.parse(selectedSlide.generationdata) as Record<string, unknown>)
-            : {};
-        const slideRegenCount = slideGenData['regen_count'] ?? 0;
+            : null;
+        const slideRegenCount = slideGenDataRaw !== null ? (slideGenDataRaw['regen_count'] ?? 0) : null;
 
         return contentItems.find(item => {
             if (item.contenttype !== 'video') { return false; }
@@ -150,11 +153,14 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                 ? (JSON.parse(item.generationdata) as Record<string, unknown>)
                 : {};
 
-            // Two-tier: temp items carry source_content_id; real backend items use regen_count fallback
+            // Two-tier: temp items carry source_content_id; real backend items use regen_count fallback.
+            // Only use the fallback when the slide's regen_count is known — if generationdata is null
+            // the backend hasn't committed the value yet and a default of 0 would falsely match
+            // old videos from previous PPTs in the same section.
             const srcId = genData['source_content_id'];
             const isFromCurrentSlide = srcId !== null && srcId !== undefined
                 ? Number(srcId) === selectedSlideId
-                : genData['regen_count'] === slideRegenCount;
+                : (slideRegenCount !== null && genData['regen_count'] === slideRegenCount);
 
             // A stale video was generated from a different slide in this section
             if (isFromCurrentSlide) { return false; }
@@ -175,10 +181,10 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
         const selectedSlide = contentItems.find(item => item.id === selectedSlideId);
         if (!selectedSlide) { return null; }
 
-        const slideGenData = selectedSlide.generationdata
+        const slideGenDataRaw = selectedSlide.generationdata
             ? (JSON.parse(selectedSlide.generationdata) as Record<string, unknown>)
-            : {};
-        const slideRegenCount = slideGenData['regen_count'] ?? 0;
+            : null;
+        const slideRegenCount = slideGenDataRaw !== null ? (slideGenDataRaw['regen_count'] ?? 0) : null;
 
         return contentItems.find(item => {
             if (item.contenttype !== 'video') { return false; }
@@ -188,11 +194,15 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                 ? (JSON.parse(item.generationdata) as Record<string, unknown>)
                 : {};
 
-            // Two-tier: temp items carry source_content_id; real backend items use regen_count fallback
+            // Two-tier: temp items carry source_content_id; real backend items use regen_count fallback.
+            // Guard: only fall back to regen_count when the slide's generationdata is known — a null
+            // generationdata means the backend hasn't committed regen_count yet, and defaulting to 0
+            // would falsely match old videos from prior PPT versions in the same section.
             const srcId = genData['source_content_id'];
             const isFromCurrentSlide = srcId !== null && srcId !== undefined
                 ? Number(srcId) === selectedSlideId
-                : (item.sectionid === selectedSlide.sectionid &&
+                : (slideRegenCount !== null &&
+                   item.sectionid === selectedSlide.sectionid &&
                    genData['regen_count'] === slideRegenCount);
 
             if (!isFromCurrentSlide) { return false; }
@@ -212,10 +222,10 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
         const selectedSlide = contentItems.find(item => item.id === selectedSlideId);
         if (!selectedSlide) { return null; }
 
-        const slideGenData = selectedSlide.generationdata
+        const slideGenDataRaw = selectedSlide.generationdata
             ? (JSON.parse(selectedSlide.generationdata) as Record<string, unknown>)
-            : {};
-        const slideRegenCount = slideGenData['regen_count'] ?? 0;
+            : null;
+        const slideRegenCount = slideGenDataRaw !== null ? (slideGenDataRaw['regen_count'] ?? 0) : null;
 
         return contentItems.find(item => {
             if (item.contenttype !== 'video') { return false; }
@@ -226,11 +236,12 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
                 ? (JSON.parse(item.generationdata) as Record<string, unknown>)
                 : {};
 
-            // Two-tier: temp items carry source_content_id; real backend items use regen_count fallback
+            // Two-tier: temp items carry source_content_id; real backend items use regen_count fallback.
+            // Same guard: skip fallback when slide's generationdata is null (regen_count unknown).
             const srcId = genData['source_content_id'];
             const isFromCurrentSlide = srcId !== null && srcId !== undefined
                 ? Number(srcId) === selectedSlideId
-                : genData['regen_count'] === slideRegenCount;
+                : (slideRegenCount !== null && genData['regen_count'] === slideRegenCount);
 
             if (!isFromCurrentSlide) { return false; }
 

@@ -213,6 +213,7 @@ export const App: React.FC = () => {
             <Header
               moodleContext={state.moodleContext}
               onOpenPluginFeedback={handleOpenPluginFeedbackModal}
+              helpContext="teacher"
               creditBadge={
                 <CreditPill
                   availableBalance={availableBalance}

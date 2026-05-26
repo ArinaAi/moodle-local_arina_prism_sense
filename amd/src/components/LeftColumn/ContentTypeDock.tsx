@@ -1,7 +1,7 @@
 // components/docks/ContentTypeDock.tsx
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { Box } from '@mui/material';
-import { Presentation, Play, Wallet, BookOpen } from 'lucide-react';
+import { Presentation, Play, SquarePen, BookOpen } from 'lucide-react';
 import ContentTypeButton, { ContentTypeDefinition } from './ContentTypeButton';
 
 interface ContentTypeDockProps {
@@ -34,10 +34,10 @@ const contentTypes: ContentTypeDefinition[] = [
   },
   {
     id: 'flashcards',
-    label: 'Flashcards',
-    icon: Wallet,
+    label: 'Blackboard',
+    icon: SquarePen,
     color: '#6f42c1',
-    description: 'Create study flashcards with questions and answers for quick review'
+    description: 'Real-time Blackboards that simplify, visualize, and accelerate understanding.'
   },
   {
     id: 'practice',

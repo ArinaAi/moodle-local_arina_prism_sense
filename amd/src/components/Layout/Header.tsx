@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Typography, useTheme, useMediaQuery, IconButton, Tooltip } from '@mui/material';
 import type { MoodleContext } from '../../types/moodle';
 import { MessageSquareMore, HelpCircle } from 'lucide-react';
+import { HelpDrawer } from '../../cms/components/shared/HelpDrawer';
 
 interface HeaderProps {
     moodleContext: MoodleContext;
@@ -9,13 +10,15 @@ interface HeaderProps {
     onBack?: () => void;
     onOpenPluginFeedback?: () => void;
     creditBadge?: React.ReactNode;
+    helpContext?: 'teacher' | 'student';
 }
 
-const Header: React.FC<HeaderProps> = ({ moodleContext, children, onBack, onOpenPluginFeedback, creditBadge }) => {
+const Header: React.FC<HeaderProps> = ({ moodleContext, children, onBack, onOpenPluginFeedback, creditBadge, helpContext = 'teacher' }) => {
 
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
+    const [helpOpen, setHelpOpen] = useState(false);
 
     if (!moodleContext) {
         return null;
@@ -155,26 +158,22 @@ const Header: React.FC<HeaderProps> = ({ moodleContext, children, onBack, onOpen
                 {children}
                 {/* Credit Balance Badge */}
                 {creditBadge}
-                {/* Retake Tour Button */}
-                <Tooltip title="Retake Tour" arrow PopperProps={{ sx: { zIndex: 100000 } }}>
+                {/* Help Center Button */}
+                <Tooltip title="Help center" arrow PopperProps={{ sx: { zIndex: 100000 } }}>
                     <IconButton
-                        onClick={() => {
-                            const win = window as Window & { startArinaPrismSenseTour?: () => void };
-                            if (typeof window !== 'undefined' && win.startArinaPrismSenseTour) {
-                                win.startArinaPrismSenseTour();
-                            }
-                        }}
+                        onClick={() => setHelpOpen(true)}
                         size="small"
+                        aria-label="Open help center"
                         sx={{
                             width: { xs: 28, sm: 40 },
                             height: { xs: 28, sm: 40 },
-                            backgroundColor: 'transparent',
+                            backgroundColor: helpOpen ? 'primary.main' : 'transparent',
                             border: '1px solid',
                             borderColor: 'primary.main',
-                            color: 'primary.main',
+                            color: helpOpen ? '#fff' : 'primary.main',
                             transition: 'transform 0.15s ease, background-color 0.15s ease',
                             '&:hover': {
-                                backgroundColor: 'rgba(15, 108, 191, 0.08)',
+                                backgroundColor: helpOpen ? 'primary.dark' : 'rgba(15, 108, 191, 0.08)',
                                 borderColor: 'primary.dark',
                                 transform: 'scale(1.05)',
                             },
@@ -184,11 +183,12 @@ const Header: React.FC<HeaderProps> = ({ moodleContext, children, onBack, onOpen
                         }}
                     >
                         <HelpCircle
-                            size={isMobile ? 16 : 20} // Responsive icon size
+                            size={isMobile ? 16 : 20}
                             strokeWidth={2}
                         />
                     </IconButton>
                 </Tooltip>
+                <HelpDrawer open={helpOpen} onClose={() => setHelpOpen(false)} pageContext={helpContext} />
                 {/* Plugin Feedback Button */}
                 {onOpenPluginFeedback && (
                     <IconButton

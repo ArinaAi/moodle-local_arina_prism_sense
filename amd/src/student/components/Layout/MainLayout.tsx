@@ -161,7 +161,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ moodleContext }) => {
     return (
         <Box id="arina_prism_sense-tour-student-header" sx={{ display: 'flex', flexDirection: 'column', height: '100dvh', bgcolor: '#f0f4f9' }}>
             {/* Header with Back Support */}
-            <Header moodleContext={moodleContext} onBack={handleMobileBack}>
+            <Header moodleContext={moodleContext} onBack={handleMobileBack} helpContext="student">
                 <Button
                     disabled
                     onClick={() => setIsChatOpen(!isChatOpen)}

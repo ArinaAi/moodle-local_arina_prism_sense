@@ -7,6 +7,7 @@ import { AnimatedNumber } from '../ui/AnimatedNumber';
 import { DeltaBadge } from '../ui/DeltaBadge';
 import { tween } from '../../config/animations';
 import { PurchaseCreditsModal } from './PurchaseCreditsModal';
+import { HelpDrawer } from './HelpDrawer';
 import { useBalanceContext } from '../../context/BalanceContext';
 
 interface AppHeaderProps {
@@ -24,6 +25,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
     const balanceDelta = delta?.institutional ?? null;
 
     const [purchaseOpen, setPurchaseOpen] = useState(false);
+    const [helpOpen, setHelpOpen] = useState(false);
 
     const getTitleVariant = () => {
         if (isMobile) { return 'subtitle1'; }
@@ -124,25 +126,21 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
                             + Add Credits
                         </motion.button>
                     </Box>
-                    <Tooltip title="Retake Tour" arrow PopperProps={{ sx: { zIndex: 100000 } }}>
+                    <Tooltip title="Help center" arrow PopperProps={{ sx: { zIndex: 100000 } }}>
                         <IconButton
-                            onClick={() => {
-                                const win = window as Window & { startArinaPrismSenseTour?: () => void };
-                                if (typeof window !== 'undefined' && win.startArinaPrismSenseTour) {
-                                    win.startArinaPrismSenseTour();
-                                }
-                            }}
+                            onClick={() => setHelpOpen(true)}
                             size="small"
+                            aria-label="Open help center"
                             sx={{
                                 width: { xs: 28, sm: 40 },
                                 height: { xs: 28, sm: 40 },
-                                backgroundColor: 'transparent',
+                                backgroundColor: helpOpen ? 'primary.main' : 'transparent',
                                 border: '1px solid',
                                 borderColor: 'primary.main',
-                                color: 'primary.main',
+                                color: helpOpen ? '#fff' : 'primary.main',
                                 transition: 'transform 0.15s ease, background-color 0.15s ease',
                                 '&:hover': {
-                                    backgroundColor: 'rgba(15, 108, 191, 0.08)',
+                                    backgroundColor: helpOpen ? 'primary.dark' : 'rgba(15, 108, 191, 0.08)',
                                     borderColor: 'primary.dark',
                                     transform: 'scale(1.05)',
                                 },
@@ -157,6 +155,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
                             />
                         </IconButton>
                     </Tooltip>
+                    <HelpDrawer open={helpOpen} onClose={() => setHelpOpen(false)} pageContext="cms" />
                     <Box component="img" src={`${moodleContext.wwwroot}/local/arina_prism_sense/pix/icon.png?v=1`} alt="Arina AI" sx={{ height: { xs: 32, sm: 40, md: 48 }, width: 'auto', objectFit: 'contain', ml: { xs: 0, sm: 1 } }} onError={(e: React.SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.display = 'none'; }} />
                 </Box>
             </Box>
