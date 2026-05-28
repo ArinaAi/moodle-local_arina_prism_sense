@@ -73,6 +73,20 @@ function local_arina_prism_sense_get_button_js($wwwroot)
 
                     button.addEventListener("click", function() {
                         if (window.MOODLE_CONTEXT && window.MOODLE_CONTEXT.courseid) {
+                            var overlay = document.createElement("div");
+                            overlay.id = "arina-loading-overlay";
+                            overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;" +
+                                "background:rgba(255,255,255,0.85);z-index:99999;" +
+                                "display:flex;flex-direction:column;align-items:center;" +
+                                "justify-content:center;pointer-events:all;";
+                            overlay.innerHTML =
+                                '<div class="spinner-border" role="status" ' +
+                                    'style="width:3rem;height:3rem;color:#0f6cbf;">' +
+                                    '<span class="sr-only">Loading...</span>' +
+                                '</div>' +
+                                '<p style="margin-top:20px;color:#6c757d;font-family:sans-serif;">' +
+                                    'Opening Professor Co-Pilot...</p>';
+                            document.body.appendChild(overlay);
                             window.location.href = "{$wwwroot}/local/arina_prism_sense/launch.php?courseid=" +
                                 window.MOODLE_CONTEXT.courseid;
                         } else {
@@ -143,6 +157,20 @@ function local_arina_prism_sense_get_student_button_js($wwwroot)
                     button.addEventListener("click", function(e) {
                         e.preventDefault();
                         if (window.MOODLE_CONTEXT && window.MOODLE_CONTEXT.courseid) {
+                            var overlay = document.createElement("div");
+                            overlay.id = "arina-loading-overlay";
+                            overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;" +
+                                "background:rgba(255,255,255,0.85);z-index:99999;" +
+                                "display:flex;flex-direction:column;align-items:center;" +
+                                "justify-content:center;pointer-events:all;";
+                            overlay.innerHTML =
+                                '<div class="spinner-border" role="status" ' +
+                                    'style="width:3rem;height:3rem;color:#0f6cbf;">' +
+                                    '<span class="sr-only">Loading...</span>' +
+                                '</div>' +
+                                '<p style="margin-top:20px;color:#6c757d;font-family:sans-serif;">' +
+                                    'Opening Course Player...</p>';
+                            document.body.appendChild(overlay);
                             window.location.href = "{$wwwroot}/local/arina_prism_sense/student_view.php?courseid=" +
                                 window.MOODLE_CONTEXT.courseid;
                         } else {

@@ -37,7 +37,7 @@ if (file_exists($envFile)) {
 // API Base URL - Change this in .env file for different environments.
 // Set to the root host, e.g. https://demo.arina.ai/dev2230 — all service
 // paths are appended below, so only this one value needs updating to switch environments.
-define('API_BASE_URL', rtrim(getenv('ARINA_PRISM_SENSE_API_BASE_URL') ?: 'https://demo.arina.ai/dev2230', '/'));
+define('API_BASE_URL', rtrim(getenv('ARINA_PRISM_SENSE_API_BASE_URL') ?: 'https://app.arina.ai', '/'));
 
 // ── Bot / tutorial generation service ────────────────────────────────────────
 define('BOT_BASE_URL', API_BASE_URL . '/bots/tutorial_generation');

@@ -33,39 +33,70 @@ require_login($courseid);
 $apiKey = \local_arina_prism_sense\CompanyConfig::getApiKey();
 $validationFailed = false;
 $errorMessage = '';
+$isNetworkError = false;
 
 if (empty($apiKey)) {
     $validationFailed = true;
     $errorMessage = 'API key is not configured. Please add your API key in the plugin settings.';
 } else {
-    // Validate API key against Arina auth service
-    $validateUrl = AUTH_SERVICE_URL;
+    // Cache validation result in the user session for 5 minutes to avoid a
+    // round-trip to the auth service on every page load.
+    $cacheKey    = 'arina_apikey_valid_' . hash('sha256', $apiKey);
+    $cachedResult = isset($_SESSION[$cacheKey]) ? $_SESSION[$cacheKey] : null;
+    $cacheExpiry  = isset($_SESSION[$cacheKey . '_ts']) ? $_SESSION[$cacheKey . '_ts'] : 0;
 
-    $ch = curl_init($validateUrl);
-    curl_setopt_array($ch, [
-        CURLOPT_HTTPHEADER => ["X-API-Key: {$apiKey}"],
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 10,
-        CURLOPT_FOLLOWLOCATION => true,
-    ]);
+    if ($cachedResult === null || (time() - $cacheExpiry) > 300) {
+        // Validate API key against Arina auth service
+        $validateUrl = AUTH_SERVICE_URL;
 
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError = curl_error($ch);
-    curl_close($ch);
+        $ch = curl_init($validateUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_HTTPHEADER     => ["X-API-Key: {$apiKey}"],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 5,   // fail fast if host is unreachable
+            CURLOPT_TIMEOUT        => 10,
+            CURLOPT_FOLLOWLOCATION => true,
+        ]);
 
-    if ($curlError) {
+        $response  = curl_exec($ch);
+        $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($httpCode === 200) {
+            // Valid — cache success.
+            $cachedResult = true;
+            $_SESSION[$cacheKey]         = true;
+            $_SESSION[$cacheKey . '_ts'] = time();
+        } elseif ($httpCode === 401) {
+            // Confirmed invalid key — cache and block.
+            $cachedResult = false;
+            $_SESSION[$cacheKey]         = false;
+            $_SESSION[$cacheKey . '_ts'] = time();
+            error_log('ArinaPrismSense API key validation failed: HTTP 401 (Invalid API key)');
+        } else {
+            // cURL error, timeout, or unexpected HTTP status.
+            // If a prior successful validation is cached, honour it (protects against
+            // intermittent network hiccups for users whose key is already known-good).
+            // Otherwise treat as a hard failure — we cannot confirm the key is valid.
+            if ($cachedResult !== true) {
+                $cachedResult = false;  // force block; do NOT persist to session so we retry next load
+            }
+            error_log('ArinaPrismSense API key validation network error: '
+                . "HTTP {$httpCode} curlErr={$curlError}");
+        }
+    }
+
+    // Block unless we have a confirmed (cached or fresh) valid result.
+    if ($cachedResult !== true) {
         $validationFailed = true;
-        $errorMessage = 'Unable to validate API key. Please check your network connection and try again.';
-        error_log("ArinaPrismSense API key validation cURL error: {$curlError}");
-    } elseif ($httpCode === 401) {
-        $validationFailed = true;
-        $errorMessage = 'API key is invalid or incorrect. Please check your plugin settings.';
-        error_log("ArinaPrismSense API key validation failed: HTTP 401 (Invalid API key)");
-    } elseif ($httpCode !== 200) {
-        $validationFailed = true;
-        $errorMessage = "API key validation failed with HTTP {$httpCode}. Please contact your administrator.";
-        error_log("ArinaPrismSense API key validation failed: HTTP {$httpCode}");
+        if ($cachedResult === false && isset($_SESSION[$cacheKey]) && $_SESSION[$cacheKey] === false) {
+            $errorMessage = 'API key is invalid or incorrect. Please check your plugin settings.';
+        } else {
+            $isNetworkError = true;
+            $errorMessage = 'The Arina validation service is temporarily unavailable. '
+                . 'Please try again in a few minutes.';
+        }
     }
 }
 
@@ -80,17 +111,18 @@ if ($validationFailed) {
     echo '<div style="max-width: 600px; margin: 60px auto; padding: 40px; text-align: center; background:
     #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">';
     echo '<div style="color: #dc3545; font-size: 48px; margin-bottom: 20px;">⚠️</div>';
-    echo '<h2 style="color: #dc3545; margin-bottom: 20px;">API Key Validation Failed</h2>';
+    echo '<h2 style="color: #dc3545; margin-bottom: 20px;">' .
+        ($isNetworkError ? 'Something Went Wrong' : 'API Key Validation Failed') . '</h2>';
     echo '<p style="font-size: 16px; color: #666; margin: 20px 0; line-height: 1.6;">' .
         htmlspecialchars($errorMessage) . '</p>';
 
-    // Show settings link for admins
+    // Show settings link for admins (only when the key itself is the problem)
     $systemContext = context_system::instance();
-    if (has_capability('moodle/site:config', $systemContext)) {
+    if (!$isNetworkError && has_capability('moodle/site:config', $systemContext)) {
         $settingsUrl = new moodle_url('/admin/settings.php', ['section' => 'local_arina_prism_sense']);
         echo '<p style="margin: 30px 0;"><a href="' . $settingsUrl . '" class="btn btn-warning"
         style="margin-right: 10px;">Configure API Key</a></p>';
-    } else {
+    } elseif (!$isNetworkError) {
         echo '<p style="color: #888; margin: 20px 0;">
         Please contact your system administrator to configure the API key.</p>';
     }
