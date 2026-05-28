@@ -31,9 +31,6 @@ cli
 *~
 .DS_Store
 
-# Secrets and Local Config
-.env
-
 # IDE and Dev Tools
 .idea
 .vscode
