@@ -39,6 +39,14 @@ if (file_exists($envFile)) {
 // paths are appended below, so only this one value needs updating to switch environments.
 define('API_BASE_URL', rtrim(getenv('ARINA_PRISM_SENSE_API_BASE_URL') ?: 'https://app.arina.ai', '/'));
 
+if (isset($CFG->wwwroot)
+    && strpos($CFG->wwwroot, 'http://localhost') === 0
+    && strpos(API_BASE_URL, 'https://app.arina.ai') !== false) {
+    throw new \moodle_exception(
+        'Production API cannot be used while debugging is enabled.'
+    );
+}
+
 // ── Bot / tutorial generation service ────────────────────────────────────────
 define('BOT_BASE_URL', API_BASE_URL . '/bots/tutorial_generation');
 define('API_GENERATE_PPTX', BOT_BASE_URL . '/generate_pptx');
