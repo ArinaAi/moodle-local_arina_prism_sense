@@ -144,6 +144,9 @@ try {
 
     $addField('tenant_id', $ownerId);
     $addField('user_id', $userId);
+    $addField('firstname', (string)($USER->firstname ?? ''));
+    $addField('lastname', (string)($USER->lastname ?? ''));
+    $addField('email', (string)($USER->email ?? ''));
     $addField('description', trim($issueDesc));
 
     // Repeat report_categories for each value — FastAPI reads them as a list
