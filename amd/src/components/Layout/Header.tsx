@@ -135,18 +135,37 @@ const Header: React.FC<HeaderProps> = ({ moodleContext, children, onBack, onOpen
                     >
                         {moodleContext.coursename}
                     </Typography>
-                    {!isMobile && (
-                        <Typography
-                            variant="body2"
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.25 }}>
+                        {!isMobile && (
+                            <Typography
+                                variant="body2"
+                                sx={{
+                                    color: 'text.secondary',
+                                    fontSize: { xs: '0.75rem', sm: '0.8rem', md: '0.875rem' },
+                                }}
+                            >
+                                AI Co-Pilot for Advanced Teaching
+                            </Typography>
+                        )}
+                        <Box
+                            component="span"
                             sx={{
-                                color: 'text.secondary',
-                                mt: 0.25,
-                                fontSize: { xs: '0.75rem', sm: '0.8rem', md: '0.875rem' },
+                                fontSize: '0.55rem',
+                                fontWeight: 700,
+                                color: '#1D4ED8',
+                                backgroundColor: '#DBEAFE',
+                                padding: '2px 5px',
+                                borderRadius: '4px',
+                                border: '1px solid #BFDBFE',
+                                letterSpacing: '0.5px',
+                                textTransform: 'uppercase',
+                                lineHeight: 1,
+                                userSelect: 'none',
                             }}
                         >
-                            AI-Powered Lecture Builder
-                        </Typography>
-                    )}
+                            Beta
+                        </Box>
+                    </Box>
                 </Box>
             </Box>
             <Box sx={{
