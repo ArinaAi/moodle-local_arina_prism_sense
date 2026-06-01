@@ -19,7 +19,8 @@ header('Content-Type: application/json');
 
 try {
     $client = new \local_arina_prism_sense\cms\CreditServiceAcquisitionClient();
-    $res = $client->getPackages();
+    $packageType = \local_arina_prism_sense\CompanyConfig::isIomadInstalled() ? 'IOMAD' : 'MOODLE';
+    $res = $client->getPackages(100, 0, $packageType);
 
     if ($res['status'] >= 200 && $res['status'] < 300) {
         $apiPackages = $res['data'];
@@ -56,6 +57,14 @@ try {
 
             if ($validityDays > 0) {
                 $rows[] = ['label' => 'Validity', 'value' => $validityDays . ' days'];
+            }
+
+            // IOMAD-only fields — only present when package_type=IOMAD
+            if (isset($pkg['user_seats']) && $pkg['user_seats'] !== null) {
+                $rows[] = ['label' => 'User Seats', 'value' => number_format((int) $pkg['user_seats'])];
+            }
+            if (isset($pkg['storage_gb']) && $pkg['storage_gb'] !== null) {
+                $rows[] = ['label' => 'Storage', 'value' => number_format((float) $pkg['storage_gb'], 0) . ' GB'];
             }
 
             $packages[] = [

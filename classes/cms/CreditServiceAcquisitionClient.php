@@ -42,9 +42,13 @@ class CreditServiceAcquisitionClient extends CreditServiceClient
         return $this->makeRequest('POST', "/acquisitions/confirm", $payload);
     }
 
-    public function getPackages($limit = 100, $skip = 0)
+    public function getPackages($limit = 100, $skip = 0, $packageType = null)
     {
-        return $this->makeRequest('GET', "/packages?limit={$limit}&skip={$skip}&is_active=true");
+        $url = "/packages?limit={$limit}&skip={$skip}&is_active=true";
+        if ($packageType !== null) {
+            $url .= '&package_type=' . urlencode($packageType);
+        }
+        return $this->makeRequest('GET', $url);
     }
 
     public function getCoupons($limit = 50, $offset = 0)
