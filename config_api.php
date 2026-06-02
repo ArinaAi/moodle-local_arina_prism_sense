@@ -57,6 +57,7 @@ define('API_STATUS', BOT_BASE_URL . '/status');
 define('API_CHECK_STATUS', BOT_BASE_URL . '/check_status');
 define('API_START_BATCH_UPLOAD', BOT_BASE_URL . '/start_batch_upload');
 define('API_DELETE_DOCUMENT', BOT_BASE_URL . '/delete_document');
+define('API_DELETE_VIDEO', BOT_BASE_URL . '/delete_video');
 define('API_CHECK_BATCH_STATUS', BOT_BASE_URL . '/check_batch_status');
 define('API_TRIGGER_GENERATION', BOT_BASE_URL . '/trigger_generation');
 // Base URL for per-upload retry and delete operations.

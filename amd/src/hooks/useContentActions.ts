@@ -242,7 +242,31 @@ export const useContentActions = (
         const generationData = slideItem.generationdata ? JSON.parse(slideItem.generationdata) : {};
         const regenCount = generationData.regen_count || 0;
 
-        console.warn(`🎥 Video generation for section ${sectionId}, regen_count: ${regenCount}`);
+        // Detect existing video to supersede.
+        // Identity rule: PPT + Language only (voice_gender/avatar_strategy are generation settings).
+        // Primary match: source_content_id on the video row.
+        // Fallback: regen_count match for older rows that lack source_content_id.
+        const slideRegenCountKnown: unknown = slideItem.generationdata
+            ? (generationData.regen_count ?? 0)
+            : null; // null = generationdata absent, skip regen_count fallback
+        const parentVideoId: number | null = (() => {
+            const match = state.contentItems.find(item => {
+                if (item.contenttype !== 'video') { return false; }
+                if (item.status === 'error' || item.status === 'generating') { return false; }
+                if (item.sectionid !== sectionId) { return false; }
+                const genData = item.generationdata
+                    ? (JSON.parse(item.generationdata) as Record<string, unknown>)
+                    : {};
+                const srcId = genData['source_content_id'];
+                const isFromCurrentSlide = srcId !== null && srcId !== undefined
+                    ? Number(srcId) === contentId
+                    : (slideRegenCountKnown !== null && genData['regen_count'] === slideRegenCountKnown);
+                return isFromCurrentSlide && genData['language'] === language;
+            });
+            return match?.id ?? null;
+        })();
+
+        console.warn(`🎥 Video generation for section ${sectionId}, regen_count: ${regenCount}, parentVideoId: ${parentVideoId}`);
 
         // Close modal
         dispatch({ type: 'SHOW_VIDEO_LECTURE_MODAL', payload: false });
@@ -250,10 +274,13 @@ export const useContentActions = (
         // Set generating state
         dispatch({ type: 'SET_GENERATING_SLIDES', payload: true });
 
-        // Clear previous content state
-        dispatch({ type: 'SET_GENERATED_CONTENT', payload: null });
-        dispatch({ type: 'SET_CURRENT_CONTENT_ID', payload: null });
-        dispatch({ type: 'SET_SLIDES_APPROVED', payload: false });
+        // For fresh generation: clear preview so the loading state is shown.
+        // For regeneration: keep the current video visible while the new one generates.
+        if (parentVideoId === null) {
+            dispatch({ type: 'SET_GENERATED_CONTENT', payload: null });
+            dispatch({ type: 'SET_CURRENT_CONTENT_ID', payload: null });
+            dispatch({ type: 'SET_SLIDES_APPROVED', payload: false });
+        }
 
         // Optimistic Update: Create a local "generating" item
         const tempId = Date.now();
@@ -273,6 +300,7 @@ export const useContentActions = (
             approvedby: null,
             timeapproved: null,
             approver: null,
+            parent_content_id: parentVideoId ?? undefined,
             generationdata: JSON.stringify({
                 source_content_id: contentId,
                 regen_count: regenCount,
@@ -303,6 +331,7 @@ export const useContentActions = (
                     language: language,
                     voice_gender: voiceGender,
                     avatar_strategy: avatarStrategy,
+                    ...(parentVideoId !== null && { parent_content_id: parentVideoId }),
                 }),
                 credentials: 'include',
             });

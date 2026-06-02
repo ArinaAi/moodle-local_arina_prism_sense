@@ -87,7 +87,11 @@ try {
     if ($contentid) {
         // Single ID fetch
         // Single ID fetch
-        $content = $DB->get_record('local_arina_prism_sense_content', ['id' => $contentid, 'courseid' => $courseid]);
+        $content = $DB->get_record_select(
+            'local_arina_prism_sense_content',
+            'id = ? AND courseid = ? AND (isdeleted IS NULL OR isdeleted = 0)',
+            [$contentid, $courseid]
+        );
         if ($content) {
             $contents[] = $content;
         }
@@ -104,14 +108,18 @@ try {
         if (!empty($cleanIds)) {
             list($insql, $inparams) = $DB->get_in_or_equal($cleanIds);
             // Verify courseid too for security
-            $sql = "id $insql AND courseid = ?";
+            $sql = "id $insql AND courseid = ? AND (isdeleted IS NULL OR isdeleted = 0)";
             $params = array_merge($inparams, [$courseid]);
             $contents = $DB->get_records_select('local_arina_prism_sense_content', $sql, $params);
         }
     } else {
         // Fetch All (Fallback/Load)
-        // Fetch All (Fallback/Load)
-        $contents = $DB->get_records('local_arina_prism_sense_content', ['courseid' => $courseid], 'timemodified DESC');
+        $contents = $DB->get_records_select(
+            'local_arina_prism_sense_content',
+            'courseid = ? AND (isdeleted IS NULL OR isdeleted = 0)',
+            [$courseid],
+            'timemodified DESC'
+        );
     }
 
     $contentList = [];

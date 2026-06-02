@@ -86,6 +86,14 @@ function xmldb_local_arina_prism_sense_upgrade($oldversion)
         local_arina_prism_sense_upgrade_2026032500($dbman);
     }
 
+    if ($oldversion < 2026060100) {
+        local_arina_prism_sense_upgrade_2026060100($dbman);
+    }
+
+    if ($oldversion < 2026060101) {
+        local_arina_prism_sense_upgrade_2026060101($dbman);
+    }
+
     return true;
 }
 
@@ -541,4 +549,53 @@ function local_arina_prism_sense_upgrade_2026032500($dbman)
     $dbman->change_field_notnull($table, $field);
 
     upgrade_plugin_savepoint(true, 2026032500, 'local', 'arina_prism_sense');
+}
+
+/**
+ * Add isdeleted column to local_arina_prism_sense_content.
+ *
+ * Records are soft-deleted by setting isdeleted = 1 instead of being removed
+ * from the database. For video content the Azure bucket files are deleted via
+ * the backend API before this flag is set.
+ */
+function local_arina_prism_sense_upgrade_2026060101($dbman)
+{
+    global $DB;
+
+    $table = new xmldb_table('local_arina_prism_sense_content');
+
+    // Ensure isdeleted exists — idempotent: safe to run even if previous upgrade already added it.
+    $field = new xmldb_field('isdeleted', XMLDB_TYPE_INTEGER, '1', null, null, null, null, 'regen_count');
+    if (!$dbman->field_exists($table, $field)) {
+        $dbman->add_field($table, $field);
+        $DB->execute('UPDATE {local_arina_prism_sense_content} SET isdeleted = 0 WHERE isdeleted IS NULL');
+        $field = new xmldb_field('isdeleted', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'regen_count');
+        $dbman->change_field_default($table, $field);
+        $dbman->change_field_notnull($table, $field);
+    }
+
+    upgrade_plugin_savepoint(true, 2026060101, 'local', 'arina_prism_sense');
+}
+
+function local_arina_prism_sense_upgrade_2026060100($dbman)
+{
+    global $DB;
+
+    $table = new xmldb_table('local_arina_prism_sense_content');
+
+    // Add isdeleted column (nullable initially so the backfill can run safely).
+    $field = new xmldb_field('isdeleted', XMLDB_TYPE_INTEGER, '1', null, null, null, null, 'regen_count');
+    if (!$dbman->field_exists($table, $field)) {
+        $dbman->add_field($table, $field);
+    }
+
+    // Backfill: all existing rows are active (not deleted).
+    $DB->execute('UPDATE {local_arina_prism_sense_content} SET isdeleted = 0 WHERE isdeleted IS NULL');
+
+    // Now enforce NOT NULL DEFAULT 0 after backfill is complete.
+    $field = new xmldb_field('isdeleted', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'regen_count');
+    $dbman->change_field_default($table, $field);
+    $dbman->change_field_notnull($table, $field);
+
+    upgrade_plugin_savepoint(true, 2026060100, 'local', 'arina_prism_sense');
 }

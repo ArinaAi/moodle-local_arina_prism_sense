@@ -165,13 +165,10 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
             // A stale video was generated from a different slide in this section
             if (isFromCurrentSlide) { return false; }
 
-            return (
-                genData['language'] === language &&
-                genData['voice_gender'] === voiceGender &&
-                genData['avatar_strategy'] === avatarStrategy
-            );
+            // Identity: PPT + Language only (voice_gender/avatar_strategy are generation settings)
+            return genData['language'] === language;
         }) ?? null;
-    }, [selectedSlideId, contentItems, language, voiceGender, avatarStrategy]);
+    }, [selectedSlideId, contentItems, language]);
 
     // Detect if a video was already generated from this exact slide with the same settings.
     // Two-tier: source_content_id for temp items, regen_count fallback for real backend items.
@@ -207,13 +204,10 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
 
             if (!isFromCurrentSlide) { return false; }
 
-            return (
-                genData['language'] === language &&
-                genData['voice_gender'] === voiceGender &&
-                genData['avatar_strategy'] === avatarStrategy
-            );
+            // Identity: PPT + Language only (voice_gender/avatar_strategy are generation settings)
+            return genData['language'] === language;
         }) ?? null;
-    }, [selectedSlideId, contentItems, language, voiceGender, avatarStrategy]);
+    }, [selectedSlideId, contentItems, language]);
 
     // Detect if a video generation is currently in progress for this ppt with the same settings.
     const inProgressVideo = useMemo(() => {
@@ -245,13 +239,10 @@ const VideoLectureModal: React.FC<VideoLectureModalProps> = ({
 
             if (!isFromCurrentSlide) { return false; }
 
-            return (
-                genData['language'] === language &&
-                genData['voice_gender'] === voiceGender &&
-                genData['avatar_strategy'] === avatarStrategy
-            );
+            // Identity: PPT + Language only (voice_gender/avatar_strategy are generation settings)
+            return genData['language'] === language;
         }) ?? null;
-    }, [selectedSlideId, contentItems, language, voiceGender, avatarStrategy]);
+    }, [selectedSlideId, contentItems, language]);
 
     // Reset selection when modal opens
     useEffect(() => {

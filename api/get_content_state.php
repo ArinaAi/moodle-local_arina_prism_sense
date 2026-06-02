@@ -27,8 +27,13 @@ try {
     // Release session lock to improve concurrency
     \core\session\manager::write_close();
 
-    // Get all content for this course
-    $contents = $DB->get_records('local_arina_prism_sense_content', ['courseid' => $courseid], 'timecreated DESC');
+    // Get all active (non-deleted) content for this course
+    $contents = $DB->get_records_select(
+        'local_arina_prism_sense_content',
+        'courseid = ? AND (isdeleted IS NULL OR isdeleted = 0)',
+        [$courseid],
+        'timecreated DESC'
+    );
 
     // Get section names
     $modinfo = get_fast_modinfo($courseid);
