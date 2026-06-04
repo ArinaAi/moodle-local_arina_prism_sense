@@ -254,27 +254,13 @@ export const CurriculumView: React.FC<Props> = ({ initialDegreeId }) => {
                 curriculumModal.sectionId ?? undefined,
                 curriculumModal.sectionName || undefined,
             );
-            if (res.success && res.data) {
-                const newSectionId = res.data.sectionId;
-                const storedName = curriculumModal.sectionName;
-                setSubjectSections(prev => {
-                    const existing = prev[curriculumModal.courseId] ?? [];
-                    const idx = existing.findIndex(s => s.sectionId === newSectionId);
-                    if (idx >= 0) {
-                        const updated = [...existing];
-                        updated[idx] = { ...updated[idx], name: storedName, hasCurriculum: true, curriculumText: curriculumModal.curriculumText };
-                        return { ...prev, [curriculumModal.courseId]: updated };
-                    }
-                    const newSec: CurriculumSectionData = {
-                        sectionId: newSectionId,
-                        sectionNumber: existing.length + 1,
-                        name: storedName,
-                        hasCurriculum: true,
-                        curriculumText: curriculumModal.curriculumText,
-                    };
-                    return { ...prev, [curriculumModal.courseId]: [...existing, newSec] };
-                });
-                // Auto-expand so user sees the new section immediately
+            if (res.success) {
+                // Refetch sections from the server so the modal always reflects
+                // the actual saved text — avoids stale data on re-open.
+                const freshSections = await api.getSubjectSections(curriculumModal.courseId);
+                if (freshSections.success && freshSections.data) {
+                    setSubjectSections(prev => ({ ...prev, [curriculumModal.courseId]: freshSections.data! }));
+                }
                 setExpandedSubjects(prev => ({ ...prev, [curriculumModal.courseId]: true }));
             }
             setCurriculumModal(prev => ({ ...prev, open: false }));

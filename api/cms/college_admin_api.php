@@ -816,6 +816,9 @@ try {
 
             if ($existing) {
                 $DB->set_field('label', 'intro', $introHtml, ['id' => $existing->id]);
+                // Purge the course module cache so the updated label
+                // is immediately visible on the Moodle course page.
+                rebuild_course_cache($courseId, true);
                 echo json_encode([
                     'success'   => true,
                     'action'    => 'updated',
@@ -844,6 +847,9 @@ try {
                 $moduleData->add    = 'label';
 
                 $addedMod = add_moduleinfo($moduleData, $course);
+                // Purge the course module cache so the newly created label
+                // is immediately visible on the Moodle course page.
+                rebuild_course_cache($courseId, true);
                 echo json_encode([
                     'success'   => true,
                     'action'    => 'created',
