@@ -37,3 +37,6 @@ cli
 .vscode
 node_modules/
 arina_prism_sense_debug.log
+
+# Local developer notes
+docs/moodle-version-lock.md
