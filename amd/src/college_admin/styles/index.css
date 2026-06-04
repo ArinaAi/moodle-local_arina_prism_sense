@@ -1,0 +1,69 @@
+/* ─── College Admin Root Container ────────────────────── */
+#arina-college-admin-root {
+  min-height: 100vh;
+  width: 100%;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  box-sizing: border-box;
+}
+
+/* ─── Scoped Reset ─────────────────────────────────────── */
+#arina-college-admin-root *,
+#arina-college-admin-root *::before,
+#arina-college-admin-root *::after {
+  box-sizing: border-box;
+}
+
+/* ─── App shell ─────────────────────────────────────────── */
+#prism-college-admin-app {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%) fixed;
+  min-height: 100vh;
+}
+
+#prism-college-admin-app[data-theme="dark"] {
+  background: #060d1a;
+}
+
+/* ─── Custom Scrollbar ──────────────────────────────────── */
+#arina-college-admin-root ::-webkit-scrollbar { width: 5px; }
+#arina-college-admin-root ::-webkit-scrollbar-thumb {
+  background: rgba(15,108,191,0.25);
+  border-radius: 4px;
+}
+#arina-college-admin-root ::-webkit-scrollbar-track { background: transparent; }
+
+/* ─── Focus Styles ──────────────────────────────────────── */
+#arina-college-admin-root *:focus-visible {
+  outline: 2px solid rgba(15,108,191,0.35);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─── Reduced Motion ────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  #arina-college-admin-root *,
+  #arina-college-admin-root *::before,
+  #arina-college-admin-root *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ─── Inline editable inputs ────────────────────────────── */
+.ca-inline-input {
+  border: none;
+  border-bottom: 1.5px solid rgba(15,108,191,0.4);
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  outline: none;
+  padding: 1px 4px;
+  border-radius: 2px;
+  width: 100%;
+}
+.ca-inline-input:focus {
+  border-bottom-color: #0f6cbf;
+  background: rgba(15,108,191,0.04);
+}

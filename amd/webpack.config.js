@@ -5,7 +5,8 @@ const appConfig = {
   entry: {
     teacher: './src/index.ts',
     student: './src/student/index.tsx',
-    cms: './src/cms/index.tsx'
+    cms: './src/cms/index.tsx',
+    college_admin: './src/college_admin/index.tsx',
   },
   output: {
     // Output to plugin-root build/ instead of amd/build/ so Moodle's AMD scanner

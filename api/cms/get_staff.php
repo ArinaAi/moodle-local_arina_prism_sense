@@ -68,9 +68,10 @@ try {
         // Company Manager: fetch only users who belong to this IOMAD company
         // and hold a teacher/editing-teacher role anywhere on site.
         // Site admins are excluded — they belong to the global scope, not a company.
+        $tUsers = \local_arina_prism_sense\CompanyConfig::getIomadTable('company_users');
         $sql = "SELECT DISTINCT u.id, u.firstname, u.lastname, u.email, u.department
                 FROM {user} u
-                JOIN {company_users} cu ON cu.userid = u.id
+                JOIN {{$tUsers}} cu ON cu.userid = u.id
                 LEFT JOIN {role_assignments} ra ON ra.userid = u.id
                 LEFT JOIN {role} r ON r.id = ra.roleid
                 WHERE u.deleted = 0
@@ -98,7 +99,8 @@ try {
         }
 
         $iomadInstalled = \local_arina_prism_sense\CompanyConfig::isIomadInstalled();
-        $joinCompanyUsers = $iomadInstalled ? "LEFT JOIN {company_users} cu ON cu.userid = u.id" : "";
+        $tUsers = $iomadInstalled ? \local_arina_prism_sense\CompanyConfig::getIomadTable('company_users') : '';
+        $joinCompanyUsers = $iomadInstalled ? "LEFT JOIN {{$tUsers}} cu ON cu.userid = u.id" : "";
         $orCompanyManager = $iomadInstalled ? "OR cu.managertype = 1" : "";
 
         $sql = "SELECT DISTINCT u.id, u.firstname, u.lastname, u.email, u.department

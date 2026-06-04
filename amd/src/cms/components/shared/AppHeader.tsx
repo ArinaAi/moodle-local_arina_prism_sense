@@ -12,9 +12,10 @@ import { useBalanceContext } from '../../context/BalanceContext';
 
 interface AppHeaderProps {
     activeNav: string;
+    hideBalance?: boolean;
 }
 
-export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
+export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav, hideBalance = false }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
@@ -107,25 +108,29 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ activeNav }) => {
 
                 {/* Right — Balance, Button, Logo */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 3 }, flexShrink: 0 }}>
-                    <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 2 }}>
-                        <Box id="arina_prism_sense-tour-cms-balance" sx={{ textAlign: 'right' }}>
-                            <Typography sx={{ fontSize: '0.6875rem', textTransform: 'uppercase', color: 'text.secondary', letterSpacing: '0.04em', fontWeight: 600, lineHeight: 1.2 }}>
-                                Institutional Balance
-                            </Typography>
-                            <Typography sx={{ fontSize: '1.0625rem', fontWeight: 700, color: 'text.primary', fontVariantNumeric: 'tabular-nums', lineHeight: 1.2, mt: 0.25, display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
-                                <AnimatedNumber value={balance} />
-                                <DeltaBadge delta={balanceDelta} size="header" />
-                                &nbsp;Credits
-                            </Typography>
+                    {!hideBalance && (
+                        <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 2 }}>
+                            <Box id="arina_prism_sense-tour-cms-balance" sx={{ textAlign: 'right' }}>
+                                <Typography sx={{ fontSize: '0.6875rem', textTransform: 'uppercase', color: 'text.secondary', letterSpacing: '0.04em', fontWeight: 600, lineHeight: 1.2 }}>
+                                    Institutional Balance
+                                </Typography>
+                                <Typography sx={{ fontSize: '1.0625rem', fontWeight: 700, color: 'text.primary', fontVariantNumeric: 'tabular-nums', lineHeight: 1.2, mt: 0.25, display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
+                                    <AnimatedNumber value={balance} />
+                                    <DeltaBadge delta={balanceDelta} size="header" />
+                                    &nbsp;Credits
+                                </Typography>
+                            </Box>
+                            <motion.button
+                                id="arina_prism_sense-tour-cms-add-credits"
+                                onClick={() => setPurchaseOpen(true)}
+                                whileHover={{ backgroundColor: '#0a5a9d', y: -1, boxShadow: '0 4px 12px rgba(15,108,191,0.25)' }}
+                                whileTap={{ scale: 0.97 }}
+                                style={{ padding: '8px 16px', border: 'none', borderRadius: '20px', background: '#0f6cbf', color: '#fff', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+                            >
+                                + Add Credits
+                            </motion.button>
                         </Box>
-                        <motion.button
-                            id="arina_prism_sense-tour-cms-add-credits"
-                            disabled
-                            style={{ padding: '8px 16px', border: 'none', borderRadius: '20px', background: '#b0bec5', color: '#fff', fontSize: '0.875rem', fontWeight: 600, cursor: 'not-allowed', fontFamily: 'inherit', whiteSpace: 'nowrap', opacity: 0.6, pointerEvents: 'none' }}
-                        >
-                            + Add Credits
-                        </motion.button>
-                    </Box>
+                    )}
                     <Tooltip title="Help center" arrow PopperProps={{ sx: { zIndex: 100000 } }}>
                         <IconButton
                             onClick={() => setHelpOpen(true)}

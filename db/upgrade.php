@@ -86,12 +86,54 @@ function xmldb_local_arina_prism_sense_upgrade($oldversion)
         local_arina_prism_sense_upgrade_2026032500($dbman);
     }
 
+    if ($oldversion < 2026050700) {
+        // Define table local_arina_prism_sense_degree_meta to be created.
+        $table = new xmldb_table('local_arina_prism_sense_degree_meta');
+
+        // Adding fields to table local_arina_prism_sense_degree_meta.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('degree_name', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('cycle_type', XMLDB_TYPE_CHAR, '50', null, null, null, null);
+        $table->add_field('start_date', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('num_cycles', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+
+        // Adding keys to table local_arina_prism_sense_degree_meta.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+
+        // Conditionally launch create table for local_arina_prism_sense_degree_meta.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Arina Prism Sense savepoint reached.
+        upgrade_plugin_savepoint(true, 2026050700, 'local', 'arina_prism_sense');
+    }
+
+    if ($oldversion < 2026050800) {
+        // Ensure degree_meta table exists (recreate if install.xml was out of sync).
+        $table = new xmldb_table('local_arina_prism_sense_degree_meta');
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_field('degree_name', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('cycle_type', XMLDB_TYPE_CHAR, '50', null, null, null, null);
+            $table->add_field('start_date', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+            $table->add_field('num_cycles', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+            $dbman->create_table($table);
+        }
+        upgrade_plugin_savepoint(true, 2026050800, 'local', 'arina_prism_sense');
+    }
+
     if ($oldversion < 2026060100) {
         local_arina_prism_sense_upgrade_2026060100($dbman);
     }
 
     if ($oldversion < 2026060101) {
         local_arina_prism_sense_upgrade_2026060101($dbman);
+    }
+
+    if ($oldversion < 2026060200) {
+        local_arina_prism_sense_upgrade_2026060200($dbman);
     }
 
     return true;
@@ -575,6 +617,33 @@ function local_arina_prism_sense_upgrade_2026060101($dbman)
     }
 
     upgrade_plugin_savepoint(true, 2026060101, 'local', 'arina_prism_sense');
+}
+
+/**
+ * Add local_arina_prism_sense_cycle_meta table.
+ *
+ * Stores calculated start/end dates for each degree cycle (semester/term category).
+ * This allows subjects created inside a cycle to inherit its date range, and the
+ * dates to be recalculated and propagated when degree metadata changes.
+ */
+function local_arina_prism_sense_upgrade_2026060200($dbman)
+{
+    $table = new xmldb_table('local_arina_prism_sense_cycle_meta');
+
+    $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+    $table->add_field('categoryid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+    $table->add_field('startdate', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+    $table->add_field('enddate', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+    $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+
+    $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+    $table->add_index('categoryid', XMLDB_INDEX_UNIQUE, ['categoryid']);
+
+    if (!$dbman->table_exists($table)) {
+        $dbman->create_table($table);
+    }
+
+    upgrade_plugin_savepoint(true, 2026060200, 'local', 'arina_prism_sense');
 }
 
 function local_arina_prism_sense_upgrade_2026060100($dbman)

@@ -74,14 +74,17 @@ class CompanyConfig
         }
 
         // Single JOIN: company_users → company (code=org_id) → our config table.
+        $tUsers = self::getIomadTable('company_users');
+        $tComp  = self::getIomadTable('company');
+
         $sql = "
             SELECT
                 c.code          AS org_id,
                 cfg.api_key,
                 cfg.org_wallet_owner_id,
                 cu.companyid
-            FROM {company_users} cu
-            JOIN {company} c
+            FROM {{$tUsers}} cu
+            JOIN {{$tComp}} c
               ON c.id = cu.companyid
             LEFT JOIN {local_arina_prism_sense_company_config} cfg
               ON cfg.companyid = cu.companyid
@@ -324,7 +327,7 @@ class CompanyConfig
         // Check for Company Manager role (managertype = 1).
         // Use record_exists_select — safe boolean check, no IGNORE_MULTIPLE needed.
         $isCompanyManager = $DB->record_exists_select(
-            'company_users',
+            self::getIomadTable('company_users'),
             'userid = :uid AND managertype = 1',
             ['uid' => $USER->id]
         );
@@ -340,6 +343,48 @@ class CompanyConfig
 
         // Bootstrap scoped to this user so all CompanyConfig getters are ready.
         self::bootstrap($USER->id);
+    }
+
+    /**
+     * Resolves the correct IOMAD table name based on the installed IOMAD version.
+     *
+     * Higher versions of IOMAD use 'local_iomad_...' prefix while older versions
+     * use 'company_...' names directly.
+     *
+     * @param string $basename Table name without 'mdl_' or 'local_iomad_' prefix.
+     * @return string Correct table name for $DB calls.
+     */
+    public static function getIomadTable(string $basename): string
+    {
+        global $DB;
+        static $cache = [];
+        if (isset($cache[$basename])) {
+            return $cache[$basename];
+        }
+
+        $manager = $DB->get_manager();
+        $resolvedTable = $basename; // Default to older IOMAD (directly under root)
+
+        // Map basename to plural version if needed for newer IOMAD naming.
+        $pluralBasename = $basename;
+        if ($basename === 'company') {
+            $pluralBasename = 'companies';
+        } elseif ($basename === 'company_course') {
+            $pluralBasename = 'company_courses';
+        }
+
+        $newTable = 'local_iomad_' . $pluralBasename;
+        $newTableSingular = 'local_iomad_' . $basename;
+
+        // Newer IOMAD (local plugin)
+        if ($manager->table_exists($newTable)) {
+            $resolvedTable = $newTable;
+        } elseif ($manager->table_exists($newTableSingular)) {
+            $resolvedTable = $newTableSingular;
+        }
+
+        $cache[$basename] = $resolvedTable;
+        return $resolvedTable;
     }
 
     // ── Internal helpers ──────────────────────────────────────────────────────

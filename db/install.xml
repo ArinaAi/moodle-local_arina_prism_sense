@@ -126,5 +126,22 @@
         <INDEX NAME="companyid" UNIQUE="true" FIELDS="companyid"/>
       </INDEXES>
     </TABLE>
+      <TABLE NAME="local_arina_prism_sense_degree_meta" COMMENT="Stores degree metadata for IOMAD: cycle type, start date, number of cycles">
+        <FIELDS>
+          <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+          <FIELD NAME="categoryid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Moodle course category ID for this degree"/>
+          <FIELD NAME="cycle_type" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false" COMMENT="Cycle type: semester, trimester, quarterly, annual"/>
+          <FIELD NAME="startdate" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Start date (UNIX timestamp)"/>
+          <FIELD NAME="num_cycles" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Number of cycles (terms)"/>
+          <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+          <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        </FIELDS>
+        <KEYS>
+          <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        </KEYS>
+        <INDEXES>
+          <INDEX NAME="categoryid" UNIQUE="true" FIELDS="categoryid"/>
+        </INDEXES>
+      </TABLE>
   </TABLES>
 </XMLDB>

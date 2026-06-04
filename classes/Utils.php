@@ -542,13 +542,14 @@ class Utils
     {
         global $DB;
         $result = [];
-        $userCompanies = $DB->get_records('company_users', ['userid' => $userid]);
+        $tUsers = CompanyConfig::getIomadTable('company_users');
+        $userCompanies = $DB->get_records($tUsers, ['userid' => $userid]);
         if (!$userCompanies) {
             return $result;
         }
         foreach ($userCompanies as $company) {
             $companyManagers = $DB->get_records(
-                'company_users',
+                $tUsers,
                 ['companyid' => $company->companyid, 'manager' => 1]
             );
             if (!$companyManagers) {

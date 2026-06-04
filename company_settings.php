@@ -54,8 +54,9 @@ $companyManager = null; // will hold the company_users row if user is a Company 
 
 if (!$isSiteAdmin) {
     // Check if this user is a Company Manager (managertype=1) in any company.
+    $tUsers = CompanyConfig::getIomadTable('company_users');
     $companyManager = $DB->get_record_select(
-        'company_users',
+        $tUsers,
         'userid = ? AND managertype = 1',
         [$USER->id]
     );
@@ -109,7 +110,8 @@ if ($selectedCompanyId) {
 // ── Load all companies (for Site Admin dropdown) ───────────────────────────────
 $allCompanies = [];
 if ($isSiteAdmin) {
-    $allCompanies = $DB->get_records('company', null, 'name ASC', 'id, name, shortname, code');
+    $tComp = CompanyConfig::getIomadTable('company');
+    $allCompanies = $DB->get_records($tComp, null, 'name ASC', 'id, name, shortname, code');
 }
 
 // ── Load existing config for selected company ─────────────────────────────────
@@ -117,7 +119,8 @@ $existingConfig   = null;
 $selectedCompany  = null;
 if ($selectedCompanyId) {
     $existingConfig  = CompanyConfig::getForCompany($selectedCompanyId);
-    $selectedCompany = $DB->get_record('company', ['id' => $selectedCompanyId], 'id, name, shortname, code');
+    $tComp = CompanyConfig::getIomadTable('company');
+    $selectedCompany = $DB->get_record($tComp, ['id' => $selectedCompanyId], 'id, name, shortname, code');
 }
 
 echo $OUTPUT->header();

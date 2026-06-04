@@ -246,6 +246,27 @@ function local_arina_prism_sense_can_access_student()
 }
 
 /**
+ * Inject the Credit Management and (optionally) College Admin nav links.
+ * Extracted to keep local_arina_prism_sense_before_footer() within the
+ * allowed cognitive complexity budget.
+ *
+ * @param string $wwwroot Moodle wwwroot URL.
+ */
+function local_arina_prism_sense_inject_cms_menus(string $wwwroot): void
+{
+    echo SCRIPT_START;
+    echo local_arina_prism_sense_get_cms_menu_js($wwwroot);
+    echo SCRIPT_END;
+
+    $isIomad = \core_plugin_manager::instance()->get_plugin_info('local_iomad') !== null;
+    if ($isIomad) {
+        echo SCRIPT_START;
+        echo local_arina_prism_sense_get_college_admin_menu_js($wwwroot);
+        echo SCRIPT_END;
+    }
+}
+
+/**
  * Inject JavaScript to add button in correct position with proper styling.
  */
 function local_arina_prism_sense_before_footer()
@@ -298,9 +319,7 @@ function local_arina_prism_sense_before_footer()
 
     // Inject Credit Management link for Site Admins and IOMAD Company Managers.
     if (local_arina_prism_sense_user_can_access_cms()) {
-        echo SCRIPT_START;
-        echo local_arina_prism_sense_get_cms_menu_js($CFG->wwwroot);
-        echo SCRIPT_END;
+        local_arina_prism_sense_inject_cms_menus($CFG->wwwroot);
     }
 
     // Modern Login Page Styling
@@ -308,6 +327,25 @@ function local_arina_prism_sense_before_footer()
         echo '<style>' . local_arina_prism_sense_get_login_css() . '</style>';
         echo SCRIPT_START . local_arina_prism_sense_get_login_js() . SCRIPT_END;
     }
+
+    // Auto-reload the My Courses / dashboard page once after a subject is created,
+    // bypassing any residual Moodle caches so the new enrolment appears immediately.
+    // The flag is set by the College Admin React app via localStorage.
+    echo SCRIPT_START;
+    echo <<<'JSEOF'
+(function () {
+    try {
+        if (localStorage.getItem('arina_prism_new_subject')) {
+            var p = window.location.pathname;
+            if (p.indexOf('/my') !== -1) {
+                localStorage.removeItem('arina_prism_new_subject');
+                window.location.reload();
+            }
+        }
+    } catch (e) { /* localStorage may be unavailable in some configurations */ }
+})();
+JSEOF;
+    echo SCRIPT_END;
 }
 
 /**
@@ -337,7 +375,7 @@ function local_arina_prism_sense_user_can_access_cms(): bool
     $isIomad = \core_plugin_manager::instance()->get_plugin_info('local_iomad') !== null;
     return is_siteadmin() || (
         $isIomad && $DB->record_exists_select(
-            'company_users',
+            \local_arina_prism_sense\CompanyConfig::getIomadTable('company_users'),
             'userid = :uid AND managertype = 1',
             ['uid' => $USER->id]
         )
@@ -497,6 +535,75 @@ function local_arina_prism_sense_get_squeeze_js($hasGeneratePermission, $wwwroot
 JS;
 }
 
+/**
+ * Generate JavaScript to inject College Admin (Curriculum Management) link into user menu.
+ * Only called when IOMAD is installed.
+ *
+ * @param string $wwwroot Moodle wwwroot
+ * @return string JavaScript code
+ */
+function local_arina_prism_sense_get_college_admin_menu_js($wwwroot)
+{
+    $label = get_string('collegeadmin_menu', 'local_arina_prism_sense');
+    return <<<JS
+        (function() {
+            function injectCollegeAdminLink() {
+                // Avoid injecting twice.
+                if (document.querySelector('.arina_prism_sense-college-admin-link')) {
+                    return;
+                }
+
+                // Find reference items — same strategy as CMS link.
+                const profileLink = document.querySelector('a[href*="/user/profile.php"]');
+                const gradesLink  = document.querySelector('a[href*="/grade/report"]');
+                const logoutLink  = document.querySelector('a[href*="/login/logout.php"]');
+                const cmsLink     = document.querySelector('.arina_prism_sense-cms-link');
+
+                let targetLink = cmsLink || profileLink || gradesLink || logoutLink;
+
+                if (!targetLink) {
+                    return;
+                }
+
+                const menuItem = document.createElement('a');
+                menuItem.className = targetLink.className + ' arina_prism_sense-college-admin-link';
+                menuItem.role = 'menuitem';
+                menuItem.href = '{$wwwroot}/local/arina_prism_sense/college_admin.php';
+                menuItem.rel  = 'noopener noreferrer';
+
+                const iconSpan = document.createElement('span');
+                iconSpan.className = 'menu-action-icon icon fa fa-graduation-cap fa-fw';
+                iconSpan.setAttribute('aria-hidden', 'true');
+
+                const textSpan = document.createElement('span');
+                textSpan.className = 'menu-action-text';
+                textSpan.textContent = '{$label}';
+
+                menuItem.appendChild(iconSpan);
+                menuItem.appendChild(textSpan);
+
+                // Insert directly after the CMS link if it exists, otherwise before logout.
+                if (cmsLink && cmsLink.parentNode) {
+                    cmsLink.parentNode.insertBefore(menuItem, cmsLink.nextSibling);
+                } else if (logoutLink) {
+                    logoutLink.parentNode.insertBefore(menuItem, logoutLink);
+                } else {
+                    targetLink.parentNode.appendChild(menuItem);
+                }
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', injectCollegeAdminLink);
+            } else {
+                injectCollegeAdminLink();
+            }
+
+            setTimeout(injectCollegeAdminLink, 500);
+            setTimeout(injectCollegeAdminLink, 1500);
+            setTimeout(injectCollegeAdminLink, 3000);
+        })();
+JS;
+}
 
 /**
  * Check if current page is the login page.
@@ -1050,7 +1157,7 @@ JS;
  */
 function local_arina_prism_sense_extend_navigation(global_navigation $navigation)
 {
-    global $USER, $PAGE;
+    global $USER, $PAGE, $DB;
 
     // Show for Site Admins and IOMAD Company Managers.
     if (!local_arina_prism_sense_user_can_access_cms()) {
@@ -1060,6 +1167,7 @@ function local_arina_prism_sense_extend_navigation(global_navigation $navigation
     // Try to add to user menu
     $usernode = $navigation->find('myprofile', navigation_node::TYPE_USER);
     if ($usernode) {
+        // Credit Management link (CMS) — all eligible users.
         $url = new moodle_url('/local/arina_prism_sense/cms.php');
         $node = $usernode->add(
             get_string('creditmanagement', 'local_arina_prism_sense'),
@@ -1070,5 +1178,20 @@ function local_arina_prism_sense_extend_navigation(global_navigation $navigation
             new pix_icon('i/dashboard', get_string('creditmanagement', 'local_arina_prism_sense'))
         );
         $node->showinflatnavigation = true;
+
+        // Curriculum Management (College Admin) — IOMAD only.
+        $isIomad = \core_plugin_manager::instance()->get_plugin_info('local_iomad') !== null;
+        if ($isIomad) {
+            $caUrl = new moodle_url('/local/arina_prism_sense/college_admin.php');
+            $caNode = $usernode->add(
+                get_string('collegeadmin_menu', 'local_arina_prism_sense'),
+                $caUrl,
+                navigation_node::TYPE_SETTING,
+                null,
+                'collegeadmin',
+                new pix_icon('i/cohort', get_string('collegeadmin_menu', 'local_arina_prism_sense'))
+            );
+            $caNode->showinflatnavigation = true;
+        }
     }
 }
