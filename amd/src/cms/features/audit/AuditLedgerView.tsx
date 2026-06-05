@@ -7,8 +7,7 @@ import { apiFetch, SessionExpiredError } from '../../../utils/apiFetch';
 
 export interface LedgerRow {
     id: string;
-    ts: string;
-    tsRaw: string;
+    tsEpoch: number;
     type: string;
     typeLabel: string;
     meta: string;
@@ -29,6 +28,56 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const TYPE_OPTIONS = Object.keys(TYPE_LABELS);
+
+// Format a Unix epoch (seconds) as a localised date+time string in a fixed
+// timezone when provided (profile timezone), otherwise browser local timezone.
+function formatTs(epochSeconds: number, timeZone?: string | null): string {
+    const date = new Date(epochSeconds * 1000);
+    const options: Intl.DateTimeFormatOptions = {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+    };
+
+    if (timeZone) {
+        try {
+            return date.toLocaleString([], { ...options, timeZone });
+        } catch {
+            // Fall back to browser-local formatting for invalid timezone values.
+        }
+    }
+
+    return date.toLocaleString([], options);
+}
+
+// Return a 'YYYY-MM-DD' date string in a fixed timezone when provided,
+// otherwise in the browser's local timezone.
+function epochToDateInTz(epochSeconds: number, timeZone?: string | null): string {
+    const d = new Date(epochSeconds * 1000);
+
+    if (timeZone) {
+        try {
+            // en-CA reliably yields YYYY-MM-DD, ideal for lexical date filtering.
+            return new Intl.DateTimeFormat('en-CA', {
+                timeZone,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+            }).format(d);
+        } catch {
+            // Fall through to browser-local date extraction.
+        }
+    }
+
+    const y = d.getFullYear();
+    const month = d.getMonth() + 1;
+    const date = d.getDate();
+    const m = month < 10 ? `0${month}` : String(month);
+    const day = date < 10 ? `0${date}` : String(date);
+    return `${y}-${m}-${day}`;
+}
 
 // ── Shared input style (blueprint §5.6 filter bar) ────────────
 const filterInputStyle: React.CSSProperties = {
@@ -54,6 +103,7 @@ const blurStyle = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) =>
 };
 
 export const AuditLedgerView: React.FC = () => {
+    const profileTz = window.MOODLE_CMS_CONTEXT?.usertimezone || null;
     const [typeFilter, setTypeFilter] = useState('All');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
@@ -87,19 +137,20 @@ export const AuditLedgerView: React.FC = () => {
         () =>
             ledger.filter((r) => {
                 if (typeFilter !== 'All' && r.type !== typeFilter) { return false; }
-                if (startDate && r.tsRaw < startDate) { return false; }
-                if (endDate && r.tsRaw > endDate) { return false; }
+                const dateInProfileTz = epochToDateInTz(r.tsEpoch, profileTz);
+                if (startDate && dateInProfileTz < startDate) { return false; }
+                if (endDate && dateInProfileTz > endDate) { return false; }
                 if (metaSearch && !(r.meta || '').toLowerCase().includes(metaSearch.toLowerCase())) { return false; }
                 return true;
             }),
-        [typeFilter, startDate, endDate, metaSearch, ledger],
+        [typeFilter, startDate, endDate, metaSearch, ledger, profileTz],
     );
 
     const handleExportCSV = useCallback(() => {
         if (filtered.length === 0) { return; }
         const headers = ['Timestamp', 'Type', 'Metadata', 'Amount', 'Balance'];
         const rows = filtered.map((r) => [
-            r.ts,
+            formatTs(r.tsEpoch, profileTz),
             r.typeLabel || r.type,
             `"${(r.meta || '').replace(/"/g, '""')}"`,
             r.amount.toString(),
@@ -113,7 +164,7 @@ export const AuditLedgerView: React.FC = () => {
         a.download = `audit_ledger_${new Date().toISOString().slice(0, 10)}.csv`;
         a.click();
         URL.revokeObjectURL(url);
-    }, [filtered]);
+    }, [filtered, profileTz]);
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -270,7 +321,7 @@ export const AuditLedgerView: React.FC = () => {
                                                 (e.currentTarget as HTMLElement).style.background = 'transparent';
                                             }}
                                         >
-                                            <td style={{ padding: '14px 16px', fontSize: '0.875rem', color: 'var(--ts)' }}>{row.ts}</td>
+                                            <td style={{ padding: '14px 16px', fontSize: '0.875rem', color: 'var(--ts)' }}>{formatTs(row.tsEpoch, profileTz)}</td>
                                             <td style={{ padding: '14px 16px' }}>
                                                 <Badge type={row.type} label={row.typeLabel} />
                                             </td>

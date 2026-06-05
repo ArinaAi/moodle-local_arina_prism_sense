@@ -12,7 +12,8 @@ interface StaffHistoryViewProps {
 
 interface HistoryRow {
     id: string;
-    ts: string;
+    ts?: string;
+    tsEpoch?: number;
     type: string;
     typeLabel?: string;
     desc?: string;
@@ -24,6 +25,7 @@ interface HistoryRow {
 export const StaffHistoryView: React.FC<StaffHistoryViewProps> = ({ staff, onBack }) => {
     const [history, setHistory] = useState<HistoryRow[]>([]);
     const [loading, setLoading] = useState(true);
+    const profileTz = window.MOODLE_CMS_CONTEXT?.usertimezone || null;
 
     useEffect(() => {
         const baseUrl = window.MOODLE_CMS_CONTEXT?.wwwroot || '';
@@ -42,6 +44,30 @@ export const StaffHistoryView: React.FC<StaffHistoryViewProps> = ({ staff, onBac
             })
             .finally(() => setLoading(false));
     }, [staff.id]);
+
+    const formatRowTs = (row: HistoryRow): string => {
+        if (typeof row.tsEpoch === 'number' && Number.isFinite(row.tsEpoch)) {
+            const date = new Date(row.tsEpoch * 1000);
+            const options: Intl.DateTimeFormatOptions = {
+                year: 'numeric',
+                month: 'short',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+            };
+
+            if (profileTz) {
+                try {
+                    return date.toLocaleString([], { ...options, timeZone: profileTz });
+                } catch {
+                    // Fall back to browser-local formatting when timezone is invalid.
+                }
+            }
+
+            return date.toLocaleString([], options);
+        }
+        return row.ts || '—';
+    };
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -169,7 +195,7 @@ export const StaffHistoryView: React.FC<StaffHistoryViewProps> = ({ staff, onBac
                                         onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--rh)'; }}
                                         onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                                     >
-                                        <td style={{ padding: '14px 16px', fontSize: '0.875rem', color: 'var(--ts)' }}>{row.ts}</td>
+                                        <td style={{ padding: '14px 16px', fontSize: '0.875rem', color: 'var(--ts)' }}>{formatRowTs(row)}</td>
                                         <td style={{ padding: '14px 16px' }}>
                                             <Badge type={row.type} label={row.typeLabel} />
                                         </td>

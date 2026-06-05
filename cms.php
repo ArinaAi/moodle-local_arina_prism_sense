@@ -51,6 +51,7 @@ $moodlecontext = json_encode([
     'orgid'            => CompanyConfig::getOrgId() ?? null,
     'username'         => fullname($USER),
     'useremail'        => $USER->email,
+    'usertimezone'     => (!empty($USER->timezone) && $USER->timezone !== '99') ? $USER->timezone : null,
     'isCompanyManager' => !is_siteadmin() && CompanyConfig::getCompanyId() !== null,
     'companyId'        => CompanyConfig::getCompanyId(),
 ]);

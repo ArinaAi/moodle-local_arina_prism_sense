@@ -27,8 +27,6 @@ require_login();
 header('Content-Type: application/json');
 
 // ── Date format constant (avoids sonar duplicate-literal warning) ───────────
-define('TS_FORMAT', 'M d, Y, H:i');
-
 // ── Friendly type labels ──────────────────────────────────────────────────────
 $typeLabels = [
     'PURCHASE'           => 'Credit Purchase',
@@ -189,14 +187,52 @@ function buildMeta($tx, $uuidNameCache, $walletIdNameCache, $actionLabels)
 }
 
 /**
+ * Convert a transaction created_at value to Unix epoch seconds.
+ *
+ * Credit Service timestamps are expected to be UTC. If the source string
+ * omits timezone information, we explicitly treat it as UTC to avoid
+ * environment-specific drift from PHP's default timezone.
+ *
+ * @param mixed $createdAt
+ * @return int
+ */
+function parseCreatedAtEpoch($createdAt)
+{
+    if (is_numeric($createdAt)) {
+        return (int) $createdAt;
+    }
+
+    if (!is_string($createdAt) || trim($createdAt) === '') {
+        return time();
+    }
+
+    $raw      = trim($createdAt);
+    $fallback = strtotime($raw);
+
+    // If timezone exists in the payload (Z or ±HH:MM / ±HHMM), trust it.
+    $hasTz = (bool) preg_match('/(Z|[+\-]\d{2}:?\d{2})$/', $raw);
+
+    try {
+        $dt       = $hasTz
+            ? new DateTimeImmutable($raw)
+            : new DateTimeImmutable($raw, new DateTimeZone('UTC'));
+        // No timezone supplied: interpret as UTC by contract.
+        $fallback = $dt->getTimestamp();
+    } catch (Exception $e) {
+        // $fallback retains the strtotime() result computed above.
+    }
+
+    return ($fallback !== false) ? (int) $fallback : time();
+}
+
+/**
  * Format a raw transaction array into the ledger row shape expected by the frontend.
  */
 function formatTx($tx, $typeLabels, $uuidNameCache, $walletIdNameCache, $actionLabels, $staffName = null)
 {
-    $ts    = date(TS_FORMAT, strtotime($tx['created_at']));
-    $tsRaw = date('Y-m-d', strtotime($tx['created_at']));
-    $type  = strtoupper($tx['transaction_type'] ?? $tx['type'] ?? 'UNKNOWN');
-    $typeLabel = $typeLabels[$type] ?? ucwords(str_replace('_', ' ', strtolower($type)));
+    $unixTs = parseCreatedAtEpoch($tx['created_at'] ?? null);
+    $type   = strtoupper($tx['transaction_type'] ?? $tx['type'] ?? 'UNKNOWN');
+    $typeLabel  = $typeLabels[$type] ?? ucwords(str_replace('_', ' ', strtolower($type)));
 
     $meta = buildMeta($tx, $uuidNameCache, $walletIdNameCache, $actionLabels);
 
@@ -208,8 +244,7 @@ function formatTx($tx, $typeLabels, $uuidNameCache, $walletIdNameCache, $actionL
 
     return [
         'id'        => $tx['id'],
-        'ts'        => $ts,
-        'tsRaw'     => $tsRaw,
+        'tsEpoch'   => $unixTs,
         'type'      => $type,
         'typeLabel' => $typeLabel,
         'meta'      => $meta,
@@ -359,8 +394,7 @@ try {
             if ($reserved > 0) {
                 array_unshift($ledger, [
                     'id'        => 'reserve-' . time(),
-                    'ts'        => date(TS_FORMAT),
-                    'tsRaw'     => date('Y-m-d'),
+                    'tsEpoch'   => time(),
                     'type'      => 'PENDING_RESERVE',
                     'typeLabel' => 'Credits Reserved (Processing)',
                     'meta'      => 'Locked for pending AI operations',
@@ -382,8 +416,7 @@ try {
 
                 array_unshift($ledger, [
                     'id'        => 'reserve-' . time(),
-                    'ts'        => date(TS_FORMAT),
-                    'tsRaw'     => date('Y-m-d'),
+                    'tsEpoch'   => time(),
                     'type'      => 'PENDING_RESERVE',
                     'typeLabel' => 'Credits Reserved (Processing)',
                     'meta'      => 'Locked for pending AI operations (org-wide)',

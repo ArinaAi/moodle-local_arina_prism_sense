@@ -27,6 +27,7 @@ declare global {
       orgid: string | null;
       username: string;
       useremail: string;
+      usertimezone?: string | null;
     };
     ArinaPrismSense?: {
       init: () => void;
