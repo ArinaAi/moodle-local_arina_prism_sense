@@ -43,9 +43,15 @@ if ($hassiteconfig) {
     $isRegistered = !empty(get_config('local_arina_prism_sense', 'org_id'));
 
     // ── Shared HTML fragment constants ────────────────────────────────────────
-    define('ARINA_CARD_BODY_OPEN', '<div class="card-body">');
-    define('ARINA_CARD_CLOSE', '</div></div>');
-    define('ARINA_HIDDEN_STYLE', 'max-width:540px;display:none');
+    if (!defined('ARINA_CARD_BODY_OPEN')) {
+        define('ARINA_CARD_BODY_OPEN', '<div class="card-body">');
+    }
+    if (!defined('ARINA_CARD_CLOSE')) {
+        define('ARINA_CARD_CLOSE', '</div></div>');
+    }
+    if (!defined('ARINA_HIDDEN_STYLE')) {
+        define('ARINA_HIDDEN_STYLE', 'max-width:540px;display:none');
+    }
 
     if ($isRegistered) {
         $connectionHtml =
